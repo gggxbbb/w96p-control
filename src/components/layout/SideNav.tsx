@@ -4,13 +4,12 @@ import { NAV_ITEMS } from './navItems';
 export function SideNav() {
   return (
     <nav
-      className="side-nav hidden md:flex"
+      className="side-nav"
       style={{
         width: '56px',
         background: 'var(--color-bg-inset)',
         borderRight: '0.5px solid var(--color-border)',
         padding: '12px 0',
-        display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         gap: '4px',

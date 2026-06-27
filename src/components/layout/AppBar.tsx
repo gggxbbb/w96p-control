@@ -43,13 +43,12 @@ export function AppBar({ onMenuClick }: AppBarProps) {
       <button
         onClick={onMenuClick}
         aria-label="打开菜单"
-        className="md:hidden"
+        className="menu-toggle"
         style={{
           background: 'transparent',
           border: 'none',
           color: 'var(--color-text-muted)',
           cursor: 'pointer',
-          display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           padding: '4px',
