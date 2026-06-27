@@ -103,7 +103,7 @@ export function DashboardGrid({
           }}
           resizeConfig={{
             enabled: editable,
-            handles: ['se', 'sw'],
+            handles: ['se'],
           }}
           onLayoutChange={onLayoutChange}
         >
