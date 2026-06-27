@@ -60,7 +60,7 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
   const setVariant = useMetricStore((s) => s.setVariant);
   const setRange = useMetricStore((s) => s.setRange);
 
-  const numericValue = typeof value === 'number' ? value : NaN;
+  const numericValue = typeof value === 'number' ? value : parseFloat(String(value));
   const showGauge = variant === 'gauge' && !Number.isNaN(numericValue);
 
   const min = storeMin ?? gaugeMin;
@@ -253,19 +253,25 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
       ) : (
         <div
           style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
             fontSize: '22px',
             fontWeight: 500,
             color: accentColor[accent],
             fontVariantNumeric: 'tabular-nums',
             lineHeight: 1.2,
+            overflow: 'hidden',
           }}
         >
-          {value}
-          {unit && (
-            <span style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginLeft: '2px' }}>
-              {unit}
-            </span>
-          )}
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {value}
+            {unit && (
+              <span style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginLeft: '2px', fontWeight: 400 }}>
+                {unit}
+              </span>
+            )}
+          </span>
         </div>
       )}
       {children}
