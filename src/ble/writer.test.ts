@@ -8,7 +8,7 @@ function mockChar(extra?: Partial<BluetoothRemoteGATTCharacteristic>) {
     writeValue: vi.fn().mockResolvedValue(undefined),
     writeValueWithoutResponse: vi.fn().mockResolvedValue(undefined),
     readValue: vi.fn().mockResolvedValue(new DataView(new Uint8Array([0]).buffer)),
-    properties: { write: true, writeWithoutResponse: true, read: true },
+    properties: { write: true, writeWithoutResponse: true, read: true } as unknown as BluetoothCharacteristicProperties,
     ...extra,
   } as unknown as BluetoothRemoteGATTCharacteristic;
 }
@@ -76,7 +76,7 @@ describe('WriteQueue', () => {
         .mockRejectedValueOnce(new Error('fail1'))
         .mockRejectedValueOnce(new Error('fail2'))
         .mockRejectedValueOnce(new Error('fail3')),
-      properties: { write: true, writeWithoutResponse: true, read: false },
+      properties: { write: true, writeWithoutResponse: true, read: false } as unknown as BluetoothCharacteristicProperties,
     });
     await expect(q.rawWrite(char, new Uint8Array([1]), 3)).rejects.toThrow('fail3');
     expect(char.writeValueWithoutResponse).toHaveBeenCalledTimes(3);
@@ -88,7 +88,7 @@ describe('WriteQueue', () => {
       writeValueWithoutResponse: vi.fn()
         .mockRejectedValueOnce(new Error('fail1'))
         .mockResolvedValueOnce(undefined),
-      properties: { write: true, writeWithoutResponse: true, read: false },
+      properties: { write: true, writeWithoutResponse: true, read: false } as unknown as BluetoothCharacteristicProperties,
     });
     await q.rawWrite(char, new Uint8Array([1]), 3);
     expect(char.writeValueWithoutResponse).toHaveBeenCalledTimes(2);

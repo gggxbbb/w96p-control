@@ -41,9 +41,9 @@ export class WriteQueue {
     for (let i = 0; i < retries; i++) {
       try {
         if (char.properties.writeWithoutResponse) {
-          await char.writeValueWithoutResponse(data);
+          await char.writeValueWithoutResponse(data as BufferSource);
         } else {
-          await char.writeValue(data);
+          await char.writeValue(data as BufferSource);
         }
         return;
       } catch (e) {

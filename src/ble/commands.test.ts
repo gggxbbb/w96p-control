@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cmd, encodeCmd, type PowReg } from './commands';
+import { cmd, encodeCmd } from './commands';
 
 describe('commands', () => {
   it('setBatteryCapacity 构造正确 ASCII', () => {
