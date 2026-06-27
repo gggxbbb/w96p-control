@@ -194,6 +194,22 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
 
 /* ========= Gauge 子组件 ========= */
 
+/** 格式化数字：整数直接显示，小数保留 1 位 */
+function fmtNum(n: number): string {
+  if (Number.isInteger(n)) return String(n);
+  return n.toFixed(1);
+}
+
+/** 格式化刻度标签：大数缩写为 k */
+function fmtLabel(n: number): string {
+  if (n >= 10000) return (n / 1000).toFixed(0) + 'k';
+  if (n >= 1000) {
+    const v = n / 1000;
+    return Number.isInteger(v) ? v + 'k' : v.toFixed(1) + 'k';
+  }
+  return fmtNum(n);
+}
+
 interface GaugeProps {
   value: number;
   min: number;
@@ -261,10 +277,10 @@ function Gauge({ value, min, max, unit, accent }: GaugeProps) {
           />
         )}
         <text x={minPos.x.toFixed(0)} y={minPos.y.toFixed(0)} textAnchor="middle" fontSize="7" fill="var(--color-text-dim)">
-          {min}
+          {fmtLabel(min)}
         </text>
         <text x={maxPos.x.toFixed(0)} y={maxPos.y.toFixed(0)} textAnchor="middle" fontSize="7" fill="var(--color-text-dim)">
-          {max}
+          {fmtLabel(max)}
         </text>
       </svg>
 
@@ -279,7 +295,7 @@ function Gauge({ value, min, max, unit, accent }: GaugeProps) {
           textAlign: 'center',
         }}
       >
-        {value}
+        {fmtNum(value)}
         {unit && (
           <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginLeft: '2px' }}>
             {unit}

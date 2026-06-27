@@ -12,19 +12,13 @@ export function StatusBar() {
     return () => clearInterval(id);
   }, []);
 
-  const statusText =
-    state === 'connected' ? '● 就绪' :
-    state === 'connecting' ? '● 连接中' :
-    state === 'error' ? '● 错误' :
-    '● 空闲';
+  const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
 
   const statusColor =
     state === 'connected' ? 'var(--color-success)' :
     state === 'connecting' ? 'var(--color-warning)' :
     state === 'error' ? 'var(--color-danger)' :
     'var(--color-text-dim)';
-
-  const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
 
   return (
     <footer
@@ -43,13 +37,17 @@ export function StatusBar() {
         flexShrink: 0,
       }}
     >
-      <span style={{ color: statusColor }}>{statusText}</span>
+      <span style={{ color: statusColor }}>{state === 'connected' ? '●' : state === 'connecting' ? '●' : state === 'error' ? '●' : '●'}</span>
+      {state === 'connected' && <span className="status-label">就绪</span>}
+      {state === 'connecting' && <span className="status-label">连接中</span>}
+      {state === 'error' && <span className="status-label">错误</span>}
+      {state !== 'connected' && state !== 'connecting' && state !== 'error' && <span className="status-label">空闲</span>}
       <span style={{ color: 'var(--color-text-dim)' }}>|</span>
-      <span>轮询 {pollInterval}ms</span>
+      <span className="status-label">{pollInterval}ms</span>
       {profile && (
         <>
           <span style={{ color: 'var(--color-text-dim)' }}>|</span>
-          <span>{profile.name} profile</span>
+          <span className="status-label">{profile.name}</span>
         </>
       )}
       <div style={{ flex: 1 }} />

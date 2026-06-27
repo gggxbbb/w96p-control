@@ -78,6 +78,8 @@ body {
 }
 @media (max-width: 767px) {
   .menu-toggle { display: flex; }
+  .device-name { display: none; }
+  .status-label { display: none; }
 }
 
 /* ===== react-grid-layout 样式覆盖 ===== */

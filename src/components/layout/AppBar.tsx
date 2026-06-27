@@ -67,7 +67,7 @@ export function AppBar({ onMenuClick }: AppBarProps) {
       <div style={{ flex: 1 }} />
 
       {isConnected && deviceName && (
-        <span style={{ color: 'var(--color-text-muted)', fontSize: '12px' }}>
+        <span className="device-name" style={{ color: 'var(--color-text-muted)', fontSize: '12px' }}>
           {deviceName}
           {profile && ` · ${profile.name}`}
           {isVirtualDevice && <span style={{ color: 'var(--color-warning)', marginLeft: '4px' }}>[虚拟]</span>}
