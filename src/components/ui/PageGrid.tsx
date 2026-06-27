@@ -92,5 +92,5 @@ const btnStyle: React.CSSProperties = {
 const activeBtnStyle: React.CSSProperties = {
   ...btnStyle,
   color: 'var(--color-accent)',
-  borderColor: 'var(--color-accent)',
+  border: '0.5px solid var(--color-accent)',
 };
