@@ -1,0 +1,3 @@
+# 本目录用于存放本地 MiSans 字体文件（MiSans-Regular.woff2、MiSans-Medium.woff2）。
+# 当前项目通过 index.html 的 <link> 引入 jsdelivr CDN 的子集化 MiSans，无需本地文件。
+# 后续如需离线/PWA 支持，请下载完整 woff2 放入本目录，并在 src/styles.css 中启用 @font-face 定义。

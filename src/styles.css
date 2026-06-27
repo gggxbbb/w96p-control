@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+/* MiSans 字体：当前通过 index.html 的 <link> 引入 jsdelivr CDN（子集化分片，按 unicode-range 按需加载）。
+   TODO: 待用户提供本地完整 woff2 后，改回下方 @font-face 本地引用以支持离线/PWA。
+   CDN 注册的 font-family 名为 'MiSans'，Regular=weight 330，Medium=weight 500。
+   --font-sans: 'MiSans' 无需改动。
+@font-face {
+  font-family: 'MiSans';
+  src: url('/fonts/MiSans-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'MiSans';
+  src: url('/fonts/MiSans-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+}
+*/
+
+@theme {
+  --font-sans: 'MiSans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'MiSans', ui-monospace, monospace;
+
+  --color-bg-page: #1A1A18;
+  --color-bg-surface: #2C2C2A;
+  --color-bg-inset: #232320;
+  --color-border: #444441;
+  --color-border-strong: #5F5E5A;
+  --color-text: #E8E7E2;
+  --color-text-muted: #888780;
+  --color-text-dim: #5F5E5A;
+  --color-accent: #378ADD;
+  --color-success: #1D9E75;
+  --color-warning: #BA7517;
+  --color-danger: #E24B4A;
+}
+
+:root[data-theme="light"] {
+  --color-bg-page: #F1EFE8;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-inset: #F7F2FA;
+  --color-border: #D3D1C7;
+  --color-border-strong: #B4B2A9;
+  --color-text: #2C2C2A;
+  --color-text-muted: #5F5E5A;
+  --color-text-dim: #888780;
+  --color-accent: #185FA5;
+  --color-success: #0F6E56;
+  --color-warning: #854F0B;
+  --color-danger: #A32D2D;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-bg-page);
+  color: var(--color-text);
+}
+
+:focus:not(:focus-visible) { outline: none; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
