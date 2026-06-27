@@ -142,7 +142,7 @@ body {
 .react-grid-item .react-resizable-handle::after {
   content: '';
   position: absolute;
-  right: 4px;
+  right: 10px;
   bottom: 4px;
   width: 6px;
   height: 6px;
@@ -161,6 +161,11 @@ body {
   user-select: none;
   -webkit-user-select: none;
 }
+/* 非编辑模式下隐藏拖拽手柄图标 */
+.w96p-grid:not(.editable) .drag-handle-icon {
+  display: none;
+}
+
 /* 编辑模式下拖拽手柄显示 grab 光标 */
 .w96p-grid.editable .drag-handle {
   cursor: grab;
@@ -168,11 +173,6 @@ body {
 /* 编辑模式下拖拽中显示 grabbing 光标 */
 .w96p-grid.editable .react-grid-item.react-draggable-dragging .drag-handle {
   cursor: grabbing;
-}
-
-/* 非编辑模式下隐藏拖拽手柄图标 */
-.w96p-grid:not(.editable) .drag-handle-icon {
-  display: none;
 }
 
 /* ===== 自定义滚动条 ===== */

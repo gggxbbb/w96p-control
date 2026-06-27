@@ -1,12 +1,27 @@
 /// <reference types="vitest" />
+import { execSync } from 'node:child_process'
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import basicSsl from '@vitejs/plugin-basic-ssl'
 
+function gitHash(): string {
+  try {
+    return execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim()
+  } catch {
+    return 'unknown'
+  }
+}
+
+function buildTime(): string {
+  return new Date().toISOString()
+}
+
 export default defineConfig({
   define: {
+    'import.meta.env.VITE_COMMIT_HASH': JSON.stringify(gitHash()),
+    'import.meta.env.VITE_BUILD_TIME': JSON.stringify(buildTime()),
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV ?? 'development'),
   },
   plugins: [

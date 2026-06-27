@@ -119,10 +119,26 @@ export default function Settings() {
       <Card key="about" title="关于" dragHandle>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', color: 'var(--color-text-muted)' }}>
           <Row label="应用" value="W96P 控制 v1.0" />
+          <Row label="提交" value={import.meta.env.VITE_COMMIT_HASH ?? 'unknown'} />
+          <Row label="构建" value={new Date(import.meta.env.VITE_BUILD_TIME ?? Date.now()).toLocaleString('zh-CN')} />
           <Row label="协议" value="BLE GATT (FFF0/FFD0/FFE0)" />
           <Row label="支持设备" value="W96P / W66D" />
           <Row label="字体" value="MiSans" />
-          <div style={{ marginTop: '8px', fontSize: '10px', color: 'var(--color-text-dim)' }}>
+          <div style={{ marginTop: '4px' }}>
+            <a
+              href="https://github.com/gggxbbb/w96p-control"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: 'var(--color-accent)',
+                textDecoration: 'none',
+                fontSize: '12px',
+              }}
+            >
+              GitHub ↗
+            </a>
+          </div>
+          <div style={{ marginTop: '4px', fontSize: '10px', color: 'var(--color-text-dim)' }}>
             Web Bluetooth API · Chrome 56+ / Edge 79+
           </div>
         </div>

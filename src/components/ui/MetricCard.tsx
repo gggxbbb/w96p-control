@@ -172,18 +172,16 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
             >
               {variant === 'gauge' ? '#' : '◔'}
             </button>
-            {variant === 'gauge' && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openConfig();
-                }}
-                title="仪表范围"
-                style={iconBtnStyle}
-              >
-                ⚙
-              </button>
-            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                openConfig();
+              }}
+              title="数值范围"
+              style={iconBtnStyle}
+            >
+              ⚙
+            </button>
           </div>
         )}
       </div>
