@@ -12,7 +12,7 @@ interface CardProps {
 }
 
 export const Card = forwardRef<HTMLElement, CardProps>(function Card(
-  { title, subtitle, children, actions, dragHandle, style, className },
+  { title, subtitle, children, actions, dragHandle, style, className, ...rest },
   ref,
 ) {
   const headerClass = dragHandle ? 'drag-handle' : '';
@@ -21,6 +21,7 @@ export const Card = forwardRef<HTMLElement, CardProps>(function Card(
     <section
       ref={ref}
       className={className}
+      {...rest}
       style={{
         background: 'var(--color-bg-surface)',
         border: '0.5px solid var(--color-border)',

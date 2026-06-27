@@ -19,12 +19,13 @@ const accentColor: Record<Accent, string> = {
 };
 
 export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function MetricCard(
-  { label, value, unit, accent = 'default', style, className },
+  { label, value, unit, accent = 'default', style, className, ...rest },
   ref,
 ) {
   return (
     <div
       ref={ref}
+      {...rest}
       className={className ? `drag-handle ${className}` : 'drag-handle'}
       style={{
         background: 'var(--color-bg-surface)',
