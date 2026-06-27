@@ -6,6 +6,7 @@ interface MetricCardProps {
   unit?: string;
   accent?: Accent;
   style?: React.CSSProperties;
+  className?: string;
 }
 
 const accentColor: Record<Accent, string> = {
@@ -15,10 +16,10 @@ const accentColor: Record<Accent, string> = {
   danger: 'var(--color-danger)',
 };
 
-export function MetricCard({ label, value, unit, accent = 'default', style }: MetricCardProps) {
+export function MetricCard({ label, value, unit, accent = 'default', style, className }: MetricCardProps) {
   return (
     <div
-      className="drag-handle"
+      className={className ? `drag-handle ${className}` : 'drag-handle'}
       style={{
         background: 'var(--color-bg-surface)',
         border: '0.5px solid var(--color-border)',

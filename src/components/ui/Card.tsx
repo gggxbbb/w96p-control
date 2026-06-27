@@ -8,13 +8,15 @@ interface CardProps {
   /** 是否将 header 作为拖拽手柄。设为 true 时 header 获得 .drag-handle 类 */
   dragHandle?: boolean;
   style?: CSSProperties;
+  className?: string;
 }
 
-export function Card({ title, subtitle, children, actions, dragHandle, style }: CardProps) {
+export function Card({ title, subtitle, children, actions, dragHandle, style, className }: CardProps) {
   const headerClass = dragHandle ? 'drag-handle' : '';
 
   return (
     <section
+      className={className}
       style={{
         background: 'var(--color-bg-surface)',
         border: '0.5px solid var(--color-border)',
