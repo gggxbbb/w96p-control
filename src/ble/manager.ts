@@ -2,33 +2,19 @@ import { SERVICES, CHARS, ALL_OPTIONAL_SERVICES } from './uuids';
 import { pickProfile, type Profile } from './profiles';
 import {
   parseBatteryInfo, parsePowerStatus, parseMotorInfo, parsePowerConfig,
-  type BatteryInfo, type PowerStatus, type MotorInfo, type PowerConfigRegs,
 } from './parsers';
 import { cmd, encodeCmd, type PowReg } from './commands';
 import { WriteQueue } from './writer';
+import type { IBleManager, BleState, BleSnapshot } from './types';
 
-export type BleState = 'idle' | 'connecting' | 'connected' | 'error';
-
-export interface BleSnapshot {
-  fanSpeed?: number;
-  timerRemainingSec?: number;
-  natureWindOn?: boolean;
-  shutdownDelaySec?: number;
-  gearDownMode?: 0 | 1;
-  speedCalib?: [number, number, number, number];
-  natureCurve?: number[];
-  battery?: BatteryInfo;
-  powerStatus?: PowerStatus;
-  motor?: MotorInfo;
-  powerConfig?: PowerConfigRegs;
-}
+export type { BleState, BleSnapshot } from './types';
 
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 const u8 = (dv: DataView, off = 0) => dv.byteLength > off ? dv.getUint8(off) : 0;
 const u16be = (dv: DataView, off = 0) =>
   dv.byteLength >= off + 2 ? dv.getUint16(off, false) : 0;
 
-export class BleManager {
+export class BleManager implements IBleManager {
   private device: BluetoothDevice | null = null;
   private chars = new Map<string, BluetoothRemoteGATTCharacteristic>();
   private writer = new WriteQueue();

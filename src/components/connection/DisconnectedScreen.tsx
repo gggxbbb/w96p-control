@@ -1,7 +1,7 @@
 import { useBle } from '../../hooks/useBle';
 
 export function DisconnectedScreen() {
-  const { connect } = useBle();
+  const { connectReal } = useBle();
   return (
     <div
       style={{
@@ -24,7 +24,7 @@ export function DisconnectedScreen() {
         </p>
       </div>
       <button
-        onClick={connect}
+        onClick={connectReal}
         style={{
           background: 'var(--color-accent)',
           color: 'var(--color-bg-page)',
