@@ -5,16 +5,13 @@ interface CardProps {
   subtitle?: string;
   children: ReactNode;
   actions?: ReactNode;
-  /** 是否显示拖拽手柄（在 header 上）。设为 true 时 header 获得 .drag-handle 类 */
+  /** 是否将 header 作为拖拽手柄。设为 true 时 header 获得 .drag-handle 类 */
   dragHandle?: boolean;
   style?: CSSProperties;
 }
 
 export function Card({ title, subtitle, children, actions, dragHandle, style }: CardProps) {
   const headerClass = dragHandle ? 'drag-handle' : '';
-  const headerStyle: CSSProperties = dragHandle
-    ? { cursor: 'move', userSelect: 'none' }
-    : {};
 
   return (
     <section
@@ -41,12 +38,12 @@ export function Card({ title, subtitle, children, actions, dragHandle, style }: 
             justifyContent: 'space-between',
             paddingBottom: '8px',
             borderBottom: '0.5px solid var(--color-border)',
-            ...headerStyle,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
             {dragHandle && (
               <svg
+                className="drag-handle-icon"
                 width="12"
                 height="12"
                 viewBox="0 0 24 24"
