@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { DashboardGrid } from './DashboardGrid';
+import { EditModeProvider } from './EditModeContext';
 import type { ResponsiveLayouts } from 'react-grid-layout';
 
 interface PageGridProps {
@@ -50,16 +51,18 @@ export function PageGrid({
           </button>
         </div>
       </div>
-      <DashboardGrid
-        key={gridKey}
-        pageKey={pageKey}
-        defaultLayouts={defaultLayouts}
-        cols={cols}
-        rowHeight={rowHeight}
-        editable={editMode}
-      >
-        {children}
-      </DashboardGrid>
+      <EditModeProvider editable={editMode}>
+        <DashboardGrid
+          key={gridKey}
+          pageKey={pageKey}
+          defaultLayouts={defaultLayouts}
+          cols={cols}
+          rowHeight={rowHeight}
+          editable={editMode}
+        >
+          {children}
+        </DashboardGrid>
+      </EditModeProvider>
     </div>
   );
 }

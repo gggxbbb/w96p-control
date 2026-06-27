@@ -169,7 +169,6 @@ export default function Dashboard() {
         value={fanSpeed}
         unit="%"
         accent={fanSpeed > 0 ? 'success' : 'default'}
-        variant="gauge"
       />
       <MetricCard
         key="batt-power"
