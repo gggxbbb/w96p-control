@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import { useBle } from '../../hooks/useBle';
-import { useSettingsStore } from '../../stores/settings';
 import { StatusPill } from '../ui/StatusPill';
 
 interface AppBarProps {
@@ -9,12 +8,8 @@ interface AppBarProps {
 
 export function AppBar({ onMenuClick }: AppBarProps) {
   const { state, deviceName, profile, isConnected, isVirtualDevice, connectReal, connectVirtual, disconnect } = useBle();
-  const theme = useSettingsStore((s) => s.theme);
-  const setTheme = useSettingsStore((s) => s.setTheme);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -87,75 +82,51 @@ export function AppBar({ onMenuClick }: AppBarProps) {
         <StatusPill status="default" label="未连接" />
       )}
 
-      {isConnected ? (
-        <button onClick={disconnect} style={disconnectBtnStyle}>
-          断开
+      <div ref={menuRef} style={{ position: 'relative' }}>
+        <button
+          onClick={() => {
+            if (isConnected) {
+              disconnect();
+            } else {
+              setMenuOpen(!menuOpen);
+            }
+          }}
+          style={isConnected ? dangerBtnStyle : primaryBtnStyle}
+        >
+          {isConnected ? '断开' : '连接 ▾'}
         </button>
-      ) : (
-        <div ref={menuRef} style={{ position: 'relative' }}>
-          <button onClick={() => setMenuOpen(!menuOpen)} style={connectBtnStyle}>
-            连接 ▾
-          </button>
-          {menuOpen && (
-            <div style={menuStyle}>
-              <button
-                onClick={() => { setMenuOpen(false); connectReal(); }}
-                style={menuItemStyle}
-              >
-                连接真机
-              </button>
-              <div style={{ height: '0.5px', background: 'var(--color-border)', margin: '4px 0' }} />
-              <div style={{ padding: '4px 10px', fontSize: '10px', color: 'var(--color-text-dim)', letterSpacing: '0.5px' }}>
-                虚拟设备
-              </div>
-              <button
-                onClick={() => { setMenuOpen(false); connectVirtual('W96P'); }}
-                style={menuItemStyle}
-              >
-                虚拟 W96P（0-100）
-              </button>
-              <button
-                onClick={() => { setMenuOpen(false); connectVirtual('W66D'); }}
-                style={menuItemStyle}
-              >
-                虚拟 W66D（20-90）
-              </button>
+        {menuOpen && !isConnected && (
+          <div style={menuStyle}>
+            <button
+              onClick={() => { setMenuOpen(false); connectReal(); }}
+              style={menuItemStyle}
+            >
+              连接真机
+            </button>
+            <div style={{ height: '0.5px', background: 'var(--color-border)', margin: '4px 0' }} />
+            <div style={{ padding: '4px 10px', fontSize: '10px', color: 'var(--color-text-dim)', letterSpacing: '0.5px' }}>
+              虚拟设备
             </div>
-          )}
-        </div>
-      )}
-
-      <button
-        onClick={toggleTheme}
-        aria-label="切换主题"
-        style={{
-          background: 'transparent',
-          border: '0.5px solid var(--color-border-strong)',
-          borderRadius: '6px',
-          padding: '6px 8px',
-          color: 'var(--color-text-muted)',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        {theme === 'dark' ? (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <circle cx="12" cy="12" r="4" />
-            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-          </svg>
-        ) : (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-          </svg>
+            <button
+              onClick={() => { setMenuOpen(false); connectVirtual('W96P'); }}
+              style={menuItemStyle}
+            >
+              虚拟 W96P（0-100）
+            </button>
+            <button
+              onClick={() => { setMenuOpen(false); connectVirtual('W66D'); }}
+              style={menuItemStyle}
+            >
+              虚拟 W66D（20-90）
+            </button>
+          </div>
         )}
-      </button>
+      </div>
     </header>
   );
 }
 
-const connectBtnStyle: React.CSSProperties = {
+const primaryBtnStyle: React.CSSProperties = {
   background: 'transparent',
   border: '0.5px solid var(--color-border-strong)',
   borderRadius: '6px',
@@ -166,15 +137,9 @@ const connectBtnStyle: React.CSSProperties = {
   cursor: 'pointer',
 };
 
-const disconnectBtnStyle: React.CSSProperties = {
-  background: 'transparent',
-  border: '0.5px solid var(--color-border-strong)',
-  borderRadius: '6px',
-  padding: '6px 12px',
+const dangerBtnStyle: React.CSSProperties = {
+  ...primaryBtnStyle,
   color: 'var(--color-danger)',
-  fontSize: '12px',
-  fontFamily: 'var(--font-sans)',
-  cursor: 'pointer',
 };
 
 const menuItemStyle: React.CSSProperties = {
