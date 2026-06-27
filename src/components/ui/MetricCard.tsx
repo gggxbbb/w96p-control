@@ -2,13 +2,12 @@ import { forwardRef, useState, type ReactNode } from 'react';
 import { useMetricStore } from '../../stores/metricConfig';
 import { useEditMode } from './EditModeContext';
 
-type Accent = 'default' | 'success' | 'warning' | 'danger';
-
 interface MetricCardProps {
   label: string;
   value: number | string;
   unit?: string;
-  accent?: Accent;
+  /** @deprecated 颜色现在按值百分比自动分区，不再使用此属性 */
+  accent?: string;
   /** gauge 模式的最小值，默认 0 */
   gaugeMin?: number;
   /** gauge 模式的最大值，默认 100 */
@@ -17,13 +16,6 @@ interface MetricCardProps {
   className?: string;
   children?: ReactNode;
 }
-
-const accentColor: Record<Accent, string> = {
-  default: 'var(--color-text)',
-  success: 'var(--color-success)',
-  warning: 'var(--color-warning)',
-  danger: 'var(--color-danger)',
-};
 
 /** 仪表模式下各类指标的合理默认范围 */
 const GAUGE_PRESETS: Record<string, { min: number; max: number }> = {
@@ -49,8 +41,18 @@ const GAUGE_PRESETS: Record<string, { min: number; max: number }> = {
 
 const DEFAULT_GAUGE_RANGE = { min: 0, max: 100 };
 
+/** 统一颜色：按值在 min-max 范围中的百分比分区 */
+function getColor(numericValue: number, min: number, max: number): string {
+  if (Number.isNaN(numericValue)) return 'var(--color-text)';
+  const range = max - min || 1;
+  const pct = (numericValue - min) / range;
+  if (pct >= 0.9) return 'var(--color-danger)';
+  if (pct >= 0.7) return 'var(--color-warning)';
+  return 'var(--color-text)';
+}
+
 export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function MetricCard(
-  { label, value, unit, accent = 'default', gaugeMin = 0, gaugeMax = 100, style, className, children, ...rest },
+  { label, value, unit, accent: _accent, gaugeMin = 0, gaugeMax = 100, style, className, children, ...rest },
   ref,
 ) {
   const editable = useEditMode();
@@ -68,6 +70,7 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
 
   const min = storeMin ?? gaugeMin;
   const max = storeMax ?? gaugeMax;
+  const color = getColor(numericValue, min, max);
 
   const [configOpen, setConfigOpen] = useState(false);
   const [draftMin, setDraftMin] = useState(min);
@@ -252,7 +255,7 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
 
       {/* value */}
       {showGauge ? (
-        <Gauge value={numericValue} min={min} max={max} unit={effectiveUnit} accent={accent} />
+        <Gauge value={numericValue} min={min} max={max} unit={effectiveUnit} color={color} />
       ) : (
         <div
           style={{
@@ -261,7 +264,7 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
             alignItems: 'center',
             justifyContent: 'center',
             fontWeight: 500,
-            color: accentColor[accent],
+            color,
             fontVariantNumeric: 'tabular-nums',
             lineHeight: 1.2,
             overflow: 'hidden',
@@ -313,18 +316,12 @@ interface GaugeProps {
   min: number;
   max: number;
   unit?: string;
-  accent: Accent;
+  color: string;
 }
 
-function Gauge({ value, min, max, unit, accent: _accent }: GaugeProps) {
+function Gauge({ value, min, max, unit, color }: GaugeProps) {
   const range = max - min || 1;
   const pct = Math.max(0, Math.min(1, (value - min) / range));
-
-  // 颜色分区：<70% 默认白，70-90% 警告黄，>90% 危险红
-  const color =
-    pct >= 0.9 ? 'var(--color-danger)' :
-    pct >= 0.7 ? 'var(--color-warning)' :
-    'var(--color-text)';
 
   const cx = 50;
   const cy = 42;
