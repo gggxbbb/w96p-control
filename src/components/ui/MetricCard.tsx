@@ -63,6 +63,9 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
   const numericValue = typeof value === 'number' ? value : parseFloat(String(value));
   const showGauge = variant === 'gauge' && !Number.isNaN(numericValue);
 
+  // 从字符串 value 中推断单位（如 "3.85 V" → "V"），显式 unit prop 优先
+  const effectiveUnit = unit ?? (typeof value === 'string' ? String(value).replace(/^-?[\d.]+/, '').trim() : undefined);
+
   const min = storeMin ?? gaugeMin;
   const max = storeMax ?? gaugeMax;
 
@@ -249,7 +252,7 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
 
       {/* value */}
       {showGauge ? (
-        <Gauge value={numericValue} min={min} max={max} unit={unit} accent={accent} />
+        <Gauge value={numericValue} min={min} max={max} unit={effectiveUnit} accent={accent} />
       ) : (
         <div
           style={{
