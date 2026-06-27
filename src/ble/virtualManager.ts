@@ -16,7 +16,6 @@ export class VirtualManager implements IBleManager {
   private virtualProfileName: 'W96P' | 'W66D' = 'W96P';
 
   // 内部状态
-  private state: BleState = 'idle';
   private pollId: number | null = null;
   private timerInterval: number | null = null;
   private startTime = 0;
@@ -51,7 +50,6 @@ export class VirtualManager implements IBleManager {
     this.onState?.('connecting');
     await sleep(300);  // 模拟连接延迟
     this.profile = PROFILES[this.virtualProfileName];
-    this.state = 'connected';
     this.startTime = Date.now();
     // 按型号调整初始值
     this.speedCalib = [...this.profile.defaultSpeeds] as [number, number, number, number];
@@ -236,7 +234,6 @@ export class VirtualManager implements IBleManager {
 
   disconnect(): void {
     this.stopPolling();
-    this.state = 'idle';
     this.profile = null;
     this.onState?.('idle');
   }

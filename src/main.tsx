@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 import { router } from './app/router';
 import { useSettingsStore } from './stores/settings';
+import 'react-grid-layout/css/styles.css';
 import './styles.css';
 
 const theme = useSettingsStore.getState().theme;

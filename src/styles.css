@@ -80,37 +80,62 @@ body {
   .menu-toggle { display: flex; }
 }
 
-/* ===== react-grid-layout 必需样式 ===== */
-.w96p-grid {
+/* ===== react-grid-layout 样式覆盖 ===== */
+/* react-resizable 基础样式（原 react-resizable/css/styles.css，react-resizable 为间接依赖） */
+.react-resizable {
+  position: relative;
+}
+.react-resizable-handle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  background-position: bottom right;
+  padding: 0 3px 3px 0;
+}
+
+/* react-grid-layout 基础 + 自定义覆盖 */
+.react-grid-layout {
   position: relative;
   transition: height 200ms ease;
 }
-.rgl-item {
+.react-grid-item {
   transition: all 200ms ease;
   transition-property: left, top, width, height;
 }
-.rgl-item.rgl-item-resizing {
+.react-grid-item.react-draggable-dragging {
+  transition: none;
+  z-index: 4;
+  opacity: 0.85;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.react-grid-item.resizing {
   transition: none;
   z-index: 3;
   opacity: 0.7;
 }
-.rgl-item.rgl-item-dragging {
-  transition: none;
-  z-index: 4;
-  opacity: 0.8;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+.react-grid-item.react-grid-placeholder {
+  background: var(--color-accent) !important;
+  opacity: 0.15 !important;
+  transition-duration: 100ms;
+  z-index: 2;
+  user-select: none;
+  border-radius: 8px;
 }
-.rgl-item > .react-resizable-handle {
+
+/* 缩放手柄样式覆盖 */
+.react-grid-item > .react-resizable-handle {
   position: absolute;
   width: 16px;
   height: 16px;
   bottom: 2px;
   right: 2px;
   cursor: se-resize;
-  opacity: 0.3;
+  opacity: 0;
   z-index: 5;
+  background-image: none;
 }
-.rgl-item > .react-resizable-handle::after {
+.react-grid-item > .react-resizable-handle::after {
   content: '';
   position: absolute;
   right: 4px;
@@ -120,7 +145,7 @@ body {
   border-right: 1.5px solid var(--color-text-muted);
   border-bottom: 1.5px solid var(--color-text-muted);
 }
-.rgl-item:hover > .react-resizable-handle {
+.w96p-grid.editable .react-grid-item:hover > .react-resizable-handle {
   opacity: 0.7;
 }
 .react-resizable-handle-sw {
@@ -129,4 +154,37 @@ body {
   right: auto;
   cursor: sw-resize;
   transform: rotate(90deg);
+}
+
+/* ===== 自定义滚动条 ===== */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) var(--color-bg-inset);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg-inset);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* 非编辑模式下隐藏缩放手柄、禁用拖拽光标 */
+.w96p-grid.locked .react-resizable-handle {
+  display: none !important;
+}
+.w96p-grid.locked .drag-handle {
+  cursor: default !important;
 }

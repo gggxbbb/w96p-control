@@ -4,7 +4,7 @@ import { useDeviceStore } from '../../stores/device';
 import { useSettingsStore } from '../../stores/settings';
 import { useToastStore } from '../../stores/toast';
 import { Card } from '../../components/ui/Card';
-import { DashboardGrid } from '../../components/ui/DashboardGrid';
+import { PageGrid } from '../../components/ui/PageGrid';
 import { SegBtn } from '../../components/ui/SegBtn';
 import { CurveCanvas } from '../../components/nature-wind/CurveCanvas';
 import { CurveChart } from '../../components/nature-wind/CurveChart';
@@ -116,7 +116,7 @@ export default function NatureWind() {
   const avgVal = editPoints.length ? editPoints.reduce((a, b) => a + b, 0) / editPoints.length : 0;
 
   return (
-    <DashboardGrid pageKey="nature-wind" defaultLayouts={NW_LAYOUTS}>
+    <PageGrid pageKey="nature-wind" pageName="自然风" defaultLayouts={NW_LAYOUTS}>
       <Card key="editor" title="自然风曲线编辑器" dragHandle>
         <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
           <SegBtn
@@ -232,6 +232,6 @@ export default function NatureWind() {
           </button>
         </div>
       </Card>
-    </DashboardGrid>
+    </PageGrid>
   );
 }

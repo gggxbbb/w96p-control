@@ -18,14 +18,11 @@ const accentColor: Record<Accent, string> = {
 export function MetricCard({ label, value, unit, accent = 'default', style }: MetricCardProps) {
   return (
     <div
-      className="drag-handle"
       style={{
         background: 'var(--color-bg-surface)',
         border: '0.5px solid var(--color-border)',
         borderRadius: '6px',
         padding: '10px 12px',
-        cursor: 'move',
-        userSelect: 'none',
         height: '100%',
         boxSizing: 'border-box',
         ...style,

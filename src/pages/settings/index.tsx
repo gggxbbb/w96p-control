@@ -1,7 +1,7 @@
 import { useBle } from '../../hooks/useBle';
 import { useSettingsStore } from '../../stores/settings';
 import { Card } from '../../components/ui/Card';
-import { DashboardGrid } from '../../components/ui/DashboardGrid';
+import { PageGrid } from '../../components/ui/PageGrid';
 import { SegBtn } from '../../components/ui/SegBtn';
 import type { ResponsiveLayouts } from 'react-grid-layout';
 
@@ -41,7 +41,7 @@ export default function Settings() {
   const { theme, pollIntervalMs, curveEditorMode, historyRetentionMin, setTheme, setPollInterval, setCurveMode, setHistoryRetentionMin } = useSettingsStore();
 
   return (
-    <DashboardGrid pageKey="settings" defaultLayouts={SETTINGS_LAYOUTS}>
+    <PageGrid pageKey="settings" pageName="设置" defaultLayouts={SETTINGS_LAYOUTS}>
       <Card key="device" title="设备信息" dragHandle>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
           <Row label="连接状态" value={isConnected ? '已连接' : '未连接'} accent={isConnected ? 'var(--color-success)' : 'var(--color-text-muted)'} />
@@ -127,7 +127,7 @@ export default function Settings() {
           </div>
         </div>
       </Card>
-    </DashboardGrid>
+    </PageGrid>
   );
 }
 

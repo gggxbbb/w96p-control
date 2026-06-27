@@ -3,7 +3,7 @@ import { useBle } from '../../hooks/useBle';
 import { useDeviceStore } from '../../stores/device';
 import { DisconnectedScreen } from '../../components/connection/DisconnectedScreen';
 import { Card } from '../../components/ui/Card';
-import { DashboardGrid } from '../../components/ui/DashboardGrid';
+import { PageGrid } from '../../components/ui/PageGrid';
 import { MetricCard } from '../../components/ui/MetricCard';
 import { Slider } from '../../components/ui/Slider';
 import { Toggle } from '../../components/ui/Toggle';
@@ -35,34 +35,37 @@ function CurvePreview({ points, min, max }: CurvePreviewProps) {
   const maxVal = Math.max(...points);
 
   return (
-    <div>
-      <svg
-        viewBox={`0 0 ${w} ${h}`}
-        preserveAspectRatio="none"
-        style={{ width: '100%', height: '60px', display: 'block' }}
-      >
-        <defs>
-          <pattern id="grid" width="20" height="16" patternUnits="userSpaceOnUse">
-            <path d="M 20 0 L 0 0 0 16" fill="none" stroke="var(--color-bg-page)" strokeWidth="0.5" />
-          </pattern>
-        </defs>
-        <rect width={w} height={h} fill="url(#grid)" />
-        <polyline
-          points={coords}
-          fill="none"
-          stroke="var(--color-accent)"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-      </svg>
+    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, minHeight: 0, position: 'relative', width: '100%' }}>
+        <svg
+          viewBox={`0 0 ${w} ${h}`}
+          preserveAspectRatio="none"
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }}
+        >
+          <defs>
+            <pattern id="curve-grid" width="20" height="16" patternUnits="userSpaceOnUse">
+              <path d="M 20 0 L 0 0 0 16" fill="none" stroke="var(--color-bg-page)" strokeWidth="0.5" />
+            </pattern>
+          </defs>
+          <rect width={w} height={h} fill="url(#curve-grid)" />
+          <polyline
+            points={coords}
+            fill="none"
+            stroke="var(--color-accent)"
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
       <div
         style={{
           display: 'flex',
           gap: '16px',
-          marginTop: '4px',
           fontSize: '10px',
           color: 'var(--color-text-muted)',
           fontVariantNumeric: 'tabular-nums',
+          flexShrink: 0,
+          paddingTop: '6px',
         }}
       >
         <span>最小 {minVal}</span>
@@ -84,7 +87,7 @@ const DASHBOARD_LAYOUTS: ResponsiveLayouts = {
     { i: 'motor-volt', x: 6, y: 2, w: 3, h: 2 },
     { i: 'fan-control', x: 0, y: 4, w: 8, h: 6 },
     { i: 'status', x: 8, y: 4, w: 4, h: 6 },
-    { i: 'curve', x: 0, y: 10, w: 12, h: 4 },
+    { i: 'curve', x: 0, y: 10, w: 12, h: 6 },
   ],
   md: [
     { i: 'speed', x: 0, y: 0, w: 5, h: 2 },
@@ -96,7 +99,7 @@ const DASHBOARD_LAYOUTS: ResponsiveLayouts = {
     { i: 'motor-volt', x: 0, y: 6, w: 5, h: 2 },
     { i: 'fan-control', x: 0, y: 8, w: 10, h: 6 },
     { i: 'status', x: 0, y: 14, w: 10, h: 6 },
-    { i: 'curve', x: 0, y: 20, w: 10, h: 4 },
+    { i: 'curve', x: 0, y: 20, w: 10, h: 6 },
   ],
   sm: [
     { i: 'speed', x: 0, y: 0, w: 3, h: 2 },
@@ -108,7 +111,7 @@ const DASHBOARD_LAYOUTS: ResponsiveLayouts = {
     { i: 'motor-volt', x: 0, y: 6, w: 3, h: 2 },
     { i: 'fan-control', x: 0, y: 8, w: 6, h: 6 },
     { i: 'status', x: 0, y: 14, w: 6, h: 6 },
-    { i: 'curve', x: 0, y: 20, w: 6, h: 4 },
+    { i: 'curve', x: 0, y: 20, w: 6, h: 6 },
   ],
   xs: [
     { i: 'speed', x: 0, y: 0, w: 2, h: 2 },
@@ -120,7 +123,7 @@ const DASHBOARD_LAYOUTS: ResponsiveLayouts = {
     { i: 'motor-volt', x: 0, y: 12, w: 2, h: 2 },
     { i: 'fan-control', x: 0, y: 14, w: 2, h: 6 },
     { i: 'status', x: 0, y: 20, w: 2, h: 6 },
-    { i: 'curve', x: 0, y: 26, w: 2, h: 4 },
+    { i: 'curve', x: 0, y: 26, w: 2, h: 6 },
   ],
 };
 
@@ -159,7 +162,7 @@ export default function Dashboard() {
   const displaySpeed = dragSpeed ?? fanSpeed;
 
   return (
-    <DashboardGrid pageKey="dashboard" defaultLayouts={DASHBOARD_LAYOUTS}>
+    <PageGrid pageKey="dashboard" pageName="总览" defaultLayouts={DASHBOARD_LAYOUTS}>
       <MetricCard
         key="speed"
         label="转速"
@@ -224,11 +227,15 @@ export default function Dashboard() {
         <StatusSummary />
       </Card>
 
-      {curvePoints.length > 0 && (
-        <Card key="curve" title="自然风曲线" subtitle={`${curvePoints.length} 点`} dragHandle>
+      <Card key="curve" title="自然风曲线" subtitle={curvePoints.length > 0 ? `${curvePoints.length} 点` : '等待数据'} dragHandle>
+        {curvePoints.length > 0 ? (
           <CurvePreview points={curvePoints} min={minSpeed} max={maxSpeed} />
-        </Card>
-      )}
-    </DashboardGrid>
+        ) : (
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-dim)', fontSize: '12px' }}>
+            正在读取曲线数据…
+          </div>
+        )}
+      </Card>
+    </PageGrid>
   );
 }

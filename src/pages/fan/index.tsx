@@ -1,7 +1,7 @@
 import { useBle } from '../../hooks/useBle';
 import { useDeviceStore } from '../../stores/device';
 import { Card } from '../../components/ui/Card';
-import { DashboardGrid } from '../../components/ui/DashboardGrid';
+import { PageGrid } from '../../components/ui/PageGrid';
 import { SegBtn } from '../../components/ui/SegBtn';
 import { SpeedControl } from '../../components/fan/SpeedControl';
 import { TimerPanel } from '../../components/fan/TimerPanel';
@@ -45,7 +45,7 @@ export default function Fan() {
   const gearDownMode = useDeviceStore((s) => s.gearDownMode);
 
   return (
-    <DashboardGrid pageKey="fan" defaultLayouts={FAN_LAYOUTS}>
+    <PageGrid pageKey="fan" pageName="风扇" defaultLayouts={FAN_LAYOUTS}>
       <SpeedControl key="speed-control" dragHandle />
       <TimerPanel key="timer" dragHandle />
       <SleepPanel key="sleep" dragHandle />
@@ -60,6 +60,6 @@ export default function Fan() {
         />
       </Card>
       <SpeedCalibPanel key="speed-calib" dragHandle />
-    </DashboardGrid>
+    </PageGrid>
   );
 }

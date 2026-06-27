@@ -1,7 +1,7 @@
 import { BatteryPanel } from '../../components/power/BatteryPanel';
 import { VbusPanel } from '../../components/power/VbusPanel';
 import { MotorPanel } from '../../components/power/MotorPanel';
-import { DashboardGrid } from '../../components/ui/DashboardGrid';
+import { PageGrid } from '../../components/ui/PageGrid';
 import type { ResponsiveLayouts } from 'react-grid-layout';
 
 const POWER_LAYOUTS: ResponsiveLayouts = {
@@ -29,10 +29,10 @@ const POWER_LAYOUTS: ResponsiveLayouts = {
 
 export default function Power() {
   return (
-    <DashboardGrid pageKey="power" defaultLayouts={POWER_LAYOUTS}>
+    <PageGrid pageKey="power" pageName="电源" defaultLayouts={POWER_LAYOUTS}>
       <BatteryPanel key="battery" dragHandle />
       <VbusPanel key="vbus" dragHandle />
       <MotorPanel key="motor" dragHandle />
-    </DashboardGrid>
+    </PageGrid>
   );
 }

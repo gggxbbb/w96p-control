@@ -2,7 +2,7 @@ import { useBle } from '../../hooks/useBle';
 import { useDeviceStore } from '../../stores/device';
 import { useToastStore } from '../../stores/toast';
 import { Card } from '../ui/Card';
-import { DashboardGrid } from '../ui/DashboardGrid';
+import { PageGrid } from '../ui/PageGrid';
 import { Toggle } from '../ui/Toggle';
 import { SegBtn } from '../ui/SegBtn';
 import { POW_SWITCHES, POW_SEGS, REG_TITLES, type PowSwitchDef, type PowSegDef } from '../../ble/powSwitches';
@@ -102,7 +102,7 @@ export function PowerConfigPanel() {
   const srcNames = ['非快充', 'PD Source', 'PPS Source', 'QC2.0', 'QC3.0', 'FCP', 'PE2.0/1.1', 'SFCP', 'AFC', 'SCP', 'LVDC1'];
 
   return (
-    <DashboardGrid pageKey="power-config" defaultLayouts={PC_LAYOUTS}>
+    <PageGrid pageKey="power-config" pageName="寄存器" defaultLayouts={PC_LAYOUTS}>
       <Card key="protocol" title="当前快充协议" dragHandle>
         <div style={{ display: 'flex', gap: '16px', fontSize: '12px' }}>
           <span>输入：<span style={{ color: 'var(--color-accent)' }}>{sinkNames[powerConfig.powSink] ?? '未知'}</span></span>
@@ -152,6 +152,6 @@ export function PowerConfigPanel() {
           </Card>
         );
       })}
-    </DashboardGrid>
+    </PageGrid>
   );
 }

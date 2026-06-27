@@ -1,5 +1,5 @@
 import { Card } from '../../components/ui/Card';
-import { DashboardGrid } from '../../components/ui/DashboardGrid';
+import { PageGrid } from '../../components/ui/PageGrid';
 import type { ResponsiveLayouts } from 'react-grid-layout';
 
 const HISTORY_LAYOUTS: ResponsiveLayouts = {
@@ -11,12 +11,12 @@ const HISTORY_LAYOUTS: ResponsiveLayouts = {
 
 export default function History() {
   return (
-    <DashboardGrid pageKey="history" defaultLayouts={HISTORY_LAYOUTS}>
+    <PageGrid pageKey="history" pageName="历史" defaultLayouts={HISTORY_LAYOUTS}>
       <Card key="placeholder" title="历史数据" subtitle="功能开发中" dragHandle>
         <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
           历史数据图表功能将在后续版本提供
         </div>
       </Card>
-    </DashboardGrid>
+    </PageGrid>
   );
 }
