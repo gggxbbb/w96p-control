@@ -1,4 +1,4 @@
-import { forwardRef, useState } from 'react';
+import { forwardRef, useState, type ReactNode } from 'react';
 import { useMetricStore } from '../../stores/metricConfig';
 import { useEditMode } from './EditModeContext';
 
@@ -15,6 +15,7 @@ interface MetricCardProps {
   gaugeMax?: number;
   style?: React.CSSProperties;
   className?: string;
+  children?: ReactNode;
 }
 
 const accentColor: Record<Accent, string> = {
@@ -25,7 +26,7 @@ const accentColor: Record<Accent, string> = {
 };
 
 export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function MetricCard(
-  { label, value, unit, accent = 'default', gaugeMin = 0, gaugeMax = 100, style, className, ...rest },
+  { label, value, unit, accent = 'default', gaugeMin = 0, gaugeMax = 100, style, className, children, ...rest },
   ref,
 ) {
   const editable = useEditMode();
@@ -233,6 +234,7 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
           )}
         </div>
       )}
+      {children}
     </div>
   );
 });
