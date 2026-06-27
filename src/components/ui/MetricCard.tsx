@@ -1,3 +1,5 @@
+import { forwardRef } from 'react';
+
 type Accent = 'default' | 'success' | 'warning' | 'danger';
 
 interface MetricCardProps {
@@ -16,9 +18,13 @@ const accentColor: Record<Accent, string> = {
   danger: 'var(--color-danger)',
 };
 
-export function MetricCard({ label, value, unit, accent = 'default', style, className }: MetricCardProps) {
+export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function MetricCard(
+  { label, value, unit, accent = 'default', style, className },
+  ref,
+) {
   return (
     <div
+      ref={ref}
       className={className ? `drag-handle ${className}` : 'drag-handle'}
       style={{
         background: 'var(--color-bg-surface)',
@@ -58,4 +64,4 @@ export function MetricCard({ label, value, unit, accent = 'default', style, clas
       </div>
     </div>
   );
-}
+});

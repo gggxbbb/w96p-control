@@ -1,4 +1,4 @@
-import type { ReactNode, CSSProperties } from 'react';
+import { forwardRef, type ReactNode, type CSSProperties } from 'react';
 
 interface CardProps {
   title?: string;
@@ -11,11 +11,15 @@ interface CardProps {
   className?: string;
 }
 
-export function Card({ title, subtitle, children, actions, dragHandle, style, className }: CardProps) {
+export const Card = forwardRef<HTMLElement, CardProps>(function Card(
+  { title, subtitle, children, actions, dragHandle, style, className },
+  ref,
+) {
   const headerClass = dragHandle ? 'drag-handle' : '';
 
   return (
     <section
+      ref={ref}
       className={className}
       style={{
         background: 'var(--color-bg-surface)',
@@ -76,4 +80,4 @@ export function Card({ title, subtitle, children, actions, dragHandle, style, cl
       {children}
     </section>
   );
-}
+});
