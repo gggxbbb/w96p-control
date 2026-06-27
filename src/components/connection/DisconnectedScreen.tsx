@@ -1,7 +1,22 @@
+import { useState, useRef, useEffect } from 'react';
 import { useBle } from '../../hooks/useBle';
 
 export function DisconnectedScreen() {
-  const { connectReal } = useBle();
+  const { connectReal, connectVirtual } = useBle();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [menuOpen]);
+
   return (
     <div
       style={{
@@ -23,22 +38,80 @@ export function DisconnectedScreen() {
           连接 W96P / W66D 风扇设备开始控制
         </p>
       </div>
-      <button
-        onClick={connectReal}
-        style={{
-          background: 'var(--color-accent)',
-          color: 'var(--color-bg-page)',
-          border: 'none',
-          borderRadius: '6px',
-          padding: '10px 24px',
-          fontSize: '13px',
-          fontWeight: 500,
-          fontFamily: 'var(--font-sans)',
-          cursor: 'pointer',
-        }}
-      >
-        连接设备
-      </button>
+      <div ref={menuRef} style={{ position: 'relative' }}>
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          style={{
+            background: 'var(--color-accent)',
+            color: 'var(--color-bg-page)',
+            border: 'none',
+            borderRadius: '6px',
+            padding: '10px 24px',
+            fontSize: '13px',
+            fontWeight: 500,
+            fontFamily: 'var(--font-sans)',
+            cursor: 'pointer',
+          }}
+        >
+          连接设备 ▾
+        </button>
+        {menuOpen && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '100%',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              marginTop: '4px',
+              background: 'var(--color-bg-surface)',
+              border: '0.5px solid var(--color-border)',
+              borderRadius: '6px',
+              padding: '4px',
+              minWidth: '180px',
+              zIndex: 100,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+              textAlign: 'left',
+            }}
+          >
+            <button
+              onClick={() => { setMenuOpen(false); connectReal(); }}
+              style={menuItemStyle}
+            >
+              连接真机
+            </button>
+            <div style={{ height: '0.5px', background: 'var(--color-border)', margin: '4px 0' }} />
+            <div style={{ padding: '4px 10px', fontSize: '10px', color: 'var(--color-text-dim)', letterSpacing: '0.5px' }}>
+              虚拟设备
+            </div>
+            <button
+              onClick={() => { setMenuOpen(false); connectVirtual('W96P'); }}
+              style={menuItemStyle}
+            >
+              虚拟 W96P（0-100）
+            </button>
+            <button
+              onClick={() => { setMenuOpen(false); connectVirtual('W66D'); }}
+              style={menuItemStyle}
+            >
+              虚拟 W66D（20-90）
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
+
+const menuItemStyle: React.CSSProperties = {
+  display: 'block',
+  width: '100%',
+  background: 'transparent',
+  border: 'none',
+  borderRadius: '4px',
+  padding: '8px 10px',
+  color: 'var(--color-text)',
+  fontSize: '12px',
+  fontFamily: 'var(--font-sans)',
+  cursor: 'pointer',
+  textAlign: 'left',
+};
