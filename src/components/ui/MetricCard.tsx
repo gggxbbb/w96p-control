@@ -25,6 +25,30 @@ const accentColor: Record<Accent, string> = {
   danger: 'var(--color-danger)',
 };
 
+/** 仪表模式下各类指标的合理默认范围 */
+const GAUGE_PRESETS: Record<string, { min: number; max: number }> = {
+  // 风扇
+  '转速': { min: 0, max: 100 },
+  // 电池
+  '电池功率': { min: 0, max: 20 },
+  '电池电压': { min: 3.0, max: 4.2 },
+  // 电机
+  '电机功率': { min: 0, max: 20 },
+  '电机功率（近似）': { min: 0, max: 20 },
+  '电机电流': { min: 0, max: 2000 },
+  '电机电压': { min: 0, max: 12 },
+  // 电源面板
+  '电压': { min: 3.0, max: 4.2 },
+  '电流': { min: 0, max: 2000 },
+  '容量': { min: 0, max: 10000 },
+  '功率': { min: 0, max: 20 },
+  'VBUS 电压': { min: 0, max: 5.0 },
+  'VBUS 电流': { min: 0, max: 3000 },
+  'VBUS 功率': { min: 0, max: 20 },
+};
+
+const DEFAULT_GAUGE_RANGE = { min: 0, max: 100 };
+
 export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function MetricCard(
   { label, value, unit, accent = 'default', gaugeMin = 0, gaugeMax = 100, style, className, children, ...rest },
   ref,
@@ -45,6 +69,16 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
   const [configOpen, setConfigOpen] = useState(false);
   const [draftMin, setDraftMin] = useState(min);
   const [draftMax, setDraftMax] = useState(max);
+
+  const toggleVariant = () => {
+    const next = variant === 'gauge' ? 'number' : 'gauge';
+    setVariant(label, next);
+    // 首次切换到 gauge 时应用预设范围
+    if (next === 'gauge' && storeMin === undefined && storeMax === undefined) {
+      const preset = GAUGE_PRESETS[label] ?? DEFAULT_GAUGE_RANGE;
+      setRange(label, preset.min, preset.max);
+    }
+  };
 
   const openConfig = () => {
     setDraftMin(min);
@@ -125,7 +159,7 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setVariant(label, variant === 'gauge' ? 'number' : 'gauge');
+                toggleVariant();
               }}
               title={variant === 'gauge' ? '切换为数字' : '切换为仪表'}
               style={iconBtnStyle}
