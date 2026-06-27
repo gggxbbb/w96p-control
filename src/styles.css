@@ -156,16 +156,17 @@ body {
   opacity: 0.25;
 }
 
-/* 编辑模式下禁用文字选择 + 全局 move 光标 */
+/* 编辑模式下禁用文字选择 */
 .w96p-grid.editable {
   user-select: none;
   -webkit-user-select: none;
 }
-.w96p-grid.editable .react-grid-item {
-  cursor: move;
+/* 编辑模式下拖拽手柄显示 grab 光标 */
+.w96p-grid.editable .drag-handle {
+  cursor: grab;
 }
 /* 编辑模式下拖拽中显示 grabbing 光标 */
-.w96p-grid.editable .react-grid-item.react-draggable-dragging {
+.w96p-grid.editable .react-grid-item.react-draggable-dragging .drag-handle {
   cursor: grabbing;
 }
 
@@ -199,10 +200,7 @@ body {
   background: transparent;
 }
 
-/* 非编辑模式下隐藏缩放手柄、恢复默认光标 */
+/* 非编辑模式下隐藏缩放手柄 */
 .w96p-grid.locked .react-resizable-handle {
   display: none !important;
-}
-.w96p-grid.locked .react-grid-item {
-  cursor: default !important;
 }

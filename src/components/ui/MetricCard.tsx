@@ -60,12 +60,12 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
     <div
       ref={ref}
       {...rest}
-      className={className ? `drag-handle ${className}` : 'drag-handle'}
+      className={className}
       style={{
         background: 'var(--color-bg-surface)',
         border: '0.5px solid var(--color-border)',
         borderRadius: '6px',
-        padding: '10px 12px',
+        padding: '6px 12px 10px',
         height: '100%',
         boxSizing: 'border-box',
         display: 'flex',
@@ -74,20 +74,46 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
         ...style,
       }}
     >
-      {/* label row */}
+      {/* drag handle strip + label + config buttons */}
       <div
         style={{
           display: 'flex',
-          justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: '4px',
+          gap: '4px',
+          marginBottom: '2px',
         }}
       >
+        {/* drag handle area — only drags when grabbing here */}
+        <div
+          className="drag-handle"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            padding: '2px 0',
+            cursor: editable ? 'grab' : undefined,
+            flexShrink: 0,
+          }}
+        >
+          <svg
+            className="drag-handle-icon"
+            width="10"
+            height="10"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            style={{ color: 'var(--color-text-dim)', display: 'block' }}
+          >
+            <circle cx="9" cy="6" r="1.5" /><circle cx="15" cy="6" r="1.5" />
+            <circle cx="9" cy="12" r="1.5" /><circle cx="15" cy="12" r="1.5" />
+            <circle cx="9" cy="18" r="1.5" /><circle cx="15" cy="18" r="1.5" />
+          </svg>
+        </div>
+
         <span
           style={{
             color: 'var(--color-text-muted)',
             fontSize: '10px',
             letterSpacing: '0.05em',
+            flex: 1,
           }}
         >
           {label}

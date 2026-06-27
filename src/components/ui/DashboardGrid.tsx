@@ -97,6 +97,7 @@ export function DashboardGrid({
           dragConfig={{
             enabled: editable,
             bounded: false,
+            handle: '.drag-handle',
             cancel: '.react-resizable-handle, input, textarea, button, select, .no-drag',
             threshold: 3,
           }}
