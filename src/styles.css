@@ -60,3 +60,12 @@ body {
 
 :focus:not(:focus-visible) { outline: none; }
 :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+
+@keyframes w96p-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes w96p-slide-in {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}

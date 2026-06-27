@@ -3,7 +3,11 @@ import { useBle } from '../../hooks/useBle';
 import { useSettingsStore } from '../../stores/settings';
 import { StatusPill } from '../ui/StatusPill';
 
-export function AppBar() {
+interface AppBarProps {
+  onMenuClick: () => void;
+}
+
+export function AppBar({ onMenuClick }: AppBarProps) {
   const { state, deviceName, profile, isConnected, isVirtualDevice, connectReal, connectVirtual, disconnect } = useBle();
   const theme = useSettingsStore((s) => s.theme);
   const setTheme = useSettingsStore((s) => s.setTheme);
@@ -36,6 +40,26 @@ export function AppBar() {
         flexShrink: 0,
       }}
     >
+      <button
+        onClick={onMenuClick}
+        aria-label="打开菜单"
+        className="md:hidden"
+        style={{
+          background: 'transparent',
+          border: 'none',
+          color: 'var(--color-text-muted)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '4px',
+        }}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <path d="M3 6h18M3 12h18M3 18h18" />
+        </svg>
+      </button>
+
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="1.5">
           <circle cx="12" cy="12" r="2.5" />
