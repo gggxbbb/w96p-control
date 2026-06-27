@@ -259,18 +259,26 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
             flex: 1,
             display: 'flex',
             alignItems: 'center',
-            fontSize: '22px',
+            justifyContent: 'center',
             fontWeight: 500,
             color: accentColor[accent],
             fontVariantNumeric: 'tabular-nums',
             lineHeight: 1.2,
             overflow: 'hidden',
+            minHeight: 0,
           }}
         >
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span
+            style={{
+              fontSize: `clamp(14px, ${Math.max(18, 42 - String(value).length * 3)}px, 26px)`,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
             {value}
             {unit && (
-              <span style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginLeft: '2px', fontWeight: 400 }}>
+              <span style={{ fontSize: 'clamp(10px, 60%, 16px)', color: 'var(--color-text-muted)', marginLeft: '2px', fontWeight: 400 }}>
                 {unit}
               </span>
             )}
@@ -308,12 +316,16 @@ interface GaugeProps {
   accent: Accent;
 }
 
-function Gauge({ value, min, max, unit, accent }: GaugeProps) {
+function Gauge({ value, min, max, unit, accent: _accent }: GaugeProps) {
   const range = max - min || 1;
   const pct = Math.max(0, Math.min(1, (value - min) / range));
-  const color = accentColor[accent];
 
-  // 弧形参数：圆心下移给数字留空间
+  // 颜色分区：<70% 默认白，70-90% 警告黄，>90% 危险红
+  const color =
+    pct >= 0.9 ? 'var(--color-danger)' :
+    pct >= 0.7 ? 'var(--color-warning)' :
+    'var(--color-text)';
+
   const cx = 50;
   const cy = 42;
   const r = 30;
@@ -349,11 +361,10 @@ function Gauge({ value, min, max, unit, accent }: GaugeProps) {
   const maxPos = labelPos(startAngle + sweep);
 
   const valueStr = fmtNum(value);
-  const fontSize = valueStr.length > 4 ? '14px' : valueStr.length > 3 ? '16px' : '18px';
 
   return (
-    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
-      <svg viewBox="0 0 100 46" style={{ width: '100%', maxWidth: '120px', display: 'block', flexShrink: 0 }}>
+    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px', overflow: 'hidden' }}>
+      <svg viewBox="0 0 100 46" style={{ width: '100%', maxWidth: '140px', flexShrink: 0, minHeight: 0 }} preserveAspectRatio="xMidYMid meet">
         <path
           d={bgArc}
           fill="none"
@@ -381,7 +392,7 @@ function Gauge({ value, min, max, unit, accent }: GaugeProps) {
       {/* 中心数值（弧下方） */}
       <div
         style={{
-          fontSize,
+          fontSize: `clamp(12px, ${Math.max(14, 28 - valueStr.length * 2)}px, 22px)`,
           fontWeight: 500,
           color,
           fontVariantNumeric: 'tabular-nums',

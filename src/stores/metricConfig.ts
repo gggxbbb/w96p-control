@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export interface MetricConfig {
   variant: 'number' | 'gauge';
@@ -13,18 +14,23 @@ interface MetricCardStore {
   getConfig: (key: string) => MetricConfig;
 }
 
-export const useMetricStore = create<MetricCardStore>((set, get) => ({
-  configs: {},
-  setVariant: (key, variant) =>
-    set((s) => ({
-      configs: { ...s.configs, [key]: { ...s.configs[key], variant } },
-    })),
-  setRange: (key, min, max) =>
-    set((s) => ({
-      configs: { ...s.configs, [key]: { ...s.configs[key], min, max } },
-    })),
-  getConfig: (key) => {
-    const cfg = get().configs[key];
-    return cfg ?? { variant: 'number' };
-  },
-}));
+export const useMetricStore = create<MetricCardStore>()(
+  persist(
+    (set, get) => ({
+      configs: {},
+      setVariant: (key, variant) =>
+        set((s) => ({
+          configs: { ...s.configs, [key]: { ...s.configs[key], variant } },
+        })),
+      setRange: (key, min, max) =>
+        set((s) => ({
+          configs: { ...s.configs, [key]: { ...s.configs[key], min, max } },
+        })),
+      getConfig: (key) => {
+        const cfg = get().configs[key];
+        return cfg ?? { variant: 'number' };
+      },
+    }),
+    { name: 'w96p-metric-config' },
+  ),
+);
