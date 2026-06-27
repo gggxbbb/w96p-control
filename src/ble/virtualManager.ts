@@ -128,8 +128,8 @@ export class VirtualManager implements IBleManager {
       currentSpeed = Math.max(0, Math.min(100, currentSpeed));
     }
 
-    // 电机电流：随转速变化 + 噪声
-    const motorCurrent = Math.round(currentSpeed * 5 + (Math.random() - 0.5) * 20);
+    // 电机电流：随转速变化 + 噪声（满转速 100% → 约 2700mA → 4.8V × 2.7A ≈ 13W）
+    const motorCurrent = Math.max(0, Math.round(currentSpeed * 27 + (Math.random() - 0.5) * 50));
 
     // 电机电压：W96P 返回，W66D 不返回（parseMotorFull）
     const motorVoltage = this.profile.parseMotorFull
