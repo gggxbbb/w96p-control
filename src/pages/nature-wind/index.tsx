@@ -17,25 +17,25 @@ const NW_LAYOUTS: ResponsiveLayouts = {
     { i: 'editor', x: 0, y: 0, w: 12, h: 8 },
     { i: 'presets', x: 0, y: 8, w: 4, h: 4 },
     { i: 'preview', x: 4, y: 8, w: 8, h: 4 },
-    { i: 'actions', x: 0, y: 12, w: 12, h: 2 },
+    { i: 'actions', x: 0, y: 12, w: 12, h: 3 },
   ],
   md: [
     { i: 'editor', x: 0, y: 0, w: 10, h: 8 },
     { i: 'presets', x: 0, y: 8, w: 4, h: 4 },
     { i: 'preview', x: 4, y: 8, w: 6, h: 4 },
-    { i: 'actions', x: 0, y: 12, w: 10, h: 2 },
+    { i: 'actions', x: 0, y: 12, w: 10, h: 3 },
   ],
   sm: [
     { i: 'editor', x: 0, y: 0, w: 6, h: 8 },
     { i: 'presets', x: 0, y: 8, w: 6, h: 3 },
     { i: 'preview', x: 0, y: 11, w: 6, h: 4 },
-    { i: 'actions', x: 0, y: 15, w: 6, h: 2 },
+    { i: 'actions', x: 0, y: 15, w: 6, h: 3 },
   ],
   xs: [
     { i: 'editor', x: 0, y: 0, w: 2, h: 10 },
     { i: 'presets', x: 0, y: 10, w: 2, h: 3 },
     { i: 'preview', x: 0, y: 13, w: 2, h: 4 },
-    { i: 'actions', x: 0, y: 17, w: 2, h: 2 },
+    { i: 'actions', x: 0, y: 17, w: 2, h: 3 },
   ],
 };
 
