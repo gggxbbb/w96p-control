@@ -122,49 +122,69 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
         )}
       </div>
 
-      {/* config popup */}
+      {/* config popup — 固定定位避免被下方卡片遮挡 */}
       {configOpen && (
-        <div
-          className="no-drag"
-          style={{
-            position: 'absolute',
-            top: '28px',
-            right: '8px',
-            zIndex: 10,
-            background: 'var(--color-bg-surface)',
-            border: '0.5px solid var(--color-border-strong)',
-            borderRadius: '6px',
-            padding: '8px 10px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px',
-            fontSize: '11px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            minWidth: '140px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-muted)' }}>
-            <span style={{ width: '24px' }}>最小</span>
-            <input
-              type="number"
-              value={draftMin}
-              onChange={(e) => setDraftMin(Number(e.target.value))}
-              style={inputStyle}
-            />
+        <>
+          <div
+            className="no-drag"
+            onClick={() => setConfigOpen(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 999,
+            }}
+          />
+          <div
+            className="no-drag"
+            style={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 1000,
+              background: 'var(--color-bg-surface)',
+              border: '0.5px solid var(--color-border-strong)',
+              borderRadius: '6px',
+              padding: '12px 14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              fontSize: '12px',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+              minWidth: '180px',
+            }}
+          >
+            <div style={{ color: 'var(--color-text-muted)', fontSize: '11px', marginBottom: '2px' }}>
+              仪表范围 · {label}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-muted)' }}>
+              <span style={{ width: '28px' }}>最小</span>
+              <input
+                type="number"
+                value={draftMin}
+                onChange={(e) => setDraftMin(Number(e.target.value))}
+                style={inputStyle}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-muted)' }}>
+              <span style={{ width: '28px' }}>最大</span>
+              <input
+                type="number"
+                value={draftMax}
+                onChange={(e) => setDraftMax(Number(e.target.value))}
+                style={inputStyle}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+              <button onClick={() => setConfigOpen(false)} style={{ ...applyBtnStyle, background: 'var(--color-bg-inset)', color: 'var(--color-text-muted)', flex: 1 }}>
+                取消
+              </button>
+              <button onClick={applyConfig} style={{ ...applyBtnStyle, flex: 1 }}>
+                确定
+              </button>
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-muted)' }}>
-            <span style={{ width: '24px' }}>最大</span>
-            <input
-              type="number"
-              value={draftMax}
-              onChange={(e) => setDraftMax(Number(e.target.value))}
-              style={inputStyle}
-            />
-          </div>
-          <button onClick={applyConfig} style={applyBtnStyle}>
-            确定
-          </button>
-        </div>
+        </>
       )}
 
       {/* value */}
@@ -223,10 +243,11 @@ function Gauge({ value, min, max, unit, accent }: GaugeProps) {
   const pct = Math.max(0, Math.min(1, (value - min) / range));
   const color = accentColor[accent];
 
-  const cx = 52;
-  const cy = 48;
-  const r = 36;
-  const strokeW = 5;
+  // 弧形参数：圆心下移给数字留空间
+  const cx = 50;
+  const cy = 42;
+  const r = 30;
+  const strokeW = 4;
   const startAngle = -225;
   const sweep = 270;
 
@@ -246,7 +267,7 @@ function Gauge({ value, min, max, unit, accent }: GaugeProps) {
   const fillAngle = startAngle + sweep * pct;
   const fillArc = pct > 0 ? arcPath(startAngle, fillAngle) : undefined;
 
-  const tickRadius = r - strokeW - 2;
+  const tickRadius = r - strokeW - 1;
   const labelPos = (deg: number) => {
     const rad = (deg * Math.PI) / 180;
     return {
@@ -257,9 +278,12 @@ function Gauge({ value, min, max, unit, accent }: GaugeProps) {
   const minPos = labelPos(startAngle);
   const maxPos = labelPos(startAngle + sweep);
 
+  const valueStr = fmtNum(value);
+  const fontSize = valueStr.length > 4 ? '14px' : valueStr.length > 3 ? '16px' : '18px';
+
   return (
-    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-      <svg viewBox="0 0 104 60" style={{ width: '100%', maxWidth: '130px', display: 'block' }}>
+    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+      <svg viewBox="0 0 100 46" style={{ width: '100%', maxWidth: '120px', display: 'block', flexShrink: 0 }}>
         <path
           d={bgArc}
           fill="none"
@@ -284,20 +308,24 @@ function Gauge({ value, min, max, unit, accent }: GaugeProps) {
         </text>
       </svg>
 
+      {/* 中心数值（弧下方） */}
       <div
         style={{
-          fontSize: '18px',
+          fontSize,
           fontWeight: 500,
           color,
           fontVariantNumeric: 'tabular-nums',
           lineHeight: 1.1,
-          marginTop: '-30px',
           textAlign: 'center',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          maxWidth: '100%',
         }}
       >
-        {fmtNum(value)}
+        {valueStr}
         {unit && (
-          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginLeft: '2px' }}>
+          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginLeft: '2px', fontWeight: 400 }}>
             {unit}
           </span>
         )}
@@ -339,11 +367,10 @@ const inputStyle: React.CSSProperties = {
 const applyBtnStyle: React.CSSProperties = {
   background: 'var(--color-accent)',
   border: 'none',
-  borderRadius: '3px',
+  borderRadius: '4px',
   color: '#fff',
-  padding: '3px 0',
-  fontSize: '11px',
+  padding: '5px 0',
+  fontSize: '12px',
   cursor: 'pointer',
   fontFamily: 'var(--font-sans)',
-  marginTop: '2px',
 };

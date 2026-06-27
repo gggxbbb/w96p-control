@@ -150,7 +150,10 @@ body {
   border-bottom: 1.5px solid var(--color-text-muted);
 }
 .w96p-grid.editable .react-grid-item:hover .react-resizable-handle {
-  opacity: 0.7;
+  opacity: 0.9;
+}
+.w96p-grid.editable .react-grid-item .react-resizable-handle {
+  opacity: 0.25;
 }
 
 /* 编辑模式下禁用文字选择 + 全局 move 光标 */
