@@ -3,12 +3,14 @@ import { useBle } from '../../hooks/useBle';
 import { useDeviceStore } from '../../stores/device';
 import { DisconnectedScreen } from '../../components/connection/DisconnectedScreen';
 import { Card } from '../../components/ui/Card';
+import { DashboardGrid } from '../../components/ui/DashboardGrid';
 import { MetricCard } from '../../components/ui/MetricCard';
 import { Slider } from '../../components/ui/Slider';
 import { Toggle } from '../../components/ui/Toggle';
 import { GearRow } from '../../components/fan/GearRow';
 import { StatusSummary } from '../../components/dashboard/StatusSummary';
 import { fmtVoltage, fmtPower } from '../../lib/format';
+import type { ResponsiveLayouts } from 'react-grid-layout';
 
 interface CurvePreviewProps {
   points: number[];
@@ -71,6 +73,57 @@ function CurvePreview({ points, min, max }: CurvePreviewProps) {
   );
 }
 
+const DASHBOARD_LAYOUTS: ResponsiveLayouts = {
+  lg: [
+    { i: 'speed', x: 0, y: 0, w: 3, h: 2 },
+    { i: 'batt-power', x: 3, y: 0, w: 3, h: 2 },
+    { i: 'motor-power', x: 6, y: 0, w: 3, h: 2 },
+    { i: 'motor-cur', x: 9, y: 0, w: 3, h: 2 },
+    { i: 'batt-volt', x: 0, y: 2, w: 3, h: 2 },
+    { i: 'vbus-volt', x: 3, y: 2, w: 3, h: 2 },
+    { i: 'motor-volt', x: 6, y: 2, w: 3, h: 2 },
+    { i: 'fan-control', x: 0, y: 4, w: 8, h: 6 },
+    { i: 'status', x: 8, y: 4, w: 4, h: 6 },
+    { i: 'curve', x: 0, y: 10, w: 12, h: 4 },
+  ],
+  md: [
+    { i: 'speed', x: 0, y: 0, w: 5, h: 2 },
+    { i: 'batt-power', x: 5, y: 0, w: 5, h: 2 },
+    { i: 'motor-power', x: 0, y: 2, w: 5, h: 2 },
+    { i: 'motor-cur', x: 5, y: 2, w: 5, h: 2 },
+    { i: 'batt-volt', x: 0, y: 4, w: 5, h: 2 },
+    { i: 'vbus-volt', x: 5, y: 4, w: 5, h: 2 },
+    { i: 'motor-volt', x: 0, y: 6, w: 5, h: 2 },
+    { i: 'fan-control', x: 0, y: 8, w: 10, h: 6 },
+    { i: 'status', x: 0, y: 14, w: 10, h: 6 },
+    { i: 'curve', x: 0, y: 20, w: 10, h: 4 },
+  ],
+  sm: [
+    { i: 'speed', x: 0, y: 0, w: 3, h: 2 },
+    { i: 'batt-power', x: 3, y: 0, w: 3, h: 2 },
+    { i: 'motor-power', x: 0, y: 2, w: 3, h: 2 },
+    { i: 'motor-cur', x: 3, y: 2, w: 3, h: 2 },
+    { i: 'batt-volt', x: 0, y: 4, w: 3, h: 2 },
+    { i: 'vbus-volt', x: 3, y: 4, w: 3, h: 2 },
+    { i: 'motor-volt', x: 0, y: 6, w: 3, h: 2 },
+    { i: 'fan-control', x: 0, y: 8, w: 6, h: 6 },
+    { i: 'status', x: 0, y: 14, w: 6, h: 6 },
+    { i: 'curve', x: 0, y: 20, w: 6, h: 4 },
+  ],
+  xs: [
+    { i: 'speed', x: 0, y: 0, w: 2, h: 2 },
+    { i: 'batt-power', x: 0, y: 2, w: 2, h: 2 },
+    { i: 'motor-power', x: 0, y: 4, w: 2, h: 2 },
+    { i: 'motor-cur', x: 0, y: 6, w: 2, h: 2 },
+    { i: 'batt-volt', x: 0, y: 8, w: 2, h: 2 },
+    { i: 'vbus-volt', x: 0, y: 10, w: 2, h: 2 },
+    { i: 'motor-volt', x: 0, y: 12, w: 2, h: 2 },
+    { i: 'fan-control', x: 0, y: 14, w: 2, h: 6 },
+    { i: 'status', x: 0, y: 20, w: 2, h: 6 },
+    { i: 'curve', x: 0, y: 26, w: 2, h: 4 },
+  ],
+};
+
 export default function Dashboard() {
   const { isConnected, profile, setFanSpeed, toggleNatureWind } = useBle();
   const fanSpeed = useDeviceStore((s) => s.fanSpeed);
@@ -106,91 +159,76 @@ export default function Dashboard() {
   const displaySpeed = dragSpeed ?? fanSpeed;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      {/* 概览派生指标 */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-          gap: '10px',
-        }}
-      >
-        <MetricCard
+    <DashboardGrid pageKey="dashboard" defaultLayouts={DASHBOARD_LAYOUTS}>
+      <MetricCard
+        key="speed"
+        label="转速"
+        value={fanSpeed}
+        unit="%"
+        accent={fanSpeed > 0 ? 'success' : 'default'}
+      />
+      <MetricCard
+        key="batt-power"
+        label="电池功率"
+        value={fmtPower(batteryPower)}
+        accent={batteryPower > 0 ? 'success' : 'default'}
+      />
+      <MetricCard
+        key="motor-power"
+        label="电机功率"
+        value={fmtPower(motorPower)}
+      />
+      <MetricCard key="motor-cur" label="电机电流" value={motor ? motor.currentMa : '--'} unit="mA" />
+      <MetricCard key="batt-volt" label="电池电压" value={battery ? fmtVoltage(battery.voltageMv) : '--'} />
+      <MetricCard
+        key="vbus-volt"
+        label="VBUS 电压"
+        value={powerStatus ? fmtVoltage(powerStatus.vbusVmV) : '--'}
+      />
+      <MetricCard
+        key="motor-volt"
+        label="电机电压"
+        value={motor && motor.voltageMv > 0 ? fmtVoltage(motor.voltageMv) : '--'}
+      />
+
+      <Card key="fan-control" title="风扇控制" subtitle={natureWindOn ? '自然风模式' : '手动模式'} dragHandle>
+        <GearRow />
+        <Slider
           label="转速"
-          value={fanSpeed}
-          unit="%"
-          accent={fanSpeed > 0 ? 'success' : 'default'}
+          value={displaySpeed}
+          min={minSpeed}
+          max={maxSpeed}
+          onChange={(v) => setDragSpeed(v)}
+          onCommit={(v) => {
+            setDragSpeed(null);
+            setFanSpeed(v);
+          }}
         />
-        <MetricCard
-          label="电池功率"
-          value={fmtPower(batteryPower)}
-          accent={batteryPower > 0 ? 'success' : 'default'}
-        />
-        <MetricCard
-          label="电机功率"
-          value={fmtPower(motorPower)}
-          accent={motorPower > 0 ? 'default' : 'default'}
-        />
-        <MetricCard label="电机电流" value={motor ? motor.currentMa : '--'} unit="mA" />
-        <MetricCard label="电池电压" value={battery ? fmtVoltage(battery.voltageMv) : '--'} />
-        <MetricCard
-          label="VBUS 电压"
-          value={powerStatus ? fmtVoltage(powerStatus.vbusVmV) : '--'}
-        />
-        <MetricCard
-          label="电机电压"
-          value={motor && motor.voltageMv > 0 ? fmtVoltage(motor.voltageMv) : '--'}
-        />
-      </div>
-
-      {/* 风扇控制 + 状态 */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)',
-          gap: '10px',
-        }}
-      >
-        <Card title="风扇控制" subtitle={natureWindOn ? '自然风模式' : '手动模式'}>
-          <GearRow />
-          <Slider
-            label="转速"
-            value={displaySpeed}
-            min={minSpeed}
-            max={maxSpeed}
-            onChange={(v) => setDragSpeed(v)}
-            onCommit={(v) => {
-              setDragSpeed(null);
-              setFanSpeed(v);
-            }}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: '8px',
+          }}
+        >
+          <Toggle
+            checked={natureWindOn}
+            onChange={(on) => toggleNatureWind(on)}
+            label="自然风"
           />
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginTop: '8px',
-            }}
-          >
-            <Toggle
-              checked={natureWindOn}
-              onChange={(on) => toggleNatureWind(on)}
-              label="自然风"
-            />
-          </div>
-        </Card>
+        </div>
+      </Card>
 
-        <Card title="状态">
-          <StatusSummary />
-        </Card>
-      </div>
+      <Card key="status" title="状态" dragHandle>
+        <StatusSummary />
+      </Card>
 
-      {/* 自然风曲线预览 */}
       {curvePoints.length > 0 && (
-        <Card title="自然风曲线" subtitle={`${curvePoints.length} 点`}>
+        <Card key="curve" title="自然风曲线" subtitle={`${curvePoints.length} 点`} dragHandle>
           <CurvePreview points={curvePoints} min={minSpeed} max={maxSpeed} />
         </Card>
       )}
-    </div>
+    </DashboardGrid>
   );
 }

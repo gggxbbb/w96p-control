@@ -2,10 +2,55 @@ import { useBle } from '../../hooks/useBle';
 import { useDeviceStore } from '../../stores/device';
 import { useToastStore } from '../../stores/toast';
 import { Card } from '../ui/Card';
+import { DashboardGrid } from '../ui/DashboardGrid';
 import { Toggle } from '../ui/Toggle';
 import { SegBtn } from '../ui/SegBtn';
 import { POW_SWITCHES, POW_SEGS, REG_TITLES, type PowSwitchDef, type PowSegDef } from '../../ble/powSwitches';
 import type { PowReg } from '../../ble/commands';
+import type { ResponsiveLayouts } from 'react-grid-layout';
+
+const PC_LAYOUTS: ResponsiveLayouts = {
+  lg: [
+    { i: 'protocol', x: 0, y: 0, w: 12, h: 2 },
+    { i: '1A', x: 0, y: 2, w: 6, h: 5 },
+    { i: '1C', x: 6, y: 2, w: 6, h: 4 },
+    { i: '1D', x: 0, y: 7, w: 6, h: 6 },
+    { i: '1E', x: 6, y: 6, w: 6, h: 3 },
+    { i: '2A', x: 0, y: 13, w: 6, h: 4 },
+    { i: '2B', x: 6, y: 9, w: 6, h: 5 },
+    { i: '2C', x: 0, y: 17, w: 12, h: 5 },
+  ],
+  md: [
+    { i: 'protocol', x: 0, y: 0, w: 10, h: 2 },
+    { i: '1A', x: 0, y: 2, w: 5, h: 5 },
+    { i: '1C', x: 5, y: 2, w: 5, h: 4 },
+    { i: '1D', x: 0, y: 7, w: 5, h: 6 },
+    { i: '1E', x: 5, y: 6, w: 5, h: 3 },
+    { i: '2A', x: 0, y: 13, w: 5, h: 4 },
+    { i: '2B', x: 5, y: 9, w: 5, h: 5 },
+    { i: '2C', x: 0, y: 17, w: 10, h: 5 },
+  ],
+  sm: [
+    { i: 'protocol', x: 0, y: 0, w: 6, h: 2 },
+    { i: '1A', x: 0, y: 2, w: 6, h: 5 },
+    { i: '1C', x: 0, y: 7, w: 6, h: 4 },
+    { i: '1D', x: 0, y: 11, w: 6, h: 6 },
+    { i: '1E', x: 0, y: 17, w: 6, h: 3 },
+    { i: '2A', x: 0, y: 20, w: 6, h: 4 },
+    { i: '2B', x: 0, y: 24, w: 6, h: 5 },
+    { i: '2C', x: 0, y: 29, w: 6, h: 5 },
+  ],
+  xs: [
+    { i: 'protocol', x: 0, y: 0, w: 2, h: 3 },
+    { i: '1A', x: 0, y: 3, w: 2, h: 6 },
+    { i: '1C', x: 0, y: 9, w: 2, h: 5 },
+    { i: '1D', x: 0, y: 14, w: 2, h: 7 },
+    { i: '1E', x: 0, y: 21, w: 2, h: 4 },
+    { i: '2A', x: 0, y: 25, w: 2, h: 5 },
+    { i: '2B', x: 0, y: 30, w: 2, h: 6 },
+    { i: '2C', x: 0, y: 36, w: 2, h: 5 },
+  ],
+};
 
 export function PowerConfigPanel() {
   const { setPowSwitch, setPowRegister } = useBle();
@@ -57,8 +102,8 @@ export function PowerConfigPanel() {
   const srcNames = ['非快充', 'PD Source', 'PPS Source', 'QC2.0', 'QC3.0', 'FCP', 'PE2.0/1.1', 'SFCP', 'AFC', 'SCP', 'LVDC1'];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      <Card title="当前快充协议">
+    <DashboardGrid pageKey="power-config" defaultLayouts={PC_LAYOUTS}>
+      <Card key="protocol" title="当前快充协议" dragHandle>
         <div style={{ display: 'flex', gap: '16px', fontSize: '12px' }}>
           <span>输入：<span style={{ color: 'var(--color-accent)' }}>{sinkNames[powerConfig.powSink] ?? '未知'}</span></span>
           <span>输出：<span style={{ color: 'var(--color-accent)' }}>{srcNames[powerConfig.powSrc] ?? '未知'}</span></span>
@@ -71,7 +116,7 @@ export function PowerConfigPanel() {
         const segs = segsByReg(reg);
         if (switches.length === 0 && segs.length === 0) return null;
         return (
-          <Card key={reg} title={REG_TITLES[reg]} subtitle={`当前值 0x${getRegValue(reg).toString(16).padStart(2, '0').toUpperCase()}`}>
+          <Card key={reg} title={REG_TITLES[reg]} subtitle={`当前值 0x${getRegValue(reg).toString(16).padStart(2, '0').toUpperCase()}`} dragHandle>
             {switches.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: segs.length > 0 ? '12px' : 0 }}>
                 {switches.map((def) => {
@@ -107,6 +152,6 @@ export function PowerConfigPanel() {
           </Card>
         );
       })}
-    </div>
+    </DashboardGrid>
   );
 }

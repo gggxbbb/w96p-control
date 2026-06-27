@@ -5,7 +5,7 @@ import { MetricCard } from '../ui/MetricCard';
 import { StatusPill } from '../ui/StatusPill';
 import { fmtVoltage, fmtCurrent, fmtPower } from '../../lib/format';
 
-export function MotorPanel() {
+export function MotorPanel({ dragHandle, style }: { dragHandle?: boolean; style?: React.CSSProperties }) {
   const { profile } = useBle();
   const motor = useDeviceStore((s) => s.motor);
   const battery = useDeviceStore((s) => s.battery);
@@ -19,7 +19,7 @@ export function MotorPanel() {
     : 0;
 
   return (
-    <Card title="电机信息">
+    <Card title="电机信息" dragHandle={dragHandle} style={style}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px', marginBottom: '12px' }}>
         <MetricCard label="电机电流" value={motor ? fmtCurrent(motor.currentMa) : '--'} />
         {profile?.parseMotorFull && (

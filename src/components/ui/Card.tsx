@@ -1,13 +1,21 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, CSSProperties } from 'react';
 
 interface CardProps {
   title?: string;
   subtitle?: string;
   children: ReactNode;
   actions?: ReactNode;
+  /** 是否显示拖拽手柄（在 header 上）。设为 true 时 header 获得 .drag-handle 类 */
+  dragHandle?: boolean;
+  style?: CSSProperties;
 }
 
-export function Card({ title, subtitle, children, actions }: CardProps) {
+export function Card({ title, subtitle, children, actions, dragHandle, style }: CardProps) {
+  const headerClass = dragHandle ? 'drag-handle' : '';
+  const headerStyle: CSSProperties = dragHandle
+    ? { cursor: 'move', userSelect: 'none' }
+    : {};
+
   return (
     <section
       style={{
@@ -18,31 +26,52 @@ export function Card({ title, subtitle, children, actions }: CardProps) {
         display: 'flex',
         flexDirection: 'column',
         gap: '10px',
+        height: '100%',
+        overflow: 'auto',
+        boxSizing: 'border-box',
+        ...style,
       }}
     >
       {(title || actions) && (
         <header
+          className={headerClass}
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             paddingBottom: '8px',
             borderBottom: '0.5px solid var(--color-border)',
+            ...headerStyle,
           }}
         >
-          <div>
-            {title && (
-              <h2 style={{ margin: 0, fontSize: '13px', fontWeight: 500, letterSpacing: '0.5px' }}>
-                {title}
-              </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+            {dragHandle && (
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                style={{ color: 'var(--color-text-dim)', flexShrink: 0 }}
+              >
+                <circle cx="9" cy="6" r="1.5" /><circle cx="15" cy="6" r="1.5" />
+                <circle cx="9" cy="12" r="1.5" /><circle cx="15" cy="12" r="1.5" />
+                <circle cx="9" cy="18" r="1.5" /><circle cx="15" cy="18" r="1.5" />
+              </svg>
             )}
-            {subtitle && (
-              <p style={{ margin: 0, fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                {subtitle}
-              </p>
-            )}
+            <div style={{ minWidth: 0 }}>
+              {title && (
+                <h2 style={{ margin: 0, fontSize: '13px', fontWeight: 500, letterSpacing: '0.5px' }}>
+                  {title}
+                </h2>
+              )}
+              {subtitle && (
+                <p style={{ margin: 0, fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                  {subtitle}
+                </p>
+              )}
+            </div>
           </div>
-          {actions}
+          {actions && <div className="no-drag">{actions}</div>}
         </header>
       )}
       {children}

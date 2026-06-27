@@ -79,3 +79,54 @@ body {
 @media (max-width: 767px) {
   .menu-toggle { display: flex; }
 }
+
+/* ===== react-grid-layout 必需样式 ===== */
+.w96p-grid {
+  position: relative;
+  transition: height 200ms ease;
+}
+.rgl-item {
+  transition: all 200ms ease;
+  transition-property: left, top, width, height;
+}
+.rgl-item.rgl-item-resizing {
+  transition: none;
+  z-index: 3;
+  opacity: 0.7;
+}
+.rgl-item.rgl-item-dragging {
+  transition: none;
+  z-index: 4;
+  opacity: 0.8;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.rgl-item > .react-resizable-handle {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  bottom: 2px;
+  right: 2px;
+  cursor: se-resize;
+  opacity: 0.3;
+  z-index: 5;
+}
+.rgl-item > .react-resizable-handle::after {
+  content: '';
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid var(--color-text-muted);
+  border-bottom: 1.5px solid var(--color-text-muted);
+}
+.rgl-item:hover > .react-resizable-handle {
+  opacity: 0.7;
+}
+.react-resizable-handle-sw {
+  bottom: 2px;
+  left: 2px;
+  right: auto;
+  cursor: sw-resize;
+  transform: rotate(90deg);
+}

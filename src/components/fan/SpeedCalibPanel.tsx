@@ -4,7 +4,7 @@ import { useDeviceStore } from '../../stores/device';
 import { useToastStore } from '../../stores/toast';
 import { Card } from '../ui/Card';
 
-export function SpeedCalibPanel() {
+export function SpeedCalibPanel({ dragHandle, style }: { dragHandle?: boolean; style?: React.CSSProperties }) {
   const { profile, setSpeedCalib } = useBle();
   const speedCalib = useDeviceStore((s) => s.speedCalib);
   const show = useToastStore((s) => s.show);
@@ -25,7 +25,7 @@ export function SpeedCalibPanel() {
   };
 
   return (
-    <Card title="档位风速校准">
+    <Card title="档位风速校准" dragHandle={dragHandle} style={style}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
         {[0, 1, 2, 3].map((i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

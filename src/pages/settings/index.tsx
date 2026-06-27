@@ -1,15 +1,48 @@
 import { useBle } from '../../hooks/useBle';
 import { useSettingsStore } from '../../stores/settings';
 import { Card } from '../../components/ui/Card';
+import { DashboardGrid } from '../../components/ui/DashboardGrid';
 import { SegBtn } from '../../components/ui/SegBtn';
+import type { ResponsiveLayouts } from 'react-grid-layout';
+
+const SETTINGS_LAYOUTS: ResponsiveLayouts = {
+  lg: [
+    { i: 'device', x: 0, y: 0, w: 6, h: 5 },
+    { i: 'appearance', x: 6, y: 0, w: 6, h: 3 },
+    { i: 'data', x: 0, y: 5, w: 6, h: 5 },
+    { i: 'curve', x: 6, y: 3, w: 6, h: 3 },
+    { i: 'about', x: 0, y: 10, w: 12, h: 4 },
+  ],
+  md: [
+    { i: 'device', x: 0, y: 0, w: 5, h: 5 },
+    { i: 'appearance', x: 5, y: 0, w: 5, h: 3 },
+    { i: 'data', x: 0, y: 5, w: 5, h: 5 },
+    { i: 'curve', x: 5, y: 3, w: 5, h: 3 },
+    { i: 'about', x: 0, y: 10, w: 10, h: 4 },
+  ],
+  sm: [
+    { i: 'device', x: 0, y: 0, w: 6, h: 5 },
+    { i: 'appearance', x: 0, y: 5, w: 6, h: 3 },
+    { i: 'data', x: 0, y: 8, w: 6, h: 5 },
+    { i: 'curve', x: 0, y: 13, w: 6, h: 3 },
+    { i: 'about', x: 0, y: 16, w: 6, h: 4 },
+  ],
+  xs: [
+    { i: 'device', x: 0, y: 0, w: 2, h: 6 },
+    { i: 'appearance', x: 0, y: 6, w: 2, h: 4 },
+    { i: 'data', x: 0, y: 10, w: 2, h: 6 },
+    { i: 'curve', x: 0, y: 16, w: 2, h: 4 },
+    { i: 'about', x: 0, y: 20, w: 2, h: 5 },
+  ],
+};
 
 export default function Settings() {
   const { isConnected, deviceName, profile, disconnect } = useBle();
   const { theme, pollIntervalMs, curveEditorMode, historyRetentionMin, setTheme, setPollInterval, setCurveMode, setHistoryRetentionMin } = useSettingsStore();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      <Card title="设备信息">
+    <DashboardGrid pageKey="settings" defaultLayouts={SETTINGS_LAYOUTS}>
+      <Card key="device" title="设备信息" dragHandle>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
           <Row label="连接状态" value={isConnected ? '已连接' : '未连接'} accent={isConnected ? 'var(--color-success)' : 'var(--color-text-muted)'} />
           <Row label="设备名称" value={deviceName ?? '--'} />
@@ -35,7 +68,7 @@ export default function Settings() {
         </div>
       </Card>
 
-      <Card title="外观">
+      <Card key="appearance" title="外观" dragHandle>
         <SettingRow label="主题">
           <SegBtn
             options={[{ value: 'dark' as const, label: '深色' }, { value: 'light' as const, label: '浅色' }]}
@@ -48,7 +81,7 @@ export default function Settings() {
         </SettingRow>
       </Card>
 
-      <Card title="数据采集">
+      <Card key="data" title="数据采集" dragHandle>
         <SettingRow label="轮询周期">
           <SegBtn
             options={[
@@ -73,7 +106,7 @@ export default function Settings() {
         </SettingRow>
       </Card>
 
-      <Card title="自然风曲线编辑器">
+      <Card key="curve" title="自然风曲线编辑器" dragHandle>
         <SettingRow label="默认编辑模式">
           <SegBtn
             options={[{ value: 'canvas' as const, label: 'Canvas 拖拽' }, { value: 'textarea' as const, label: '文本编辑' }]}
@@ -83,7 +116,7 @@ export default function Settings() {
         </SettingRow>
       </Card>
 
-      <Card title="关于">
+      <Card key="about" title="关于" dragHandle>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', color: 'var(--color-text-muted)' }}>
           <Row label="应用" value="W96P 控制 v1.0" />
           <Row label="协议" value="BLE GATT (FFF0/FFD0/FFE0)" />
@@ -94,7 +127,7 @@ export default function Settings() {
           </div>
         </div>
       </Card>
-    </div>
+    </DashboardGrid>
   );
 }
 

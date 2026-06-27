@@ -7,7 +7,7 @@ import { StatusPill } from '../ui/StatusPill';
 import { Toggle } from '../ui/Toggle';
 import { fmtVoltage, fmtCurrent, fmtPower } from '../../lib/format';
 
-export function VbusPanel() {
+export function VbusPanel({ dragHandle, style }: { dragHandle?: boolean; style?: React.CSSProperties }) {
   const { setPowCOut, setPowCIn } = useBle();
   const powerStatus = useDeviceStore((s) => s.powerStatus);
   const battery = useDeviceStore((s) => s.battery);
@@ -19,7 +19,7 @@ export function VbusPanel() {
     : 0;
 
   return (
-    <Card title="VBUS / 电源状态">
+    <Card title="VBUS / 电源状态" dragHandle={dragHandle} style={style}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px', marginBottom: '12px' }}>
         <MetricCard label="VBUS 电压" value={powerStatus ? fmtVoltage(powerStatus.vbusVmV) : '--'} />
         <MetricCard label="VBUS 电流" value={powerStatus ? fmtCurrent(powerStatus.vbusCurMa) : '--'} />

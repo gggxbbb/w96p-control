@@ -4,11 +4,40 @@ import { useDeviceStore } from '../../stores/device';
 import { useSettingsStore } from '../../stores/settings';
 import { useToastStore } from '../../stores/toast';
 import { Card } from '../../components/ui/Card';
+import { DashboardGrid } from '../../components/ui/DashboardGrid';
 import { SegBtn } from '../../components/ui/SegBtn';
 import { CurveCanvas } from '../../components/nature-wind/CurveCanvas';
 import { CurveChart } from '../../components/nature-wind/CurveChart';
 import { CurvePresets } from '../../components/nature-wind/CurvePresets';
 import { DEFAULT_CURVE } from '../../lib/curvePresets';
+import type { ResponsiveLayouts } from 'react-grid-layout';
+
+const NW_LAYOUTS: ResponsiveLayouts = {
+  lg: [
+    { i: 'editor', x: 0, y: 0, w: 12, h: 10 },
+    { i: 'presets', x: 0, y: 10, w: 6, h: 3 },
+    { i: 'preview', x: 6, y: 10, w: 6, h: 5 },
+    { i: 'actions', x: 0, y: 15, w: 12, h: 3 },
+  ],
+  md: [
+    { i: 'editor', x: 0, y: 0, w: 10, h: 10 },
+    { i: 'presets', x: 0, y: 10, w: 5, h: 3 },
+    { i: 'preview', x: 5, y: 10, w: 5, h: 5 },
+    { i: 'actions', x: 0, y: 15, w: 10, h: 3 },
+  ],
+  sm: [
+    { i: 'editor', x: 0, y: 0, w: 6, h: 10 },
+    { i: 'presets', x: 0, y: 10, w: 6, h: 3 },
+    { i: 'preview', x: 0, y: 13, w: 6, h: 5 },
+    { i: 'actions', x: 0, y: 18, w: 6, h: 3 },
+  ],
+  xs: [
+    { i: 'editor', x: 0, y: 0, w: 2, h: 12 },
+    { i: 'presets', x: 0, y: 12, w: 2, h: 4 },
+    { i: 'preview', x: 0, y: 16, w: 2, h: 6 },
+    { i: 'actions', x: 0, y: 22, w: 2, h: 3 },
+  ],
+};
 
 export default function NatureWind() {
   const { profile, readNatureCurve, setNatureCurve } = useBle();
@@ -87,8 +116,8 @@ export default function NatureWind() {
   const avgVal = editPoints.length ? editPoints.reduce((a, b) => a + b, 0) / editPoints.length : 0;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      <Card title="自然风曲线编辑器">
+    <DashboardGrid pageKey="nature-wind" defaultLayouts={NW_LAYOUTS}>
+      <Card key="editor" title="自然风曲线编辑器" dragHandle>
         <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
           <SegBtn
             options={[
@@ -159,48 +188,50 @@ export default function NatureWind() {
         </div>
       </Card>
 
-      <Card title="预设曲线">
+      <Card key="presets" title="预设曲线" dragHandle>
         <CurvePresets min={min} max={max} onApply={handlePresetApply} />
       </Card>
 
-      <Card title="只读预览">
+      <Card key="preview" title="只读预览" dragHandle>
         <CurveChart points={editPoints} min={min} max={max} />
       </Card>
 
-      <div style={{ display: 'flex', gap: '8px' }}>
-        <button
-          onClick={handleApply}
-          style={{
-            flex: 1,
-            background: 'var(--color-success)',
-            color: 'var(--color-bg-page)',
-            border: 'none',
-            borderRadius: '4px',
-            padding: '10px',
-            fontSize: '12px',
-            fontFamily: 'var(--font-sans)',
-            cursor: 'pointer',
-          }}
-        >
-          应用到设备
-        </button>
-        <button
-          onClick={handleRead}
-          style={{
-            flex: 1,
-            background: 'transparent',
-            color: 'var(--color-text-muted)',
-            border: '0.5px solid var(--color-border-strong)',
-            borderRadius: '4px',
-            padding: '10px',
-            fontSize: '12px',
-            fontFamily: 'var(--font-sans)',
-            cursor: 'pointer',
-          }}
-        >
-          读取设备曲线
-        </button>
-      </div>
-    </div>
+      <Card key="actions" title="操作" dragHandle>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={handleApply}
+            style={{
+              flex: 1,
+              background: 'var(--color-success)',
+              color: 'var(--color-bg-page)',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '10px',
+              fontSize: '12px',
+              fontFamily: 'var(--font-sans)',
+              cursor: 'pointer',
+            }}
+          >
+            应用到设备
+          </button>
+          <button
+            onClick={handleRead}
+            style={{
+              flex: 1,
+              background: 'transparent',
+              color: 'var(--color-text-muted)',
+              border: '0.5px solid var(--color-border-strong)',
+              borderRadius: '4px',
+              padding: '10px',
+              fontSize: '12px',
+              fontFamily: 'var(--font-sans)',
+              cursor: 'pointer',
+            }}
+          >
+            读取设备曲线
+          </button>
+        </div>
+      </Card>
+    </DashboardGrid>
   );
 }

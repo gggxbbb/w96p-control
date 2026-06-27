@@ -5,7 +5,7 @@ import { Card } from '../ui/Card';
 import { GearRow } from './GearRow';
 import { Toggle } from '../ui/Toggle';
 
-export function SpeedControl() {
+export function SpeedControl({ dragHandle, style }: { dragHandle?: boolean; style?: React.CSSProperties }) {
   const { profile, setFanSpeed, toggleNatureWind } = useBle();
   const fanSpeed = useDeviceStore((s) => s.fanSpeed);
   const natureWindOn = useDeviceStore((s) => s.natureWindOn);
@@ -60,7 +60,7 @@ export function SpeedControl() {
   };
 
   return (
-    <Card title="转速控制" subtitle={natureWindOn ? '自然风模式' : '手动模式'}>
+    <Card title="转速控制" subtitle={natureWindOn ? '自然风模式' : '手动模式'} dragHandle={dragHandle} style={style}>
       <GearRow />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px' }}>
