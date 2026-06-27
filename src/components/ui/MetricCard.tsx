@@ -83,15 +83,16 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
           marginBottom: '2px',
         }}
       >
-        {/* drag handle area — only drags when grabbing here */}
+        {/* drag handle — 包含手柄图标 + label，拖拽时抓这里 */}
         <div
           className="drag-handle"
           style={{
             display: 'flex',
             alignItems: 'center',
+            gap: '3px',
             padding: '2px 0',
-            cursor: editable ? 'grab' : undefined,
-            flexShrink: 0,
+            flex: 1,
+            minWidth: 0,
           }}
         >
           <svg
@@ -100,24 +101,22 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
             height="10"
             viewBox="0 0 24 24"
             fill="currentColor"
-            style={{ color: 'var(--color-text-dim)', display: 'block' }}
+            style={{ color: 'var(--color-text-dim)', display: 'block', flexShrink: 0 }}
           >
             <circle cx="9" cy="6" r="1.5" /><circle cx="15" cy="6" r="1.5" />
             <circle cx="9" cy="12" r="1.5" /><circle cx="15" cy="12" r="1.5" />
             <circle cx="9" cy="18" r="1.5" /><circle cx="15" cy="18" r="1.5" />
           </svg>
+          <span
+            style={{
+              color: 'var(--color-text-muted)',
+              fontSize: '10px',
+              letterSpacing: '0.05em',
+            }}
+          >
+            {label}
+          </span>
         </div>
-
-        <span
-          style={{
-            color: 'var(--color-text-muted)',
-            fontSize: '10px',
-            letterSpacing: '0.05em',
-            flex: 1,
-          }}
-        >
-          {label}
-        </span>
 
         {/* edit-mode buttons */}
         {editable && (
