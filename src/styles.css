@@ -161,19 +161,6 @@ body {
   user-select: none;
   -webkit-user-select: none;
 }
-/* 编辑模式背景网格 */
-.w96p-grid.editable::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(var(--color-border) 0.5px, transparent 0.5px),
-    linear-gradient(90deg, var(--color-border) 0.5px, transparent 0.5px);
-  background-size: 80px 36px;
-  opacity: 0.15;
-}
 /* 编辑模式下拖拽手柄显示 grab 光标 */
 .w96p-grid.editable .drag-handle {
   cursor: grab;
