@@ -18,7 +18,7 @@ export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
       theme: 'dark',
-      pollIntervalMs: 1000,
+      pollIntervalMs: 500,
       curveEditorMode: 'canvas',
       historyRetentionMin: 30,
       lastDeviceName: null,
