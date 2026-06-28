@@ -26,7 +26,6 @@ export function parseFirmware(buffer: ArrayBuffer): FirmwareInfo | null {
 
   // 搜索产品名
   let productName = '';
-  let productOffset = -1;
 
   for (let i = 0; i < Math.min(PRODUCT_NAME_SEARCH_RANGE, data.length - 4); i++) {
     const slice = String.fromCharCode(data[i]!, data[i + 1]!, data[i + 2]!, data[i + 3]!);
@@ -37,7 +36,6 @@ export function parseFirmware(buffer: ArrayBuffer): FirmwareInfo | null {
         end++;
       }
       productName = String.fromCharCode(...data.slice(i, end));
-      productOffset = i;
       break;
     }
   }

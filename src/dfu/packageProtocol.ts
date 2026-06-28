@@ -5,13 +5,14 @@ export const PACKAGE_MAX_PAYLOAD = 300;
 const FRAME_FIXED_OVERHEAD = 5; // HEAD(1) + KEY(1) + LEN(2) + CRC8(1)
 const RX_TIMEOUT_MS = 500;
 
-enum RxStage {
-  WAIT_HEAD = 0,
-  READ_KEY = 1,
-  READ_LEN_LOW = 2,
-  READ_LEN_HIGH = 3,
-  READ_PAYLOAD_AND_CRC = 4,
-}
+const RxStage = {
+  WAIT_HEAD: 0,
+  READ_KEY: 1,
+  READ_LEN_LOW: 2,
+  READ_LEN_HIGH: 3,
+  READ_PAYLOAD_AND_CRC: 4,
+} as const;
+type RxStage = (typeof RxStage)[keyof typeof RxStage];
 
 export class BlePackageProtocol {
   private rxStage: RxStage = RxStage.WAIT_HEAD;
