@@ -6,6 +6,9 @@ import {
 import { cmd, encodeCmd, type PowReg } from './commands';
 import { WriteQueue } from './writer';
 import type { IBleManager, BleState, BleSnapshot } from './types';
+import { useDeviceStore } from '../stores/device';
+
+export type { BleState, BleSnapshot } from './types';
 
 export type { BleState, BleSnapshot } from './types';
 
@@ -19,6 +22,7 @@ export class BleManager implements IBleManager {
   private chars = new Map<string, BluetoothRemoteGATTCharacteristic>();
   private writer = new WriteQueue();
   private pollId: number | null = null;
+  private lastWriteMs = 0;
   profile: Profile | null = null;
 
   onState?: (s: BleState, deviceName?: string, profile?: Profile) => void;
@@ -105,7 +109,9 @@ export class BleManager implements IBleManager {
 
   private async pollOnce(): Promise<void> {
     if (!this.profile) return;
-    // Queue entire poll as one atomic unit so writes never interleave
+    // Capture write timestamp now; if any write fires while we're in the queue,
+    // skip onSnapshot to avoid overwriting optimistic updates with stale reads.
+    const writeTsBefore = this.lastWriteMs;
     this.writer.enqueue(async () => {
       // Sequential reads avoid overwhelming BLE stack
       const speed = await this.chars.get(CHARS.FAN_SPEED)!.readValue();
@@ -124,15 +130,19 @@ export class BleManager implements IBleManager {
       const pcDv = new DataView(pc.buffer);
       const natureOn = u8(nwDv) === 1;
       this.writer.setNatureWindOn(natureOn);
-      this.onSnapshot?.({
-        fanSpeed: u8(speedDv),
-        battery: parseBatteryInfo(batDv),
-        powerStatus: parsePowerStatus(pwrDv),
-        motor: parseMotorInfo(motDv, this.profile),
-        powerConfig: parsePowerConfig(pcDv),
-        natureWindOn: natureOn,
-        gearDownMode: u8(gdmDv) as 0 | 1,
-      });
+      // Skip snapshot if a write was enqueued after poll started — those
+      // reads are stale and would overwrite optimistic UI updates.
+      if (this.lastWriteMs <= writeTsBefore) {
+        this.onSnapshot?.({
+          fanSpeed: u8(speedDv),
+          battery: parseBatteryInfo(batDv),
+          powerStatus: parsePowerStatus(pwrDv),
+          motor: parseMotorInfo(motDv, this.profile),
+          powerConfig: parsePowerConfig(pcDv),
+          natureWindOn: natureOn,
+          gearDownMode: u8(gdmDv) as 0 | 1,
+        });
+      }
     }).catch(e => {
       this.onError?.(String(e instanceof Error ? e.message : e));
     });
@@ -157,112 +167,208 @@ export class BleManager implements IBleManager {
   }
 
   async writeGear(gear: 0 | 1 | 2 | 3 | 4): Promise<void> {
-    const char = this.chars.get(CHARS.POWER)!;
-    await this.writer.enqueue(async () => {
-      if (this.writer.isNatureWindOn() && this.writer.natureChar && gear !== 0) {
-        await this.writer.rawWrite(this.writer.natureChar, new Uint8Array([0]));
-        await sleep(100);
-        this.writer.setNatureWindOn(false);
-      }
-      await this.writer.rawWrite(char, new Uint8Array([gear]));
-    });
-    this.onSnapshot?.({ natureWindOn: false });
+    this.lastWriteMs = Date.now();
+    const prevNw = useDeviceStore.getState().natureWindOn;
+    const prevSpeed = useDeviceStore.getState().fanSpeed;
+    // Predict target speed from calibration: gear 0=off, gear N=speedCalib[N-1]
+    const calib = useDeviceStore.getState().speedCalib;
+    const targetSpeed = gear === 0 ? 0 : calib[gear - 1];
+    this.onSnapshot?.({ fanSpeed: targetSpeed, natureWindOn: false });
+    try {
+      const char = this.chars.get(CHARS.POWER)!;
+      await this.writer.enqueue(async () => {
+        if (this.writer.isNatureWindOn() && this.writer.natureChar && gear !== 0) {
+          await this.writer.rawWrite(this.writer.natureChar, new Uint8Array([0]));
+          await sleep(100);
+          this.writer.setNatureWindOn(false);
+        }
+        await this.writer.rawWrite(char, new Uint8Array([gear]));
+      });
+    } catch {
+      this.onSnapshot?.({ fanSpeed: prevSpeed, natureWindOn: prevNw });
+    }
   }
 
   async writeFanSpeed(pct: number): Promise<void> {
-    const char = this.chars.get(CHARS.FAN_SPEED)!;
-    await this.writer.writeFanSpeed(char, pct);
+    this.lastWriteMs = Date.now();
+    const prevSpeed = useDeviceStore.getState().fanSpeed;
+    const prevNw = useDeviceStore.getState().natureWindOn;
     this.onSnapshot?.({ fanSpeed: pct, natureWindOn: false });
+    try {
+      const char = this.chars.get(CHARS.FAN_SPEED)!;
+      await this.writer.writeFanSpeed(char, pct);
+    } catch {
+      this.onSnapshot?.({ fanSpeed: prevSpeed, natureWindOn: prevNw });
+    }
   }
 
   async writeNatureWind(on: boolean): Promise<void> {
-    const char = this.chars.get(CHARS.NATURE_WIND)!;
-    await this.writer.enqueue(async () => {
-      await this.writer.rawWrite(char, new Uint8Array([on ? 1 : 0]));
-    });
+    this.lastWriteMs = Date.now();
+    const prevNw = useDeviceStore.getState().natureWindOn;
     this.writer.setNatureWindOn(on);
     this.onSnapshot?.({ natureWindOn: on });
+    try {
+      const char = this.chars.get(CHARS.NATURE_WIND)!;
+      await this.writer.enqueue(async () => {
+        await this.writer.rawWrite(char, new Uint8Array([on ? 1 : 0]));
+      });
+    } catch {
+      this.writer.setNatureWindOn(prevNw);
+      this.onSnapshot?.({ natureWindOn: prevNw });
+    }
   }
 
   async writeTimer(minutes: number): Promise<void> {
-    const char = this.chars.get(CHARS.TIMER)!;
+    this.lastWriteMs = Date.now();
+    const prev = useDeviceStore.getState().timerRemainingSec;
     const sec = minutes * 60;
-    const data = new Uint8Array([(sec >> 8) & 0xff, sec & 0xff]);
-    await this.writer.enqueue(async () => {
-      await this.writer.rawWrite(char, data);
-    });
     this.onSnapshot?.({ timerRemainingSec: sec });
+    try {
+      const char = this.chars.get(CHARS.TIMER)!;
+      const data = new Uint8Array([(sec >> 8) & 0xff, sec & 0xff]);
+      await this.writer.enqueue(async () => {
+        await this.writer.rawWrite(char, data);
+      });
+    } catch {
+      this.onSnapshot?.({ timerRemainingSec: prev });
+    }
   }
 
   async writeShutdownDelay(sec: number): Promise<void> {
-    const char = this.chars.get(CHARS.SHUTDOWN_DELAY)!;
+    this.lastWriteMs = Date.now();
+    const prev = useDeviceStore.getState().shutdownDelaySec;
     const clamped = sec < 10 && sec > 0 ? 10 : sec;
-    const data = new Uint8Array([(clamped >> 8) & 0xff, clamped & 0xff]);
-    await this.writer.enqueue(async () => {
-      await this.writer.rawWrite(char, data);
-    });
     this.onSnapshot?.({ shutdownDelaySec: clamped });
+    try {
+      const char = this.chars.get(CHARS.SHUTDOWN_DELAY)!;
+      const data = new Uint8Array([(clamped >> 8) & 0xff, clamped & 0xff]);
+      await this.writer.enqueue(async () => {
+        await this.writer.rawWrite(char, data);
+      });
+    } catch {
+      this.onSnapshot?.({ shutdownDelaySec: prev });
+    }
   }
 
   async writeGearDownMode(mode: 0 | 1): Promise<void> {
-    const char = this.chars.get(CHARS.GEAR_DOWN_MODE)!;
-    await this.writer.enqueue(async () => {
-      await this.writer.rawWrite(char, new Uint8Array([mode]));
-    });
+    this.lastWriteMs = Date.now();
+    const prev = useDeviceStore.getState().gearDownMode;
     this.onSnapshot?.({ gearDownMode: mode });
+    try {
+      const char = this.chars.get(CHARS.GEAR_DOWN_MODE)!;
+      await this.writer.enqueue(async () => {
+        await this.writer.rawWrite(char, new Uint8Array([mode]));
+      });
+    } catch {
+      this.onSnapshot?.({ gearDownMode: prev });
+    }
   }
 
   async writeSpeedCalib(speeds: [number, number, number, number]): Promise<void> {
-    const char = this.chars.get(CHARS.SPEED_CALIB)!;
-    await this.writer.enqueue(async () => {
-      await this.writer.rawWrite(char, new Uint8Array(speeds));
-    });
+    this.lastWriteMs = Date.now();
+    const prev = useDeviceStore.getState().speedCalib;
     this.onSnapshot?.({ speedCalib: speeds });
+    try {
+      const char = this.chars.get(CHARS.SPEED_CALIB)!;
+      await this.writer.enqueue(async () => {
+        await this.writer.rawWrite(char, new Uint8Array(speeds));
+      });
+    } catch {
+      this.onSnapshot?.({ speedCalib: prev });
+    }
   }
 
   async writeNatureCurve(points: number[]): Promise<void> {
-    const char = this.chars.get(CHARS.NATURE_CURVE)!;
+    this.lastWriteMs = Date.now();
     if (points.length !== 128) throw new Error('自然风曲线必须 128 点');
-    await this.writer.enqueue(async () => {
-      await this.writer.rawWrite(char, new Uint8Array(points));
-    });
+    const prev = useDeviceStore.getState().natureCurve;
+    this.onSnapshot?.({ natureCurve: points });
+    try {
+      const char = this.chars.get(CHARS.NATURE_CURVE)!;
+      await this.writer.enqueue(async () => {
+        await this.writer.rawWrite(char, new Uint8Array(points));
+      });
+    } catch {
+      this.onSnapshot?.({ natureCurve: prev });
+    }
   }
 
   async writeBatteryCapacity(mah: number, v: number): Promise<void> {
-    const char = this.chars.get(CHARS.BATTERY_INFO)!;
+    this.lastWriteMs = Date.now();
     const mwh = Math.round(mah * v);
-    await this.writer.enqueue(async () => {
-      await this.writer.rawWrite(char, encodeCmd(cmd.setBatteryCapacity(mwh)));
-    });
+    const prev = useDeviceStore.getState().battery?.capacityMwh;
+    this.onSnapshot?.({ battery: { capacityMwh: mwh } as any });
+    try {
+      const char = this.chars.get(CHARS.BATTERY_INFO)!;
+      await this.writer.enqueue(async () => {
+        await this.writer.rawWrite(char, encodeCmd(cmd.setBatteryCapacity(mwh)));
+      });
+    } catch {
+      if (prev !== undefined) this.onSnapshot?.({ battery: { capacityMwh: prev } } as any);
+    }
   }
 
   async writePowCOut(enable: boolean): Promise<void> {
-    const char = this.chars.get(CHARS.POWER_STATUS)!;
-    await this.writer.enqueue(async () => {
-      await this.writer.rawWrite(char, encodeCmd(cmd.setPowCOut(enable)));
-    });
+    this.lastWriteMs = Date.now();
+    const prev = useDeviceStore.getState().powerStatus?.powCOut;
+    this.onSnapshot?.({ powerStatus: { powCOut: enable } } as any);
+    try {
+      const char = this.chars.get(CHARS.POWER_STATUS)!;
+      await this.writer.enqueue(async () => {
+        await this.writer.rawWrite(char, encodeCmd(cmd.setPowCOut(enable)));
+      });
+    } catch {
+      if (prev !== undefined) this.onSnapshot?.({ powerStatus: { powCOut: prev } } as any);
+    }
   }
 
   async writePowCIn(enable: boolean): Promise<void> {
-    const char = this.chars.get(CHARS.POWER_STATUS)!;
-    await this.writer.enqueue(async () => {
-      await this.writer.rawWrite(char, encodeCmd(cmd.setPowCIn(enable)));
-    });
+    this.lastWriteMs = Date.now();
+    const prev = useDeviceStore.getState().powerStatus?.powCIn;
+    this.onSnapshot?.({ powerStatus: { powCIn: enable } } as any);
+    try {
+      const char = this.chars.get(CHARS.POWER_STATUS)!;
+      await this.writer.enqueue(async () => {
+        await this.writer.rawWrite(char, encodeCmd(cmd.setPowCIn(enable)));
+      });
+    } catch {
+      if (prev !== undefined) this.onSnapshot?.({ powerStatus: { powCIn: prev } } as any);
+    }
   }
 
   async writePowSwitch(reg: PowReg, bit: number, enable: boolean, inverted: boolean): Promise<void> {
-    // inverted=true 表示 0=使能（多数位），enable=true 表示用户想"使能"
-    // writeRegisterBit 的 value 参数表示"将位设为 1"
-    // 所以：inverted 时，使能=把位清 0；非 inverted 时，使能=把位置 1
+    this.lastWriteMs = Date.now();
     const value = inverted ? !enable : enable;
-    await this.writer.writeRegisterBit(reg, bit, value);
+    const regKey = ('pow' + reg) as keyof import('./parsers').PowerConfigRegs;
+    const current = useDeviceStore.getState().powerConfig;
+    const prevByte = current?.[regKey] as number | undefined;
+    if (current && prevByte !== undefined) {
+      const mask = 1 << bit;
+      const next = value ? (prevByte | mask) : (prevByte & ~mask);
+      if (next !== prevByte) {
+        this.onSnapshot?.({ powerConfig: { [regKey]: next } } as any);
+      }
+    }
+    try {
+      await this.writer.writeRegisterBit(reg, bit, value);
+    } catch {
+      if (prevByte !== undefined) this.onSnapshot?.({ powerConfig: { [regKey]: prevByte } } as any);
+    }
   }
 
   async writePowRegister(reg: PowReg, byte: number): Promise<void> {
-    const char = this.chars.get(CHARS.POWER_CONFIG)!;
-    await this.writer.enqueue(async () => {
-      await this.writer.rawWrite(char, encodeCmd(cmd.setRegister(reg, byte)));
-    });
+    this.lastWriteMs = Date.now();
+    const regKey = ('pow' + reg) as keyof import('./parsers').PowerConfigRegs;
+    const prev = useDeviceStore.getState().powerConfig?.[regKey] as number | undefined;
+    this.onSnapshot?.({ powerConfig: { [regKey]: byte } } as any);
+    try {
+      const char = this.chars.get(CHARS.POWER_CONFIG)!;
+      await this.writer.enqueue(async () => {
+        await this.writer.rawWrite(char, encodeCmd(cmd.setRegister(reg, byte)));
+      });
+    } catch {
+      if (prev !== undefined) this.onSnapshot?.({ powerConfig: { [regKey]: prev } } as any);
+    }
   }
 
   disconnect(): void {
