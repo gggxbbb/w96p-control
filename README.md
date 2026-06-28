@@ -4,7 +4,7 @@
 
 ## 协议文档
 
-以下基于 `W96P风扇控制V3.2.html`、`V3.1_测试APP.html`、`W96P 电源状态控制.html` 三个控制程序逆向整理。协议基于 Bluetooth LE GATT，所有多字节整数均使用**大端序（Big-Endian）**。
+协议基于 Bluetooth LE GATT，所有多字节整数均使用**大端序（Big-Endian）**。
 
 ### 概述
 
