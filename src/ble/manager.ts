@@ -10,8 +10,6 @@ import { useDeviceStore } from '../stores/device';
 
 export type { BleState, BleSnapshot } from './types';
 
-export type { BleState, BleSnapshot } from './types';
-
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 const u8 = (dv: DataView, off = 0) => dv.byteLength > off ? dv.getUint8(off) : 0;
 const u16be = (dv: DataView, off = 0) =>
@@ -137,7 +135,7 @@ export class BleManager implements IBleManager {
           fanSpeed: u8(speedDv),
           battery: parseBatteryInfo(batDv),
           powerStatus: parsePowerStatus(pwrDv),
-          motor: parseMotorInfo(motDv, this.profile),
+          motor: parseMotorInfo(motDv, this.profile!),
           powerConfig: parsePowerConfig(pcDv),
           natureWindOn: natureOn,
           gearDownMode: u8(gdmDv) as 0 | 1,

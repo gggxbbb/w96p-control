@@ -309,13 +309,13 @@ function buildSubArcs(min: number, max: number): { limit: number; color: string 
       { limit: mid, color: txt },
       { limit: min + range * 0.7, color: txt },
       { limit: min + range * 0.9, color: warn },
-      { color: danger },
+      { limit: max, color: danger },
     ];
   }
   return [
     { limit: min + range * 0.7, color: txt },
     { limit: min + range * 0.9, color: warn },
-    { color: danger },
+    { limit: max, color: danger },
   ];
 }
 
