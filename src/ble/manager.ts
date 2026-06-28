@@ -29,7 +29,7 @@ export class BleManager implements IBleManager {
     this.onState?.('connecting');
     try {
       this.device = await navigator.bluetooth.requestDevice({
-        filters: [{ namePrefix: 'W' }],
+        filters: [{ services: [SERVICES.MAIN] }],
         optionalServices: ALL_OPTIONAL_SERVICES,
       });
       this.device.addEventListener('gattserverdisconnected', () => this.cleanup());

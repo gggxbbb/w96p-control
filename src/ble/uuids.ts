@@ -2,6 +2,7 @@ export const SERVICES = {
   MAIN: '0000fff0-0000-1000-8000-00805f9b34fb',
   POWER: '0000ffd0-0000-1000-8000-00805f9b34fb',
   NATURE: '0000ffe0-0000-1000-8000-00805f9b34fb',
+  DFU: '0000fee0-0000-1000-8000-00805f9b34fb',
 } as const;
 
 export const CHARS = {
@@ -17,6 +18,14 @@ export const CHARS = {
   MOTOR_INFO: '0000ffd3-0000-1000-8000-00805f9b34fb',
   POWER_CONFIG: '0000ffd4-0000-1000-8000-00805f9b34fb',
   NATURE_CURVE: '0000ffe3-0000-1000-8000-00805f9b34fb',
+  DFU_WRITE: '0000fee1-0000-1000-8000-00805f9b34fb',
+  DFU_NOTIFY: '0000fee2-0000-1000-8000-00805f9b34fb',
 } as const;
 
 export const ALL_OPTIONAL_SERVICES = Object.values(SERVICES);
+
+// Dedicated exports for DFU modules
+export const MAIN_SERVICE = SERVICES.MAIN;
+export const DFU_SERVICE = SERVICES.DFU;
+export const DFU_WRITE = CHARS.DFU_WRITE;
+export const DFU_NOTIFY = CHARS.DFU_NOTIFY;

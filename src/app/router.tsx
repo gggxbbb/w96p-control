@@ -10,6 +10,7 @@ const Power = lazy(() => import('../pages/power'));
 const PowerConfig = lazy(() => import('../pages/power-config'));
 const History = lazy(() => import('../pages/history'));
 const Settings = lazy(() => import('../pages/settings'));
+const Ota = lazy(() => import('../pages/ota'));
 
 function Loading() {
   return (
@@ -29,6 +30,7 @@ export const router = createBrowserRouter([
       { path: 'nature-wind', element: <Suspense fallback={<Loading />}><ConnGuard><NatureWind /></ConnGuard></Suspense> },
       { path: 'power', element: <Suspense fallback={<Loading />}><ConnGuard><Power /></ConnGuard></Suspense> },
       { path: 'power-config', element: <Suspense fallback={<Loading />}><ConnGuard><PowerConfig /></ConnGuard></Suspense> },
+      { path: 'ota', element: <Suspense fallback={<Loading />}><ConnGuard><Ota /></ConnGuard></Suspense> },
       { path: 'history', element: <Suspense fallback={<Loading />}><ConnGuard><History /></ConnGuard></Suspense> },
       { path: 'settings', element: <Suspense fallback={<Loading />}><Settings /></Suspense> },
     ],

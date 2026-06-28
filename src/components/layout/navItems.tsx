@@ -51,6 +51,13 @@ export const NAV_ICONS = {
       <path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" />
     </svg>
   ),
+  ota: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" />
+      <line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  ),
 };
 
 export const NAV_ITEMS: NavItem[] = [
@@ -59,6 +66,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/nature-wind', label: '自然风', icon: NAV_ICONS.nature },
   { to: '/power', label: '电源', icon: NAV_ICONS.power },
   { to: '/power-config', label: '寄存器', icon: NAV_ICONS.config },
+  { to: '/ota', label: '固件升级', icon: NAV_ICONS.ota },
   { to: '/history', label: '历史', icon: NAV_ICONS.history },
   { to: '/settings', label: '设置', icon: NAV_ICONS.settings },
 ];
