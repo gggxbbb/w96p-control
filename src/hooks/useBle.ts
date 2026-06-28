@@ -125,3 +125,24 @@ export function useBle() {
     manager: m,
   };
 }
+
+let _pollPaused = false;
+
+/** OTA 升级期间暂停/恢复风扇轮询，避免 GATT 资源竞争 */
+export function usePausePolling() {
+  const ble = useBle();
+  const { stopPolling, startPolling } = ble;
+
+  return {
+    pause: () => {
+      _pollPaused = true;
+      stopPolling();
+    },
+    resume: () => {
+      if (_pollPaused) {
+        startPolling();
+        _pollPaused = false;
+      }
+    },
+  };
+}
