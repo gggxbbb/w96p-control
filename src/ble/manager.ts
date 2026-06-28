@@ -138,6 +138,7 @@ export class BleManager implements IBleManager {
       const nw = await this.chars.get(CHARS.NATURE_WIND)!.readValue();
       const gdm = await this.chars.get(CHARS.GEAR_DOWN_MODE)!.readValue();
       const pc = await this.chars.get(CHARS.POWER_CONFIG)!.readValue();
+      const timer = await this.chars.get(CHARS.TIMER)!.readValue();
       const speedDv = new DataView(speed.buffer);
       const batDv = new DataView(bat.buffer);
       const pwrDv = new DataView(pwr.buffer);
@@ -145,6 +146,7 @@ export class BleManager implements IBleManager {
       const nwDv = new DataView(nw.buffer);
       const gdmDv = new DataView(gdm.buffer);
       const pcDv = new DataView(pc.buffer);
+      const timerDv = new DataView(timer.buffer);
       const natureOn = u8(nwDv) === 1;
       this.writer.setNatureWindOn(natureOn);
       // Skip snapshot if a write was enqueued after poll started — those
@@ -158,6 +160,7 @@ export class BleManager implements IBleManager {
           powerConfig: parsePowerConfig(pcDv),
           natureWindOn: natureOn,
           gearDownMode: u8(gdmDv) as 0 | 1,
+          timerRemainingSec: u16be(timerDv),
         });
       }
     }).catch(e => {
