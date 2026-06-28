@@ -61,23 +61,20 @@ export class BleManager implements IBleManager {
 
   private async readInitial(): Promise<void> {
     if (!this.profile) return;
+    // Step 1: read 5 small characteristics in parallel (each ≤16 bytes, low fragment risk)
     try {
-      const [timer, calib, nw, gdm, sd, curve] = await Promise.all([
+      const [timer, calib, nw, gdm, sd] = await Promise.all([
         this.chars.get(CHARS.TIMER)!.readValue(),
         this.chars.get(CHARS.SPEED_CALIB)!.readValue(),
         this.chars.get(CHARS.NATURE_WIND)!.readValue(),
         this.chars.get(CHARS.GEAR_DOWN_MODE)!.readValue(),
         this.chars.get(CHARS.SHUTDOWN_DELAY)!.readValue(),
-        this.chars.get(CHARS.NATURE_CURVE)!.readValue(),
       ]);
       const timerDv = new DataView(timer.buffer);
       const calibDv = new DataView(calib.buffer);
       const nwDv = new DataView(nw.buffer);
       const gdmDv = new DataView(gdm.buffer);
       const sdDv = new DataView(sd.buffer);
-      const curveDv = new DataView(curve.buffer);
-      const curvePts: number[] = [];
-      for (let i = 0; i < curveDv.byteLength; i++) curvePts.push(u8(curveDv, i));
       this.writer.setNatureWindOn(u8(nwDv) === 1);
       this.onSnapshot?.({
         timerRemainingSec: u16be(timerDv),
@@ -87,10 +84,32 @@ export class BleManager implements IBleManager {
         natureWindOn: u8(nwDv) === 1,
         gearDownMode: u8(gdmDv) as 0 | 1,
         shutdownDelaySec: u16be(sdDv),
-        natureCurve: curvePts,
       });
     } catch (e) {
       this.onError?.(String(e instanceof Error ? e.message : e));
+      return; // don't attempt curve if basic reads fail
+    }
+    // Step 2: read NATURE_CURVE separately (128B → ~7 GATT fragments) with retry
+    await this.readCurveWithRetry();
+  }
+
+  /** Retry reading the 128-byte NATURE_CURVE characteristic (high fragment count, prone to GATT timeouts). */
+  private async readCurveWithRetry(maxRetries = 2): Promise<void> {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const v = await this.chars.get(CHARS.NATURE_CURVE)!.readValue();
+        const dv = new DataView(v.buffer);
+        const pts: number[] = [];
+        for (let i = 0; i < dv.byteLength; i++) pts.push(u8(dv, i));
+        this.onSnapshot?.({ natureCurve: pts });
+        return;
+      } catch (e) {
+        if (attempt < maxRetries) {
+          await sleep(500);
+        } else {
+          this.onError?.(String(e instanceof Error ? e.message : e));
+        }
+      }
     }
   }
 

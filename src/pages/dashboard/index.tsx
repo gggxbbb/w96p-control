@@ -129,7 +129,7 @@ const DASHBOARD_LAYOUTS: ResponsiveLayouts = {
 };
 
 export default function Dashboard() {
-  const { isConnected, profile, setFanSpeed, toggleNatureWind } = useBle();
+  const { isConnected, profile, setFanSpeed, toggleNatureWind, readNatureCurve } = useBle();
   const fanSpeed = useDeviceStore((s) => s.fanSpeed);
   const natureWindOn = useDeviceStore((s) => s.natureWindOn);
   const battery = useDeviceStore((s) => s.battery);
@@ -139,6 +139,7 @@ export default function Dashboard() {
 
   // 拖动时本地暂存转速，释放时才写蓝牙
   const [dragSpeed, setDragSpeed] = useState<number | null>(null);
+  const [curveLoading, setCurveLoading] = useState(false);
 
   if (!isConnected || !profile) {
     return <DisconnectedScreen />;
@@ -246,8 +247,33 @@ export default function Dashboard() {
           {curvePoints.length > 0 ? (
             <CurvePreview points={curvePoints} min={minSpeed} max={maxSpeed} />
           ) : (
-            <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-dim)', fontSize: '12px' }}>
-              正在读取曲线数据…
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', color: 'var(--color-text-dim)', fontSize: '12px' }}>
+              <span>正在读取曲线数据…</span>
+              <button
+                disabled={curveLoading}
+                onClick={async () => {
+                  setCurveLoading(true);
+                  try {
+                    const pts = await readNatureCurve();
+                    if (pts.length === 128) {
+                      useDeviceStore.getState().setSnapshot({ natureCurve: pts });
+                    }
+                  } catch { /* toast already shown by onError */ }
+                  setCurveLoading(false);
+                }}
+                style={{
+                  padding: '4px 14px',
+                  fontSize: '12px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--color-border)',
+                  background: 'var(--color-bg-container)',
+                  color: 'var(--color-text-secondary)',
+                  cursor: curveLoading ? 'not-allowed' : 'pointer',
+                  opacity: curveLoading ? 0.5 : 1,
+                }}
+              >
+                {curveLoading ? '读取中…' : '重试读取'}
+              </button>
             </div>
           )}
         </Card>
