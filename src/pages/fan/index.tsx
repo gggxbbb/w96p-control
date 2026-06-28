@@ -2,6 +2,7 @@ import { useBle } from '../../hooks/useBle';
 import { useDeviceStore } from '../../stores/device';
 import { Card } from '../../components/ui/Card';
 import { PageGrid } from '../../components/ui/PageGrid';
+import { DraggableCard } from '../../components/ui/DraggableCard';
 import { SegBtn } from '../../components/ui/SegBtn';
 import { SpeedControl } from '../../components/fan/SpeedControl';
 import { TimerPanel } from '../../components/fan/TimerPanel';
@@ -46,20 +47,30 @@ export default function Fan() {
 
   return (
     <PageGrid pageKey="fan" pageName="风扇" defaultLayouts={FAN_LAYOUTS}>
-      <SpeedControl key="speed-control" dragHandle />
-      <TimerPanel key="timer" dragHandle />
-      <SleepPanel key="sleep" dragHandle />
-      <Card key="gear-down" title="减档模式" dragHandle>
-        <SegBtn
-          options={[
-            { value: 0 as const, label: '逐级减档' },
-            { value: 1 as const, label: '直接回 0' },
-          ]}
-          value={gearDownMode}
-          onChange={(v) => setGearDownMode(v)}
-        />
-      </Card>
-      <SpeedCalibPanel key="speed-calib" dragHandle />
+      <DraggableCard key="speed-control">
+        <SpeedControl />
+      </DraggableCard>
+      <DraggableCard key="timer">
+        <TimerPanel />
+      </DraggableCard>
+      <DraggableCard key="sleep">
+        <SleepPanel />
+      </DraggableCard>
+      <DraggableCard key="gear-down">
+        <Card title="减档模式">
+          <SegBtn
+            options={[
+              { value: 0 as const, label: '逐级减档' },
+              { value: 1 as const, label: '直接回 0' },
+            ]}
+            value={gearDownMode}
+            onChange={(v) => setGearDownMode(v)}
+          />
+        </Card>
+      </DraggableCard>
+      <DraggableCard key="speed-calib">
+        <SpeedCalibPanel />
+      </DraggableCard>
     </PageGrid>
   );
 }

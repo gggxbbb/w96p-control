@@ -5,6 +5,7 @@ import { useSettingsStore } from '../../stores/settings';
 import { useToastStore } from '../../stores/toast';
 import { Card } from '../../components/ui/Card';
 import { PageGrid } from '../../components/ui/PageGrid';
+import { DraggableCard } from '../../components/ui/DraggableCard';
 import { SegBtn } from '../../components/ui/SegBtn';
 import { CurveCanvas } from '../../components/nature-wind/CurveCanvas';
 import { CurveChart } from '../../components/nature-wind/CurveChart';
@@ -117,7 +118,8 @@ export default function NatureWind() {
 
   return (
     <PageGrid pageKey="nature-wind" pageName="自然风" defaultLayouts={NW_LAYOUTS}>
-      <Card key="editor" title="自然风曲线编辑器" dragHandle>
+      <DraggableCard key="editor">
+        <Card title="自然风曲线编辑器">
         <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
           <SegBtn
             options={[
@@ -186,17 +188,23 @@ export default function NatureWind() {
           <span>平均 {avgVal.toFixed(1)}</span>
           <span>范围 {min}-{max}</span>
         </div>
-      </Card>
+        </Card>
+      </DraggableCard>
 
-      <Card key="presets" title="预设曲线" dragHandle>
-        <CurvePresets min={min} max={max} onApply={handlePresetApply} />
-      </Card>
+      <DraggableCard key="presets">
+        <Card title="预设曲线">
+          <CurvePresets min={min} max={max} onApply={handlePresetApply} />
+        </Card>
+      </DraggableCard>
 
-      <Card key="preview" title="只读预览" dragHandle>
-        <CurveChart points={editPoints} min={min} max={max} />
-      </Card>
+      <DraggableCard key="preview">
+        <Card title="只读预览">
+          <CurveChart points={editPoints} min={min} max={max} />
+        </Card>
+      </DraggableCard>
 
-      <Card key="actions" title="操作" dragHandle>
+      <DraggableCard key="actions">
+        <Card title="操作">
         <div style={{ display: 'flex', gap: '8px' }}>
           <button
             onClick={handleApply}
@@ -231,7 +239,8 @@ export default function NatureWind() {
             读取设备曲线
           </button>
         </div>
-      </Card>
+        </Card>
+      </DraggableCard>
     </PageGrid>
   );
 }

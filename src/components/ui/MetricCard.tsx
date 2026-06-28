@@ -1,4 +1,4 @@
-import { forwardRef, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useMetricStore } from '../../stores/metricConfig';
 import { useEditMode } from './EditModeContext';
 
@@ -51,10 +51,17 @@ function getColor(numericValue: number, min: number, max: number): string {
   return 'var(--color-text)';
 }
 
-export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function MetricCard(
-  { label, value, unit, accent: _accent, gaugeMin = 0, gaugeMax = 100, style, className, children, ...rest },
-  ref,
-) {
+export function MetricCard({
+  label,
+  value,
+  unit,
+  accent: _accent,
+  gaugeMin = 0,
+  gaugeMax = 100,
+  style,
+  className,
+  children,
+}: MetricCardProps) {
   const editable = useEditMode();
   const variant = useMetricStore((s) => s.configs[label]?.variant ?? 'number');
   const storeMin = useMetricStore((s) => s.configs[label]?.min);
@@ -99,8 +106,6 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
 
   return (
     <div
-      ref={ref}
-      {...rest}
       className={className}
       style={{
         background: 'var(--color-bg-surface)',
@@ -115,7 +120,7 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
         ...style,
       }}
     >
-      {/* drag handle strip + label + config buttons */}
+      {/* label + config buttons */}
       <div
         style={{
           display: 'flex',
@@ -124,44 +129,22 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
           marginBottom: '2px',
         }}
       >
-        {/* drag handle — 包含手柄图标 + label，拖拽时抓这里 */}
-        <div
-          className="drag-handle"
+        <span
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '3px',
-            padding: '2px 0',
+            color: 'var(--color-text-muted)',
+            fontSize: '10px',
+            letterSpacing: '0.05em',
             flex: 1,
             minWidth: 0,
+            padding: '2px 0',
           }}
         >
-          <svg
-            className="drag-handle-icon"
-            width="10"
-            height="10"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            style={{ color: 'var(--color-text-dim)', display: 'block', flexShrink: 0 }}
-          >
-            <circle cx="9" cy="6" r="1.5" /><circle cx="15" cy="6" r="1.5" />
-            <circle cx="9" cy="12" r="1.5" /><circle cx="15" cy="12" r="1.5" />
-            <circle cx="9" cy="18" r="1.5" /><circle cx="15" cy="18" r="1.5" />
-          </svg>
-          <span
-            style={{
-              color: 'var(--color-text-muted)',
-              fontSize: '10px',
-              letterSpacing: '0.05em',
-            }}
-          >
-            {label}
-          </span>
-        </div>
+          {label}
+        </span>
 
         {/* edit-mode buttons */}
         {editable && (
-          <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }} className="no-drag">
+          <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -190,7 +173,6 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
       {configOpen && (
         <>
           <div
-            className="no-drag"
             onClick={() => setConfigOpen(false)}
             style={{
               position: 'fixed',
@@ -199,7 +181,6 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
             }}
           />
           <div
-            className="no-drag"
             style={{
               position: 'fixed',
               top: '50%',
@@ -289,7 +270,7 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
       {children}
     </div>
   );
-});
+}
 
 /* ========= Gauge 子组件 ========= */
 

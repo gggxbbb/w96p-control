@@ -5,7 +5,7 @@ import { useToastStore } from '../../stores/toast';
 import { Card } from '../ui/Card';
 import { fmtShutdown } from '../../lib/format';
 
-export function SleepPanel({ dragHandle, style }: { dragHandle?: boolean; style?: React.CSSProperties }) {
+export function SleepPanel() {
   const { setShutdownDelay } = useBle();
   const shutdownDelaySec = useDeviceStore((s) => s.shutdownDelaySec);
   const show = useToastStore((s) => s.show);
@@ -24,7 +24,7 @@ export function SleepPanel({ dragHandle, style }: { dragHandle?: boolean; style?
   };
 
   return (
-    <Card title="蓝牙休眠延时" dragHandle={dragHandle} style={style}>
+    <Card title="蓝牙休眠延时">
       <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
         当前：<span style={{ color: 'var(--color-text)' }}>{fmtShutdown(shutdownDelaySec)}</span>
       </div>

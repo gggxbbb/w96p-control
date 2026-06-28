@@ -6,7 +6,7 @@ import { Card } from '../ui/Card';
 import { MetricCard } from '../ui/MetricCard';
 import { fmtVoltage, fmtCurrent, fmtPower } from '../../lib/format';
 
-export function BatteryPanel({ dragHandle, style }: { dragHandle?: boolean; style?: React.CSSProperties }) {
+export function BatteryPanel() {
   const { readBatteryCapacity, setBatteryCapacity } = useBle();
   const battery = useDeviceStore((s) => s.battery);
   const show = useToastStore((s) => s.show);
@@ -32,7 +32,7 @@ export function BatteryPanel({ dragHandle, style }: { dragHandle?: boolean; styl
   };
 
   return (
-    <Card title="电池信息" dragHandle={dragHandle} style={style}>
+    <Card title="电池信息">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px', marginBottom: '12px' }}>
         <MetricCard label="电压" value={battery ? fmtVoltage(battery.voltageMv) : '--'} />
         <MetricCard label="电流" value={battery ? fmtCurrent(battery.currentMa) : '--'} accent={battery && battery.currentMa > 0 ? 'success' : 'default'} />

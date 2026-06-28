@@ -2,6 +2,7 @@ import { useBle } from '../../hooks/useBle';
 import { useSettingsStore } from '../../stores/settings';
 import { Card } from '../../components/ui/Card';
 import { PageGrid } from '../../components/ui/PageGrid';
+import { DraggableCard } from '../../components/ui/DraggableCard';
 import { SegBtn } from '../../components/ui/SegBtn';
 import type { ResponsiveLayouts } from 'react-grid-layout';
 
@@ -42,107 +43,117 @@ export default function Settings() {
 
   return (
     <PageGrid pageKey="settings" pageName="设置" defaultLayouts={SETTINGS_LAYOUTS}>
-      <Card key="device" title="设备信息" dragHandle>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
-          <Row label="连接状态" value={isConnected ? '已连接' : '未连接'} accent={isConnected ? 'var(--color-success)' : 'var(--color-text-muted)'} />
-          <Row label="设备名称" value={deviceName ?? '--'} />
-          <Row label="设备档案" value={profile?.name ?? '--'} />
-          {isConnected && (
-            <button
-              onClick={disconnect}
-              style={{
-                marginTop: '8px',
-                background: 'transparent',
-                color: 'var(--color-danger)',
-                border: '0.5px solid var(--color-danger)',
-                borderRadius: '4px',
-                padding: '8px 12px',
-                fontSize: '11px',
-                fontFamily: 'var(--font-sans)',
-                cursor: 'pointer',
-              }}
-            >
-              断开连接
-            </button>
-          )}
-        </div>
-      </Card>
-
-      <Card key="appearance" title="外观" dragHandle>
-        <SettingRow label="主题">
-          <SegBtn
-            options={[{ value: 'dark' as const, label: '深色' }, { value: 'light' as const, label: '浅色' }]}
-            value={theme}
-            onChange={(v) => {
-              setTheme(v);
-              document.documentElement.dataset.theme = v;
-            }}
-          />
-        </SettingRow>
-      </Card>
-
-      <Card key="data" title="数据采集" dragHandle>
-        <SettingRow label="轮询周期">
-          <SegBtn
-            options={[
-              { value: 500 as const, label: '500ms' },
-              { value: 1000 as const, label: '1s' },
-              { value: 2000 as const, label: '2s' },
-            ]}
-            value={pollIntervalMs as 500 | 1000 | 2000}
-            onChange={(v) => setPollInterval(v)}
-          />
-        </SettingRow>
-        <SettingRow label="历史保留时长">
-          <SegBtn
-            options={[
-              { value: 15 as const, label: '15 分钟' },
-              { value: 30 as const, label: '30 分钟' },
-              { value: 60 as const, label: '60 分钟' },
-            ]}
-            value={historyRetentionMin as 15 | 30 | 60}
-            onChange={(v) => setHistoryRetentionMin(v)}
-          />
-        </SettingRow>
-      </Card>
-
-      <Card key="curve" title="自然风曲线编辑器" dragHandle>
-        <SettingRow label="默认编辑模式">
-          <SegBtn
-            options={[{ value: 'canvas' as const, label: 'Canvas 拖拽' }, { value: 'textarea' as const, label: '文本编辑' }]}
-            value={curveEditorMode}
-            onChange={(v) => setCurveMode(v)}
-          />
-        </SettingRow>
-      </Card>
-
-      <Card key="about" title="关于" dragHandle>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', color: 'var(--color-text-muted)' }}>
-          <Row label="应用" value="W96P 控制 v1.0" />
-          <Row label="提交" value={import.meta.env.VITE_COMMIT_HASH ?? 'unknown'} />
-          <Row label="构建" value={new Date(import.meta.env.VITE_BUILD_TIME ?? Date.now()).toLocaleString('zh-CN')} />
-          <Row label="协议" value="BLE GATT (FFF0/FFD0/FFE0)" />
-          <Row label="支持设备" value="W96P / W66D" />
-          <Row label="字体" value="MiSans" />
-          <div style={{ marginTop: '4px' }}>
-            <a
-              href="https://github.com/gggxbbb/w96p-control"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                color: 'var(--color-accent)',
-                textDecoration: 'none',
-                fontSize: '12px',
-              }}
-            >
-              GitHub ↗
-            </a>
+      <DraggableCard key="device">
+        <Card title="设备信息">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
+            <Row label="连接状态" value={isConnected ? '已连接' : '未连接'} accent={isConnected ? 'var(--color-success)' : 'var(--color-text-muted)'} />
+            <Row label="设备名称" value={deviceName ?? '--'} />
+            <Row label="设备档案" value={profile?.name ?? '--'} />
+            {isConnected && (
+              <button
+                onClick={disconnect}
+                style={{
+                  marginTop: '8px',
+                  background: 'transparent',
+                  color: 'var(--color-danger)',
+                  border: '0.5px solid var(--color-danger)',
+                  borderRadius: '4px',
+                  padding: '8px 12px',
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-sans)',
+                  cursor: 'pointer',
+                }}
+              >
+                断开连接
+              </button>
+            )}
           </div>
-          <div style={{ marginTop: '4px', fontSize: '10px', color: 'var(--color-text-dim)' }}>
-            Web Bluetooth API · Chrome 56+ / Edge 79+
-          </div>
-        </div>
-      </Card>
+        </Card>
+      </DraggableCard>
+
+      <DraggableCard key="appearance">
+        <Card title="外观">
+            <SettingRow label="主题">
+              <SegBtn
+                options={[{ value: 'dark' as const, label: '深色' }, { value: 'light' as const, label: '浅色' }]}
+                value={theme}
+                onChange={(v) => {
+                  setTheme(v);
+                  document.documentElement.dataset.theme = v;
+                }}
+              />
+            </SettingRow>
+        </Card>
+      </DraggableCard>
+
+      <DraggableCard key="data">
+        <Card title="数据采集">
+            <SettingRow label="轮询周期">
+              <SegBtn
+                options={[
+                  { value: 500 as const, label: '500ms' },
+                  { value: 1000 as const, label: '1s' },
+                  { value: 2000 as const, label: '2s' },
+                ]}
+                value={pollIntervalMs as 500 | 1000 | 2000}
+                onChange={(v) => setPollInterval(v)}
+              />
+            </SettingRow>
+            <SettingRow label="历史保留时长">
+              <SegBtn
+                options={[
+                  { value: 15 as const, label: '15 分钟' },
+                  { value: 30 as const, label: '30 分钟' },
+                  { value: 60 as const, label: '60 分钟' },
+                ]}
+                value={historyRetentionMin as 15 | 30 | 60}
+                onChange={(v) => setHistoryRetentionMin(v)}
+              />
+            </SettingRow>
+        </Card>
+      </DraggableCard>
+
+      <DraggableCard key="curve">
+        <Card title="自然风曲线编辑器">
+            <SettingRow label="默认编辑模式">
+              <SegBtn
+                options={[{ value: 'canvas' as const, label: 'Canvas 拖拽' }, { value: 'textarea' as const, label: '文本编辑' }]}
+                value={curveEditorMode}
+                onChange={(v) => setCurveMode(v)}
+              />
+            </SettingRow>
+        </Card>
+      </DraggableCard>
+
+      <DraggableCard key="about">
+        <Card title="关于">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', color: 'var(--color-text-muted)' }}>
+              <Row label="应用" value="W96P 控制 v1.0" />
+              <Row label="提交" value={import.meta.env.VITE_COMMIT_HASH ?? 'unknown'} />
+              <Row label="构建" value={new Date(import.meta.env.VITE_BUILD_TIME ?? Date.now()).toLocaleString('zh-CN')} />
+              <Row label="协议" value="BLE GATT (FFF0/FFD0/FFE0)" />
+              <Row label="支持设备" value="W96P / W66D" />
+              <Row label="字体" value="MiSans" />
+              <div style={{ marginTop: '4px' }}>
+                <a
+                  href="https://github.com/gggxbbb/w96p-control"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    color: 'var(--color-accent)',
+                    textDecoration: 'none',
+                    fontSize: '12px',
+                  }}
+                >
+                  GitHub ↗
+                </a>
+              </div>
+              <div style={{ marginTop: '4px', fontSize: '10px', color: 'var(--color-text-dim)' }}>
+                Web Bluetooth API · Chrome 56+ / Edge 79+
+              </div>
+            </div>
+        </Card>
+      </DraggableCard>
     </PageGrid>
   );
 }

@@ -3,6 +3,7 @@ import { useDeviceStore } from '../../stores/device';
 import { useToastStore } from '../../stores/toast';
 import { Card } from '../ui/Card';
 import { PageGrid } from '../ui/PageGrid';
+import { DraggableCard } from '../ui/DraggableCard';
 import { Toggle } from '../ui/Toggle';
 import { SegBtn } from '../ui/SegBtn';
 import { POW_SWITCHES, POW_SEGS, REG_TITLES, type PowSwitchDef, type PowSegDef } from '../../ble/powSwitches';
@@ -103,53 +104,57 @@ export function PowerConfigPanel() {
 
   return (
     <PageGrid pageKey="power-config" pageName="寄存器" defaultLayouts={PC_LAYOUTS}>
-      <Card key="protocol" title="当前快充协议" dragHandle>
-        <div style={{ display: 'flex', gap: '16px', fontSize: '12px' }}>
-          <span>输入：<span style={{ color: 'var(--color-accent)' }}>{sinkNames[powerConfig.powSink] ?? '未知'}</span></span>
-          <span>输出：<span style={{ color: 'var(--color-accent)' }}>{srcNames[powerConfig.powSrc] ?? '未知'}</span></span>
-          <span>PD 版本：<span style={{ color: 'var(--color-text)' }}>{(powerConfig.pow2A & 0x40) ? 'PD2.0' : 'PD3.0'}</span></span>
-        </div>
-      </Card>
+      <DraggableCard key="protocol">
+        <Card title="当前快充协议">
+          <div style={{ display: 'flex', gap: '16px', fontSize: '12px' }}>
+            <span>输入：<span style={{ color: 'var(--color-accent)' }}>{sinkNames[powerConfig.powSink] ?? '未知'}</span></span>
+            <span>输出：<span style={{ color: 'var(--color-accent)' }}>{srcNames[powerConfig.powSrc] ?? '未知'}</span></span>
+            <span>PD 版本：<span style={{ color: 'var(--color-text)' }}>{(powerConfig.pow2A & 0x40) ? 'PD2.0' : 'PD3.0'}</span></span>
+          </div>
+        </Card>
+      </DraggableCard>
 
       {regs.map((reg) => {
         const switches = switchesByReg(reg);
         const segs = segsByReg(reg);
         if (switches.length === 0 && segs.length === 0) return null;
         return (
-          <Card key={reg} title={REG_TITLES[reg]} subtitle={`当前值 0x${getRegValue(reg).toString(16).padStart(2, '0').toUpperCase()}`} dragHandle>
-            {switches.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: segs.length > 0 ? '12px' : 0 }}>
-                {switches.map((def) => {
-                  const bitSet = isBitSet(def.reg, def.bit);
-                  // inverted: 位=0 表示使能，所以 enabled = !bitSet
-                  // 非 inverted: 位=1 表示使能，所以 enabled = bitSet
-                  const enabled = def.inverted ? !bitSet : bitSet;
-                  return (
-                    <Toggle
-                      key={def.key}
-                      checked={enabled}
-                      onChange={(on) => handleSwitch(def, on)}
-                      label={def.label}
-                    />
-                  );
-                })}
-              </div>
-            )}
-            {segs.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {segs.map((def) => (
-                  <div key={def.key}>
-                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>{def.label}</div>
-                    <SegBtn
-                      options={def.options}
-                      value={getSegValue(def)}
-                      onChange={(v) => handleSeg(def, v)}
-                    />
+          <DraggableCard key={reg}>
+            <Card title={REG_TITLES[reg]} subtitle={`当前值 0x${getRegValue(reg).toString(16).padStart(2, '0').toUpperCase()}`}>
+                {switches.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: segs.length > 0 ? '12px' : 0 }}>
+                    {switches.map((def) => {
+                      const bitSet = isBitSet(def.reg, def.bit);
+                      // inverted: 位=0 表示使能，所以 enabled = !bitSet
+                      // 非 inverted: 位=1 表示使能，所以 enabled = bitSet
+                      const enabled = def.inverted ? !bitSet : bitSet;
+                      return (
+                        <Toggle
+                          key={def.key}
+                          checked={enabled}
+                          onChange={(on) => handleSwitch(def, on)}
+                          label={def.label}
+                        />
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
-            )}
-          </Card>
+                )}
+                {segs.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {segs.map((def) => (
+                      <div key={def.key}>
+                        <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>{def.label}</div>
+                        <SegBtn
+                          options={def.options}
+                          value={getSegValue(def)}
+                          onChange={(v) => handleSeg(def, v)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+            </Card>
+          </DraggableCard>
         );
       })}
     </PageGrid>

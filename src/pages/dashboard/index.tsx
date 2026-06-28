@@ -5,6 +5,7 @@ import { DisconnectedScreen } from '../../components/connection/DisconnectedScre
 import { Card } from '../../components/ui/Card';
 import { PageGrid } from '../../components/ui/PageGrid';
 import { MetricCard } from '../../components/ui/MetricCard';
+import { DraggableCard } from '../../components/ui/DraggableCard';
 import { Slider } from '../../components/ui/Slider';
 import { Toggle } from '../../components/ui/Toggle';
 import { GearRow } from '../../components/fan/GearRow';
@@ -163,79 +164,94 @@ export default function Dashboard() {
 
   return (
     <PageGrid pageKey="dashboard" pageName="总览" defaultLayouts={DASHBOARD_LAYOUTS}>
-      <MetricCard
-        key="speed"
-        label="转速"
-        value={fanSpeed}
-        unit="%"
-        accent={fanSpeed > 0 ? 'success' : 'default'}
-      />
-      <MetricCard
-        key="batt-power"
-        label="电池功率"
-        value={fmtPower(batteryPower)}
-        accent={batteryPower > 0 ? 'success' : 'default'}
-      />
-      <MetricCard
-        key="motor-power"
-        label="电机功率"
-        value={fmtPower(motorPower)}
-      />
-      <MetricCard key="motor-cur" label="电机电流" value={motor ? motor.currentMa : '--'} unit="mA" />
-      <MetricCard key="batt-volt" label="电池电压" value={battery ? fmtVoltage(battery.voltageMv) : '--'} />
-      <MetricCard
-        key="vbus-volt"
-        label="VBUS 电压"
-        value={powerStatus ? fmtVoltage(powerStatus.vbusVmV) : '--'}
-      />
-      <MetricCard
-        key="motor-volt"
-        label="电机电压"
-        value={motor && motor.voltageMv > 0 ? fmtVoltage(motor.voltageMv) : '--'}
-      />
-
-      <Card key="fan-control" title="风扇控制" subtitle={natureWindOn ? '自然风模式' : '手动模式'} dragHandle>
-        <GearRow />
-        <Slider
+      <DraggableCard key="speed">
+        <MetricCard
           label="转速"
-          value={displaySpeed}
-          min={minSpeed}
-          max={maxSpeed}
-          onChange={(v) => setDragSpeed(v)}
-          onCommit={(v) => {
-            setDragSpeed(null);
-            setFanSpeed(v);
-          }}
+          value={fanSpeed}
+          unit="%"
+          accent={fanSpeed > 0 ? 'success' : 'default'}
         />
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginTop: '8px',
-          }}
-        >
-          <Toggle
-            checked={natureWindOn}
-            onChange={(on) => toggleNatureWind(on)}
-            label="自然风"
+      </DraggableCard>
+      <DraggableCard key="batt-power">
+        <MetricCard
+          label="电池功率"
+          value={fmtPower(batteryPower)}
+          accent={batteryPower > 0 ? 'success' : 'default'}
+        />
+      </DraggableCard>
+      <DraggableCard key="motor-power">
+        <MetricCard
+          label="电机功率"
+          value={fmtPower(motorPower)}
+        />
+      </DraggableCard>
+      <DraggableCard key="motor-cur">
+        <MetricCard label="电机电流" value={motor ? motor.currentMa : '--'} unit="mA" />
+      </DraggableCard>
+      <DraggableCard key="batt-volt">
+        <MetricCard label="电池电压" value={battery ? fmtVoltage(battery.voltageMv) : '--'} />
+      </DraggableCard>
+      <DraggableCard key="vbus-volt">
+        <MetricCard
+          label="VBUS 电压"
+          value={powerStatus ? fmtVoltage(powerStatus.vbusVmV) : '--'}
+        />
+      </DraggableCard>
+      <DraggableCard key="motor-volt">
+        <MetricCard
+          label="电机电压"
+          value={motor && motor.voltageMv > 0 ? fmtVoltage(motor.voltageMv) : '--'}
+        />
+      </DraggableCard>
+
+      <DraggableCard key="fan-control">
+        <Card title="风扇控制" subtitle={natureWindOn ? '自然风模式' : '手动模式'}>
+          <GearRow />
+          <Slider
+            label="转速"
+            value={displaySpeed}
+            min={minSpeed}
+            max={maxSpeed}
+            onChange={(v) => setDragSpeed(v)}
+            onCommit={(v) => {
+              setDragSpeed(null);
+              setFanSpeed(v);
+            }}
           />
-        </div>
-      </Card>
-
-      <Card key="status" title="状态" dragHandle>
-        <StatusSummary />
-      </Card>
-
-      <Card key="curve" title="自然风曲线" subtitle={curvePoints.length > 0 ? `${curvePoints.length} 点` : '等待数据'} dragHandle>
-        {curvePoints.length > 0 ? (
-          <CurvePreview points={curvePoints} min={minSpeed} max={maxSpeed} />
-        ) : (
-          <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-dim)', fontSize: '12px' }}>
-            正在读取曲线数据…
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginTop: '8px',
+            }}
+          >
+            <Toggle
+              checked={natureWindOn}
+              onChange={(on) => toggleNatureWind(on)}
+              label="自然风"
+            />
           </div>
-        )}
-      </Card>
+        </Card>
+      </DraggableCard>
+
+      <DraggableCard key="status">
+        <Card title="状态">
+          <StatusSummary />
+        </Card>
+      </DraggableCard>
+
+      <DraggableCard key="curve">
+        <Card title="自然风曲线" subtitle={curvePoints.length > 0 ? `${curvePoints.length} 点` : '等待数据'}>
+          {curvePoints.length > 0 ? (
+            <CurvePreview points={curvePoints} min={minSpeed} max={maxSpeed} />
+          ) : (
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-dim)', fontSize: '12px' }}>
+              正在读取曲线数据…
+            </div>
+          )}
+        </Card>
+      </DraggableCard>
     </PageGrid>
   );
 }

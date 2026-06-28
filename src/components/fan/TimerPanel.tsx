@@ -5,7 +5,7 @@ import { useToastStore } from '../../stores/toast';
 import { Card } from '../ui/Card';
 import { fmtTimer } from '../../lib/format';
 
-export function TimerPanel({ dragHandle, style }: { dragHandle?: boolean; style?: React.CSSProperties }) {
+export function TimerPanel() {
   const { setTimer, cancelTimer, readTimer } = useBle();
   const timerRemainingSec = useDeviceStore((s) => s.timerRemainingSec);
   const show = useToastStore((s) => s.show);
@@ -32,7 +32,7 @@ export function TimerPanel({ dragHandle, style }: { dragHandle?: boolean; style?
   };
 
   return (
-    <Card title="定时关机" dragHandle={dragHandle} style={style}>
+    <Card title="定时关机">
       <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
         剩余：<span style={{ color: 'var(--color-text)', fontVariantNumeric: 'tabular-nums' }}>{fmtTimer(timerRemainingSec)}</span>
       </div>
