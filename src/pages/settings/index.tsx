@@ -1,9 +1,11 @@
+import { useCallback, useState } from 'react';
 import { useBle } from '../../hooks/useBle';
 import { useSettingsStore } from '../../stores/settings';
 import { Card } from '../../components/ui/Card';
 import { PageGrid } from '../../components/ui/PageGrid';
 import { DraggableCard } from '../../components/ui/DraggableCard';
 import { SegBtn } from '../../components/ui/SegBtn';
+import { forceRefresh, isControlledBySW } from '../../lib/forceRefresh';
 import type { ResponsiveLayouts } from 'react-grid-layout';
 
 const SETTINGS_LAYOUTS: ResponsiveLayouts = {
@@ -12,34 +14,48 @@ const SETTINGS_LAYOUTS: ResponsiveLayouts = {
     { i: 'appearance', x: 6, y: 0, w: 6, h: 3 },
     { i: 'data', x: 0, y: 5, w: 6, h: 5 },
     { i: 'curve', x: 6, y: 3, w: 6, h: 3 },
-    { i: 'about', x: 0, y: 10, w: 12, h: 4 },
+    { i: 'cache', x: 6, y: 6, w: 6, h: 4 },
+    { i: 'about', x: 0, y: 11, w: 12, h: 4 },
   ],
   md: [
     { i: 'device', x: 0, y: 0, w: 5, h: 5 },
     { i: 'appearance', x: 5, y: 0, w: 5, h: 3 },
     { i: 'data', x: 0, y: 5, w: 5, h: 5 },
     { i: 'curve', x: 5, y: 3, w: 5, h: 3 },
-    { i: 'about', x: 0, y: 10, w: 10, h: 4 },
+    { i: 'cache', x: 5, y: 6, w: 5, h: 4 },
+    { i: 'about', x: 0, y: 11, w: 10, h: 4 },
   ],
   sm: [
     { i: 'device', x: 0, y: 0, w: 6, h: 5 },
     { i: 'appearance', x: 0, y: 5, w: 6, h: 3 },
     { i: 'data', x: 0, y: 8, w: 6, h: 5 },
     { i: 'curve', x: 0, y: 13, w: 6, h: 3 },
-    { i: 'about', x: 0, y: 16, w: 6, h: 4 },
+    { i: 'cache', x: 0, y: 16, w: 6, h: 4 },
+    { i: 'about', x: 0, y: 20, w: 6, h: 4 },
   ],
   xs: [
     { i: 'device', x: 0, y: 0, w: 2, h: 6 },
     { i: 'appearance', x: 0, y: 6, w: 2, h: 4 },
     { i: 'data', x: 0, y: 10, w: 2, h: 6 },
     { i: 'curve', x: 0, y: 16, w: 2, h: 4 },
-    { i: 'about', x: 0, y: 20, w: 2, h: 5 },
+    { i: 'cache', x: 0, y: 20, w: 2, h: 5 },
+    { i: 'about', x: 0, y: 25, w: 2, h: 5 },
   ],
 };
 
 export default function Settings() {
   const { isConnected, deviceName, profile, disconnect } = useBle();
   const { theme, pollIntervalMs, curveEditorMode, historyRetentionMin, setTheme, setPollInterval, setCurveMode, setHistoryRetentionMin } = useSettingsStore();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleForceRefresh = useCallback(async () => {
+    setRefreshing(true);
+    // 短暂延迟让 UI 先更新
+    await new Promise((r) => setTimeout(r, 100));
+    await forceRefresh();
+  }, []);
+
+  const swActive = isControlledBySW();
 
   return (
     <PageGrid pageKey="settings" pageName="设置" defaultLayouts={SETTINGS_LAYOUTS}>
@@ -122,6 +138,43 @@ export default function Settings() {
                 onChange={(v) => setCurveMode(v)}
               />
             </SettingRow>
+        </Card>
+      </DraggableCard>
+
+      <DraggableCard key="cache">
+        <Card title="缓存">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: 'var(--color-text-muted)' }}>Service Worker</span>
+              <span style={{
+                color: swActive ? 'var(--color-success)' : 'var(--color-text-dim)',
+                fontSize: '11px',
+              }}>
+                {swActive ? '已激活' : '未激活'}
+              </span>
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--color-text-dim)', lineHeight: '1.5' }}>
+              强制刷新将清除所有本地缓存并重新加载，确保获取最新版本的应用。
+            </div>
+            <button
+              onClick={handleForceRefresh}
+              disabled={refreshing}
+              style={{
+                marginTop: '4px',
+                background: refreshing ? 'var(--color-bg-hover)' : 'transparent',
+                color: 'var(--color-warning)',
+                border: '0.5px solid var(--color-warning)',
+                borderRadius: '4px',
+                padding: '8px 16px',
+                fontSize: '12px',
+                fontFamily: 'var(--font-sans)',
+                cursor: refreshing ? 'not-allowed' : 'pointer',
+                opacity: refreshing ? 0.6 : 1,
+              }}
+            >
+              {refreshing ? '刷新中...' : '强制刷新'}
+            </button>
+          </div>
         </Card>
       </DraggableCard>
 
