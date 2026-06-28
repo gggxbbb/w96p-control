@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import GaugeComponent from 'react-gauge-component';
 import { useMetricStore } from '../../stores/metricConfig';
 import { useEditMode } from './EditModeContext';
 
@@ -21,22 +22,22 @@ interface MetricCardProps {
 const GAUGE_PRESETS: Record<string, { min: number; max: number }> = {
   // 风扇
   '转速': { min: 0, max: 100 },
-  // 电池
-  '电池功率': { min: 0, max: 20 },
+  // 电池 — 充电时电流/功率可为负
+  '电池功率': { min: -20, max: 20 },
   '电池电压': { min: 3.0, max: 4.2 },
   // 电机
   '电机功率': { min: 0, max: 20 },
   '电机功率（近似）': { min: 0, max: 20 },
   '电机电流': { min: 0, max: 2000 },
   '电机电压': { min: 0, max: 12 },
-  // 电源面板
+  // 电源面板 — 充/放电双向，电流/功率对称
   '电压': { min: 3.0, max: 4.2 },
-  '电流': { min: 0, max: 2000 },
+  '电流': { min: -3000, max: 3000 },
   '容量': { min: 0, max: 10000 },
-  '功率': { min: 0, max: 20 },
-  'VBUS 电压': { min: 0, max: 5.0 },
-  'VBUS 电流': { min: 0, max: 3000 },
-  'VBUS 功率': { min: 0, max: 20 },
+  '功率': { min: -20, max: 20 },
+  'VBUS 电压': { min: 0, max: 12 },
+  'VBUS 电流': { min: -3000, max: 3000 },
+  'VBUS 功率': { min: -20, max: 20 },
 };
 
 const DEFAULT_GAUGE_RANGE = { min: 0, max: 100 };
@@ -280,14 +281,42 @@ function fmtNum(n: number): string {
   return n.toFixed(1);
 }
 
-/** 格式化刻度标签：大数缩写为 k */
+/** 格式化刻度标签：大数缩写为 k，兼容负值 */
 function fmtLabel(n: number): string {
-  if (n >= 10000) return (n / 1000).toFixed(0) + 'k';
-  if (n >= 1000) {
-    const v = n / 1000;
-    return Number.isInteger(v) ? v + 'k' : v.toFixed(1) + 'k';
+  const absN = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  if (absN >= 10000) return sign + (absN / 1000).toFixed(0) + 'k';
+  if (absN >= 1000) {
+    const v = absN / 1000;
+    const suffix = Number.isInteger(v) ? v + 'k' : v.toFixed(1) + 'k';
+    return sign + suffix;
   }
   return fmtNum(n);
+}
+
+/** 生成 subArcs 分区着色 */
+function buildSubArcs(min: number, max: number): { limit: number; color: string }[] {
+  const range = max - min || 1;
+  const isBipolar = min < 0;
+  const txt = 'var(--color-text)';
+  const warn = 'var(--color-warning)';
+  const danger = 'var(--color-danger)';
+
+  if (isBipolar) {
+    const mid = 0;
+    return [
+      { limit: min + range * 0.3, color: txt },
+      { limit: mid, color: txt },
+      { limit: min + range * 0.7, color: txt },
+      { limit: min + range * 0.9, color: warn },
+      { color: danger },
+    ];
+  }
+  return [
+    { limit: min + range * 0.7, color: txt },
+    { limit: min + range * 0.9, color: warn },
+    { color: danger },
+  ];
 }
 
 interface GaugeProps {
@@ -299,73 +328,44 @@ interface GaugeProps {
 }
 
 function Gauge({ value, min, max, unit, color }: GaugeProps) {
-  const range = max - min || 1;
-  const pct = Math.max(0, Math.min(1, (value - min) / range));
-
-  const cx = 50;
-  const cy = 42;
-  const r = 30;
-  const strokeW = 4;
-  const startAngle = -225;
-  const sweep = 270;
-
-  const arcPath = (fromDeg: number, toDeg: number) => {
-    const toRad = (d: number) => (d * Math.PI) / 180;
-    const s = toRad(fromDeg);
-    const e = toRad(toDeg);
-    const x1 = cx + r * Math.cos(s);
-    const y1 = cy + r * Math.sin(s);
-    const x2 = cx + r * Math.cos(e);
-    const y2 = cy + r * Math.sin(e);
-    const large = e - s > Math.PI ? 1 : 0;
-    return `M ${x1.toFixed(1)} ${y1.toFixed(1)} A ${r} ${r} 0 ${large} 1 ${x2.toFixed(1)} ${y2.toFixed(1)}`;
-  };
-
-  const bgArc = arcPath(startAngle, startAngle + sweep);
-  const fillAngle = startAngle + sweep * pct;
-  const fillArc = pct > 0 ? arcPath(startAngle, fillAngle) : undefined;
-
-  const tickRadius = r - strokeW - 1;
-  const labelPos = (deg: number) => {
-    const rad = (deg * Math.PI) / 180;
-    return {
-      x: cx + tickRadius * Math.cos(rad),
-      y: cy + tickRadius * Math.sin(rad) + 3,
-    };
-  };
-  const minPos = labelPos(startAngle);
-  const maxPos = labelPos(startAngle + sweep);
-
   const valueStr = fmtNum(value);
 
   return (
     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px', overflow: 'hidden' }}>
-      <svg viewBox="0 0 100 46" style={{ width: '100%', maxWidth: '140px', flexShrink: 0, minHeight: 0 }} preserveAspectRatio="xMidYMid meet">
-        <path
-          d={bgArc}
-          fill="none"
-          stroke="var(--color-bg-page)"
-          strokeWidth={strokeW}
-          strokeLinecap="round"
+      <div style={{ width: '100%', maxWidth: '140px', flexShrink: 0, minHeight: 0, aspectRatio: '2/1' }}>
+        <GaugeComponent
+          type="semicircle"
+          value={value}
+          minValue={min}
+          maxValue={max}
+          arc={{
+            subArcs: buildSubArcs(min, max),
+            padding: 0.02,
+            width: 0.18,
+            cornerRadius: 2,
+          }}
+          labels={{
+            valueLabel: { hide: true },
+            tickLabels: {
+              type: 'outer',
+              defaultTickValueConfig: {
+                formatTextValue: (v: string) => fmtLabel(Number(v)),
+                style: { fontSize: '8px', fill: 'var(--color-text-dim)', fontFamily: 'var(--font-sans)' },
+              },
+            },
+          }}
+          pointer={{
+            type: 'needle',
+            color,
+            elastic: true,
+            animationDuration: 500,
+            baseColor: 'var(--color-text-dim)',
+          }}
+          marginInPercent={0.08}
         />
-        {fillArc && (
-          <path
-            d={fillArc}
-            fill="none"
-            stroke={color}
-            strokeWidth={strokeW}
-            strokeLinecap="round"
-          />
-        )}
-        <text x={minPos.x.toFixed(0)} y={minPos.y.toFixed(0)} textAnchor="middle" fontSize="7" fill="var(--color-text-dim)">
-          {fmtLabel(min)}
-        </text>
-        <text x={maxPos.x.toFixed(0)} y={maxPos.y.toFixed(0)} textAnchor="middle" fontSize="7" fill="var(--color-text-dim)">
-          {fmtLabel(max)}
-        </text>
-      </svg>
+      </div>
 
-      {/* 中心数值（弧下方） */}
+      {/* 中心数值 */}
       <div
         style={{
           fontSize: `clamp(12px, ${Math.max(14, 28 - valueStr.length * 2)}px, 22px)`,

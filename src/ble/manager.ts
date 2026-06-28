@@ -39,6 +39,8 @@ export class BleManager implements IBleManager {
       const power = await gatt.getPrimaryService(SERVICES.POWER);
       const nature = await gatt.getPrimaryService(SERVICES.NATURE);
       for (const uuid of Object.values(CHARS)) {
+        // DFU chars belong to FEE0 service, not handled here
+        if (uuid.startsWith('0000fee')) continue;
         let svc = main;
         if (uuid.startsWith('0000ffd')) svc = power;
         else if (uuid.startsWith('0000ffe')) svc = nature;
@@ -58,18 +60,22 @@ export class BleManager implements IBleManager {
   private async readInitial(): Promise<void> {
     if (!this.profile) return;
     try {
-      const [timer, calib, nw, gdm, sd] = await Promise.all([
+      const [timer, calib, nw, gdm, sd, curve] = await Promise.all([
         this.chars.get(CHARS.TIMER)!.readValue(),
         this.chars.get(CHARS.SPEED_CALIB)!.readValue(),
         this.chars.get(CHARS.NATURE_WIND)!.readValue(),
         this.chars.get(CHARS.GEAR_DOWN_MODE)!.readValue(),
         this.chars.get(CHARS.SHUTDOWN_DELAY)!.readValue(),
+        this.chars.get(CHARS.NATURE_CURVE)!.readValue(),
       ]);
       const timerDv = new DataView(timer.buffer);
       const calibDv = new DataView(calib.buffer);
       const nwDv = new DataView(nw.buffer);
       const gdmDv = new DataView(gdm.buffer);
       const sdDv = new DataView(sd.buffer);
+      const curveDv = new DataView(curve.buffer);
+      const curvePts: number[] = [];
+      for (let i = 0; i < curveDv.byteLength; i++) curvePts.push(u8(curveDv, i));
       this.writer.setNatureWindOn(u8(nwDv) === 1);
       this.onSnapshot?.({
         timerRemainingSec: u16be(timerDv),
@@ -79,6 +85,7 @@ export class BleManager implements IBleManager {
         natureWindOn: u8(nwDv) === 1,
         gearDownMode: u8(gdmDv) as 0 | 1,
         shutdownDelaySec: u16be(sdDv),
+        natureCurve: curvePts,
       });
     } catch (e) {
       this.onError?.(String(e instanceof Error ? e.message : e));
@@ -98,16 +105,16 @@ export class BleManager implements IBleManager {
 
   private async pollOnce(): Promise<void> {
     if (!this.profile) return;
-    try {
-      const [speed, bat, pwr, mot, nw, gdm, pc] = await Promise.all([
-        this.chars.get(CHARS.FAN_SPEED)!.readValue(),
-        this.chars.get(CHARS.BATTERY_INFO)!.readValue(),
-        this.chars.get(CHARS.POWER_STATUS)!.readValue(),
-        this.chars.get(CHARS.MOTOR_INFO)!.readValue(),
-        this.chars.get(CHARS.NATURE_WIND)!.readValue(),
-        this.chars.get(CHARS.GEAR_DOWN_MODE)!.readValue(),
-        this.chars.get(CHARS.POWER_CONFIG)!.readValue(),
-      ]);
+    // Queue entire poll as one atomic unit so writes never interleave
+    this.writer.enqueue(async () => {
+      // Sequential reads avoid overwhelming BLE stack
+      const speed = await this.chars.get(CHARS.FAN_SPEED)!.readValue();
+      const bat = await this.chars.get(CHARS.BATTERY_INFO)!.readValue();
+      const pwr = await this.chars.get(CHARS.POWER_STATUS)!.readValue();
+      const mot = await this.chars.get(CHARS.MOTOR_INFO)!.readValue();
+      const nw = await this.chars.get(CHARS.NATURE_WIND)!.readValue();
+      const gdm = await this.chars.get(CHARS.GEAR_DOWN_MODE)!.readValue();
+      const pc = await this.chars.get(CHARS.POWER_CONFIG)!.readValue();
       const speedDv = new DataView(speed.buffer);
       const batDv = new DataView(bat.buffer);
       const pwrDv = new DataView(pwr.buffer);
@@ -126,9 +133,9 @@ export class BleManager implements IBleManager {
         natureWindOn: natureOn,
         gearDownMode: u8(gdmDv) as 0 | 1,
       });
-    } catch (e) {
+    }).catch(e => {
       this.onError?.(String(e instanceof Error ? e.message : e));
-    }
+    });
   }
 
   async readTimer(): Promise<number> {
