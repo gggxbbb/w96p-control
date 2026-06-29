@@ -41,9 +41,9 @@ export function StatusBar() {
     state === 'error' ? 'var(--color-danger)' :
     'var(--color-text-dim)';
 
-  const recent = metrics.ops.filter(o => o.type !== 'poll').slice(-20);
+  const recent = metrics.ops.slice(-20);
   const wOps = recent.filter(o => o.type === 'write' && !o.error);
-  const rOps = recent.filter(o => o.type === 'read' && !o.error);
+  const rOps = recent.filter(o => (o.type === 'read' || o.type === 'poll') && !o.error);
   const avgW = wOps.length > 0 ? Math.round(wOps.reduce((a, b) => a + b.duration, 0) / wOps.length) : 0;
   const avgR = rOps.length > 0 ? Math.round(rOps.reduce((a, b) => a + b.duration, 0) / rOps.length) : 0;
 
