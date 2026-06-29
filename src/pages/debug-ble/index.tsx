@@ -53,7 +53,7 @@ export default function DebugBlePage() {
         {[
           { label: '写操作', value: metrics.total.writes, color: COLORS.write },
           { label: '读操作', value: metrics.total.reads, color: COLORS.read },
-          { label: '轮询周期', value: metrics.total.polls, color: COLORS.poll },
+          { label: '轮询读', value: metrics.total.polls, color: COLORS.poll },
           { label: '错误', value: metrics.total.errors, color: COLORS.error },
         ].map(c => (
           <div
