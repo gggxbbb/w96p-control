@@ -57,7 +57,6 @@ export class WriteQueue {
     const hex = Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' ');
     const charId = char.uuid.slice(4, 8);
     const t0 = performance.now();
-    let lastErr: unknown = null;
     for (let i = 0; i < retries; i++) {
       try {
         console.log('[BLE] 写入 ' + charId + ' (' + data.length + 'B): ' + hex);
@@ -72,7 +71,6 @@ export class WriteQueue {
         });
         return;
       } catch (e) {
-        lastErr = e;
         if (i === retries - 1) {
           console.log('[BLE] rawWrite 最终失败（已重试' + retries + '次）:', e);
           useBleMetrics.getState().recordOp({

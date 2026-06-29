@@ -26,10 +26,9 @@ export class GattScheduler {
   private pollQueue: GattTask[] = [];
   private running = false;
   private currentTask: SchedulerStats['current'] = 'idle';
-  private readonly label: string;
 
-  constructor(label = 'GATT') {
-    this.label = label;
+  constructor(_label = 'GATT') {
+    // label reserved for future use (multi-instance logging)
   }
 
   /** 当前待处理的轮询读任务数（外部用于判断是否可进入下一轮询周期） */

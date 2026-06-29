@@ -77,7 +77,6 @@ export default function DebugBlePage() {
           {BUCKETS.map((b, i) => {
             const count = metrics.latencyBuckets[i] ?? 0;
             const maxB = Math.max(...metrics.latencyBuckets, 1);
-            const pct = Math.round((count / Math.max(metrics.ops.length, 1)) * 100);
             const barH = (count / maxB) * 48;
             const label = b === Infinity ? '≥1000' : `<${b}`;
             return (
