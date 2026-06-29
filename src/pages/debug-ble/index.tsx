@@ -111,7 +111,7 @@ export default function DebugBlePage() {
             groups[key]!.cnt++;
             groups[key]!.max = Math.max(groups[key]!.max, op.duration);
           }
-          const entries = Object.entries(groups).sort((a, b) => b[1].sum - a[1].sum);
+          const entries = Object.entries(groups).sort((a, b) => (b[1].sum / b[1].cnt) - (a[1].sum / a[1].cnt));
           if (entries.length === 0) return <div style={{ opacity: 0.4, fontSize: 12, padding: 8 }}>无数据</div>;
           const maxAvg = Math.max(...entries.map(([, g]) => g.sum / g.cnt), 1);
           const maxMax = Math.max(...entries.map(([, g]) => g.max), 1);
@@ -119,7 +119,7 @@ export default function DebugBlePage() {
             <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ opacity: 0.5, textAlign: 'left' }}>
-                  <th style={{ padding: '3px 6px' }}>特征</th>
+                  <th style={{ padding: '3px 6px' }}>名称</th>
                   <th style={{ padding: '3px 6px' }}>类型</th>
                   <th style={{ padding: '3px 6px' }}>次数</th>
                   <th style={{ padding: '3px 6px' }}>平均</th>
@@ -131,10 +131,11 @@ export default function DebugBlePage() {
                   const avg = Math.round(g.sum / g.cnt);
                   const color = g.type === 'write' ? COLORS.write : g.type === 'read' ? COLORS.read : COLORS.poll;
                   const name = CHAR_NAMES[char] ?? char.toUpperCase();
+                  const typeLabel = g.type === 'write' ? '写' : g.type === 'read' ? '读' : '轮询';
                   return (
                     <tr key={char} style={{ borderTop: '0.5px solid var(--color-border)' }}>
-                      <td style={{ padding: '3px 6px', fontFamily: 'monospace' }}>{char}</td>
-                      <td style={{ padding: '3px 6px', color, fontWeight: 600 }}>{name}</td>
+                      <td style={{ padding: '3px 6px', fontWeight: 600 }}>{name}</td>
+                      <td style={{ padding: '3px 6px', color }}>{typeLabel}</td>
                       <td style={{ padding: '3px 6px', opacity: 0.4 }}>{g.cnt}</td>
                       <td style={{ padding: '3px 6px' }}>
                         <span style={{ fontWeight: 600 }}>{avg}ms</span>
