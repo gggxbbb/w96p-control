@@ -38,8 +38,11 @@ export class WriteQueue {
     data: Uint8Array,
     retries = 3,
   ): Promise<void> {
+    const hex = Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' ');
+    const charId = char.uuid.slice(4, 8);
     for (let i = 0; i < retries; i++) {
       try {
+        console.log('[BLE] 写入 ' + charId + ' (' + data.length + 'B): ' + hex);
         if (char.properties.writeWithoutResponse) {
           await char.writeValueWithoutResponse(data as BufferSource);
         } else {
@@ -47,7 +50,10 @@ export class WriteQueue {
         }
         return;
       } catch (e) {
-        if (i === retries - 1) throw e;
+        if (i === retries - 1) {
+          console.log('[BLE] rawWrite 最终失败（已重试' + retries + '次）:', e);
+          throw e;
+        }
         await sleep(200);
       }
     }

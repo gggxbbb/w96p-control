@@ -3,16 +3,18 @@ export interface FirmwareInfo {
   productName: string;
   /** 固件版本（如 "V1.1"） */
   version: string;
-  /** 固件二进制数据（除去头部元信息后的刷写载荷） */
+  /** 完整固件文件原始数据（含头部，对齐 APK binData） */
   rawData: Uint8Array;
   /** 原始文件总大小 */
   fileSize: number;
 }
 
+/** Flash 写入起始偏移：前 96 字节用于解锁，从字节 96 开始闪写（对齐 APK DFU_UNLOCK_BYTES） */
+export const FLASH_OFFSET = 96;
+
 const PRODUCT_NAME_SEARCH_RANGE = 64;
 const PRODUCT_NAME_MAX_LENGTH = 17;
 const VERSION_OFFSET = 0x4d; // 77
-const HEADER_SIZE = 0x80; // 128 — 保守估计
 
 const KNOWN_PRODUCTS = ['W96P', 'W66D'];
 
@@ -22,7 +24,7 @@ const KNOWN_PRODUCTS = ['W96P', 'W66D'];
  */
 export function parseFirmware(buffer: ArrayBuffer): FirmwareInfo | null {
   const data = new Uint8Array(buffer);
-  if (data.length < HEADER_SIZE) return null;
+  if (data.length < FLASH_OFFSET) return null;
 
   // 搜索产品名
   let productName = '';
@@ -54,13 +56,13 @@ export function parseFirmware(buffer: ArrayBuffer): FirmwareInfo | null {
     }
   }
 
-  // 提取固件载荷
-  const rawData = data.slice(HEADER_SIZE);
+  // 保存完整固件数据（不裁剪头部，对齐 APK binData 行为）
+  // Flash 写入从 FLASH_OFFSET(96) 开始，前 96 字节作为解锁数据
 
   return {
     productName,
     version,
-    rawData,
+    rawData: data,
     fileSize: data.length,
   };
 }

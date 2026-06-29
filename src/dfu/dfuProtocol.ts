@@ -42,10 +42,10 @@ export function parseCommand(payload: Uint8Array): number {
   return -1;
 }
 
-/** 判断是否是数据载荷（payload 首字节是数据类型） */
+/** 判断是否是数据载荷（payload 首字节去除 ACK 标志位后是数据类型） */
 export function isDataPayload(payload: Uint8Array): boolean {
   if (payload.length < 2) return false;
-  const type = payload[0]! & 0xff;
+  const type = (payload[0]! & 0xff) & 0x7f;
   return (
     type === DATA_VERSION
     || type === DATA_SN
@@ -55,31 +55,46 @@ export function isDataPayload(payload: Uint8Array): boolean {
   );
 }
 
-/** 构建数据载荷：Flash 写入数据 */
+/** 构建数据载荷：Flash 写入数据（bit7=ACK 标志已设） */
 export function buildWriteFlashPayload(data: Uint8Array): Uint8Array {
   const result = new Uint8Array(data.length + 1);
-  result[0] = DATA_WRITE_FLASH;
+  result[0] = DATA_WRITE_FLASH | 0x80;
   result.set(data, 1);
   return result;
 }
 
-/** 构建数据载荷：解锁请求（96 字节固定数据） */
+/** 构建数据载荷：解锁请求（96 字节固件头部数据，bit7=ACK 标志已设） */
 export function buildUnlockPayload(unlockData: Uint8Array): Uint8Array {
   const result = new Uint8Array(unlockData.length + 1);
-  result[0] = DATA_REQ_UNLOCK;
+  result[0] = DATA_REQ_UNLOCK | 0x80;
   result.set(unlockData, 1);
   return result;
 }
 
-/** 从 DATA_VERSION 载荷中提取版本号（payload[1..4] ASCII） */
-export function parseVersion(payload: Uint8Array): string {
-  if (payload.length < 5 || (payload[0]! & 0xff) !== DATA_VERSION) return 'unknown';
-  return String.fromCharCode(payload[1]!, payload[2]!, payload[3]!, payload[4]!);
+/** 对齐到 4 字节边界（对齐 APK alignTo4） */
+export function alignTo4(n: number): number {
+  if (n <= 0) return 0;
+  const rem = n % 4;
+  return rem === 0 ? n : n + (4 - rem);
 }
 
-/** 从 DATA_SN 载荷中提取序列号（payload[1..4] little-endian） */
+/** 
+ * 从 DATA_VERSION 载荷中提取版本号
+ * 格式：payload[1] 为版本标记（major*10 + minor），如 0x0c → "1.2"
+ * 对齐 APK dfuParseVersionValue() + dfuFormatVersionMarker()
+ */
+export function parseVersion(payload: Uint8Array): string {
+  if (payload.length < 2 || ((payload[0]! & 0xff) & 0x7f) !== DATA_VERSION) return 'unknown';
+  const marker = payload[1]! & 0xff;
+  if (marker === 0) return 'unknown';
+  const major = Math.floor(marker / 10);
+  const minor = marker % 10;
+  return `${major}.${minor}`;
+}
+
+/** 从 DATA_SN 载荷中提取序列号（payload[1..4] little-endian，首字节去除 ACK 标志位） */
 export function parseSnLittleEndian(payload: Uint8Array): number {
-  if (payload.length < 5 || (payload[0]! & 0xff) !== DATA_SN) return -1;
+  if (payload.length < 5 || ((payload[0]! & 0xff) & 0x7f) !== DATA_SN) return -1;
   return (
     (payload[1]! & 0xff)
     | ((payload[2]! & 0xff) << 8)
@@ -88,8 +103,8 @@ export function parseSnLittleEndian(payload: Uint8Array): number {
   );
 }
 
-/** 从 DATA_PAGE_SIZE 载荷中提取页大小（payload[1..2] little-endian） */
+/** 从 DATA_PAGE_SIZE 载荷中提取页大小（payload[1..2] little-endian，首字节去除 ACK 标志位） */
 export function parsePageSize(payload: Uint8Array): number {
-  if (payload.length < 3 || (payload[0]! & 0xff) !== DATA_PAGE_SIZE) return -1;
+  if (payload.length < 3 || ((payload[0]! & 0xff) & 0x7f) !== DATA_PAGE_SIZE) return -1;
   return (payload[1]! & 0xff) | ((payload[2]! & 0xff) << 8);
 }

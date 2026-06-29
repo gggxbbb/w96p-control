@@ -15,6 +15,8 @@ interface DeviceState {
   powerStatus: PowerStatus | null;
   motor: MotorInfo | null;
   powerConfig: PowerConfigRegs | null;
+  serialNumber: string | null;
+  firmwareVersion: string | null;
   setSnapshot: (snap: Partial<BleSnapshot>) => void;
   reset: () => void;
 }
@@ -31,6 +33,8 @@ const initialState = {
   powerStatus: null,
   motor: null,
   powerConfig: null,
+  serialNumber: null,
+  firmwareVersion: null,
 };
 
 export const useDeviceStore = create<DeviceState>()(

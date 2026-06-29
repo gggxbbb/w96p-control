@@ -64,7 +64,9 @@ export class DfuManager {
 
       const timeout = setTimeout(() => {
         this.pendingResolve = null;
-        reject(new Error(`request timeout after ${timeoutMs}ms`));
+        const err = new Error(`request timeout after ${timeoutMs}ms`);
+        console.log('[DFU] 请求超时:', err.message);
+        reject(err);
       }, timeoutMs);
 
       // Ensure notify is started
@@ -75,16 +77,19 @@ export class DfuManager {
             this.notifyChar!.addEventListener('characteristicvaluechanged', this.onNotify);
             this.log('通知通道已开启', 'info');
             this.sendFrame(frame).catch((err) => {
+              console.log('[DFU] sendFrame 失败:', err);
               clearTimeout(timeout);
               reject(err);
             });
           })
           .catch((err) => {
+            console.log('[DFU] startNotifications 失败:', err);
             clearTimeout(timeout);
             reject(err);
           });
       } else {
         this.sendFrame(frame).catch((err) => {
+          console.log('[DFU] sendFrame 失败:', err);
           clearTimeout(timeout);
           reject(err);
         });
@@ -115,7 +120,7 @@ export class DfuManager {
     const value = target.value;
     if (!value) return;
 
-    const data = new Uint8Array(value.buffer);
+    const data = new Uint8Array(value.buffer, 0, value.byteLength);
     const payloads = this.protocol.onReceive(data);
 
     for (const payload of payloads) {
@@ -130,7 +135,7 @@ export class DfuManager {
   private async sendFrame(frame: Uint8Array): Promise<void> {
     for (let offset = 0; offset < frame.length; offset += BLE_MAX_CHUNK) {
       const chunk = frame.slice(offset, offset + BLE_MAX_CHUNK);
-      await this.writeChar!.writeValueWithoutResponse(chunk);
+      await this.writeChar!.writeValueWithoutResponse(chunk as BufferSource);
     }
   }
 }

@@ -16,6 +16,10 @@ export interface BleSnapshot {
   powerStatus?: PowerStatus;
   motor?: MotorInfo;
   powerConfig?: PowerConfigRegs;
+  /** 设备序列号（FEE0 DFU 服务查询） */
+  serialNumber?: string;
+  /** 固件版本（FEE0 DFU 服务查询） */
+  firmwareVersion?: string;
 }
 
 export interface IBleManager {

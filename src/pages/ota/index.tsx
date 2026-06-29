@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useConnectionStore } from '../../stores/connection';
+import { useDeviceStore } from '../../stores/device';
 import { useDfuStore, type DfuStep } from '../../stores/dfu';
 import { parseFirmware, compareVersion } from '../../dfu/firmware';
 import { DfuManager } from '../../dfu/dfuManager';
@@ -46,6 +47,8 @@ const STEP_LABELS: Record<DfuStep, string> = {
 export default function OtaPage() {
   const deviceName = useConnectionStore((s) => s.deviceName);
   const profile = useConnectionStore((s) => s.profile);
+  const firmwareVersion = useDeviceStore((s) => s.firmwareVersion);
+  const serialNumber = useDeviceStore((s) => s.serialNumber);
   const store = useDfuStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const machineRef = useRef<DfuStateMachine | null>(null);
@@ -172,13 +175,16 @@ export default function OtaPage() {
             <br />
             {profile?.name ?? '—'}
           </div>
-          {store.currentVersion && (
-            <div>
-              <span style={{ opacity: 0.6 }}>当前固件</span>
-              <br />
-              {store.currentVersion}
-            </div>
-          )}
+          <div>
+            <span style={{ opacity: 0.6 }}>序列号</span>
+            <br />
+            {serialNumber || '—'}
+          </div>
+          <div>
+            <span style={{ opacity: 0.6 }}>当前固件</span>
+            <br />
+            {firmwareVersion || store.currentVersion || '—'}
+          </div>
           {firmware && (
             <div>
               <span style={{ opacity: 0.6 }}>目标固件</span>

@@ -68,6 +68,8 @@ export class VirtualManager implements IBleManager {
       shutdownDelaySec: this.shutdownDelaySec,
       natureCurve: this.natureCurve,
       powerConfig: { ...this.powerConfigRegs },
+      firmwareVersion: this.virtualProfileName === 'W96P' ? '1.20' : '1.11',
+      serialNumber: this.virtualProfileName === 'W96P' ? '21030001' : '21110042',
     });
   }
 

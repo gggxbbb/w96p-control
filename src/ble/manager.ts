@@ -7,6 +7,8 @@ import { cmd, encodeCmd, type PowReg } from './commands';
 import { WriteQueue } from './writer';
 import type { IBleManager, BleState, BleSnapshot } from './types';
 import { useDeviceStore } from '../stores/device';
+import { BlePackageProtocol } from '../dfu/packageProtocol';
+import { buildControlPayload, parseVersion, parseSnLittleEndian, CTRL_GET_VERSION, CTRL_GET_SN } from '../dfu/dfuProtocol';
 
 export type { BleState, BleSnapshot } from './types';
 
@@ -23,6 +25,13 @@ export class BleManager implements IBleManager {
   private lastWriteMs = 0;
   profile: Profile | null = null;
 
+  // DFU query fields
+  private dfuProtocol = new BlePackageProtocol(true);
+  private dfuWriteChar: BluetoothRemoteGATTCharacteristic | null = null;
+  private dfuNotifyChar: BluetoothRemoteGATTCharacteristic | null = null;
+  private dfuPendingResolve: ((data: Uint8Array) => void) | null = null;
+  private dfuNotifyCleanup: (() => void) | null = null;
+
   onState?: (s: BleState, deviceName?: string, profile?: Profile) => void;
   onSnapshot?: (snap: BleSnapshot) => void;
   onError?: (msg: string) => void;
@@ -34,12 +43,17 @@ export class BleManager implements IBleManager {
         filters: [{ services: [SERVICES.MAIN] }],
         optionalServices: ALL_OPTIONAL_SERVICES,
       });
-      this.device.addEventListener('gattserverdisconnected', () => this.cleanup());
+      this.device.addEventListener('gattserverdisconnected', () => {
+        console.log('[BLE] GATT 服务器断开连接');
+        this.cleanup();
+      });
       const gatt = this.device.gatt!;
       await gatt.connect();
+      console.log('[BLE] GATT 已连接, 设备:', this.device.name);
       const main = await gatt.getPrimaryService(SERVICES.MAIN);
       const power = await gatt.getPrimaryService(SERVICES.POWER);
       const nature = await gatt.getPrimaryService(SERVICES.NATURE);
+      console.log('[BLE] 已获取 3 个主服务 (FFF0/FFD0/FFE0)');
       for (const uuid of Object.values(CHARS)) {
         // DFU chars belong to FEE0 service, not handled here
         if (uuid.startsWith('0000fee')) continue;
@@ -48,12 +62,48 @@ export class BleManager implements IBleManager {
         else if (uuid.startsWith('0000ffe')) svc = nature;
         this.chars.set(uuid, await svc.getCharacteristic(uuid));
       }
+      console.log('[BLE] 已获取', this.chars.size, '个特征');
+      // 尝试连接 DFU 服务（FEE0），用于查询序列号和固件版本
+      // 使用 getPrimaryServices 避免找不到服务时抛 GATT 异常
+      try {
+        const dfuServices = await gatt.getPrimaryServices(SERVICES.DFU);
+        if (dfuServices.length > 0) {
+          const dfuSvc = dfuServices[0]!;
+          this.dfuWriteChar = await dfuSvc.getCharacteristic(CHARS.DFU_WRITE);
+          this.dfuNotifyChar = await dfuSvc.getCharacteristic(CHARS.DFU_NOTIFY);
+          await this.dfuNotifyChar.startNotifications();
+          console.log('[BLE] DFU 服务已就绪 (FEE0)');
+          const onDfuNotify = (event: Event) => {
+            const target = event.target as BluetoothRemoteGATTCharacteristic;
+            const value = target.value;
+            if (!value) return;
+            const raw = new Uint8Array(value.buffer, 0, value.byteLength);
+            const payloads = this.dfuProtocol.onReceive(raw);
+            for (const payload of payloads) {
+              console.log('[BLE] DFU Notify payload:', Array.from(payload).map(b => b.toString(16).padStart(2, '0')).join(' '));
+              if (this.dfuPendingResolve) {
+                const resolve = this.dfuPendingResolve;
+                this.dfuPendingResolve = null;
+                resolve(payload);
+              }
+            }
+          };
+          this.dfuNotifyChar.addEventListener('characteristicvaluechanged', onDfuNotify);
+          this.dfuNotifyCleanup = () => {
+            this.dfuNotifyChar?.removeEventListener('characteristicvaluechanged', onDfuNotify);
+          };
+        }
+      } catch {
+        console.log('[BLE] DFU 服务不可用（FEE0），将无法查询序列号/固件版本');
+        // 静默忽略，DFU 服务不可用不影响主控功能
+      }
       this.profile = pickProfile(this.device.name ?? undefined);
       this.writer.setNatureWindChar(this.chars.get(CHARS.NATURE_WIND)!);
       this.writer.setRegChar(this.chars.get(CHARS.POWER_CONFIG)!);
       this.onState?.('connected', this.device.name ?? '未知', this.profile);
-      setTimeout(() => { void this.readInitial(); }, 1500);
+      setTimeout(() => { void this.readInitial().then(() => setTimeout(() => void this.queryDeviceInfo(), 500)); }, 1500);
     } catch (e) {
+      console.log('[BLE] 连接失败:', e);
       this.onState?.('error');
       this.onError?.(String(e instanceof Error ? e.message : e));
     }
@@ -85,7 +135,9 @@ export class BleManager implements IBleManager {
         gearDownMode: u8(gdmDv) as 0 | 1,
         shutdownDelaySec: u16be(sdDv),
       });
+      console.log('[BLE] 初始读取完成: timer=' + u16be(timerDv) + 's, fan=' + u8(calibDv, 0) + '/' + u8(calibDv, 1) + '/' + u8(calibDv, 2) + '/' + u8(calibDv, 3) + ', nw=' + u8(nwDv) + ', gdm=' + u8(gdmDv));
     } catch (e) {
+      console.log('[BLE] 初始读取失败:', e);
       this.onError?.(String(e instanceof Error ? e.message : e));
       return; // don't attempt curve if basic reads fail
     }
@@ -102,23 +154,91 @@ export class BleManager implements IBleManager {
         const pts: number[] = [];
         for (let i = 0; i < dv.byteLength; i++) pts.push(u8(dv, i));
         this.onSnapshot?.({ natureCurve: pts });
+        console.log('[BLE] 自然风曲线读取完成, ' + pts.length + ' 点');
         return;
       } catch (e) {
         if (attempt < maxRetries) {
           await sleep(500);
         } else {
+          console.log('[BLE] 自然风曲线读取失败（已重试）:', e);
           this.onError?.(String(e instanceof Error ? e.message : e));
         }
       }
     }
   }
 
+  /** 通过 DFU 服务查询设备序列号和固件版本 */
+  private async queryDeviceInfo(): Promise<void> {
+    if (!this.dfuWriteChar) return;
+
+    // 查询固件版本
+    try {
+      const verPayload = await this.sendDfu(buildControlPayload(CTRL_GET_VERSION, true));
+      const ver = parseVersion(verPayload);
+      if (ver !== 'unknown') {
+        console.log('[BLE] 固件版本: ' + ver);
+        this.onSnapshot?.({ firmwareVersion: ver });
+      } else {
+        console.log('[BLE] GET_VERSION 解析失败, raw:', Array.from(verPayload).map(b => b.toString(16)).join(' '));
+      }
+    } catch (e) {
+      console.log('[BLE] GET_VERSION 查询失败:', e);
+    }
+
+    // 查询序列号
+    try {
+      const snPayload = await this.sendDfu(buildControlPayload(CTRL_GET_SN, true));
+      const sn = parseSnLittleEndian(snPayload);
+      if (sn >= 0) {
+        console.log('[BLE] 序列号: ' + sn);
+        this.onSnapshot?.({ serialNumber: String(sn) });
+      } else {
+        console.log('[BLE] GET_SN 解析失败, raw:', Array.from(snPayload).map(b => b.toString(16)).join(' '));
+      }
+    } catch (e) {
+      console.log('[BLE] GET_SN 查询失败:', e);
+    }
+  }
+
+  /** 发送 DFU 命令并等待响应 */
+  private sendDfu(payload: Uint8Array, timeoutMs = 3000): Promise<Uint8Array> {
+    return new Promise<Uint8Array>((resolve, reject) => {
+      if (!this.dfuWriteChar) {
+        reject(new Error('DFU not available'));
+        return;
+      }
+
+      const timeout = setTimeout(() => {
+        this.dfuPendingResolve = null;
+        const err = new Error(`DFU query timeout after ${timeoutMs}ms`);
+        console.log('[BLE] DFU 查询超时:', err.message);
+        reject(err);
+      }, timeoutMs);
+
+      this.dfuPendingResolve = (data: Uint8Array) => {
+        clearTimeout(timeout);
+        resolve(data);
+      };
+
+      const frame = this.dfuProtocol.pack(payload);
+      console.log('[BLE] DFU 发送命令:', Array.from(payload).map(b => b.toString(16).padStart(2, '0')).join(' '));
+      this.dfuWriteChar!.writeValueWithoutResponse(frame as BufferSource).catch((e) => {
+        clearTimeout(timeout);
+        this.dfuPendingResolve = null;
+        console.log('[BLE] DFU 写入失败:', e);
+        reject(e);
+      });
+    });
+  }
+
   startPolling(intervalMs: number): void {
     if (this.pollId !== null) clearInterval(this.pollId);
+    console.log('[BLE] 开始轮询, 间隔 ' + intervalMs + 'ms');
     this.pollId = window.setInterval(() => { void this.pollOnce(); }, intervalMs);
   }
   stopPolling(): void {
     if (this.pollId !== null) {
+      console.log('[BLE] 停止轮询');
       clearInterval(this.pollId);
       this.pollId = null;
     }
@@ -164,6 +284,7 @@ export class BleManager implements IBleManager {
         });
       }
     }).catch(e => {
+      console.log('[BLE] 轮询失败:', e);
       this.onError?.(String(e instanceof Error ? e.message : e));
     });
   }
@@ -204,7 +325,8 @@ export class BleManager implements IBleManager {
         }
         await this.writer.rawWrite(char, new Uint8Array([gear]));
       });
-    } catch {
+    } catch (e) {
+      console.log('[BLE] writeGear 失败:', e);
       this.onSnapshot?.({ fanSpeed: prevSpeed, natureWindOn: prevNw });
     }
   }
@@ -229,7 +351,8 @@ export class BleManager implements IBleManager {
     try {
       const char = this.chars.get(CHARS.FAN_SPEED)!;
       await this.writer.writeFanSpeed(char, pct);
-    } catch {
+    } catch (e) {
+      console.log('[BLE] writeFanSpeed 失败:', e);
       this.onSnapshot?.({ fanSpeed: prevSpeed, natureWindOn: prevNw });
     }
   }
@@ -244,7 +367,8 @@ export class BleManager implements IBleManager {
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, new Uint8Array([on ? 1 : 0]));
       });
-    } catch {
+    } catch (e) {
+      console.log('[BLE] writeNatureWind 失败:', e);
       this.writer.setNatureWindOn(prevNw);
       this.onSnapshot?.({ natureWindOn: prevNw });
     }
@@ -261,7 +385,8 @@ export class BleManager implements IBleManager {
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, data);
       });
-    } catch {
+    } catch (e) {
+      console.log('[BLE] writeTimer 失败:', e);
       this.onSnapshot?.({ timerRemainingSec: prev });
     }
   }
@@ -277,7 +402,8 @@ export class BleManager implements IBleManager {
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, data);
       });
-    } catch {
+    } catch (e) {
+      console.log('[BLE] writeShutdownDelay 失败:', e);
       this.onSnapshot?.({ shutdownDelaySec: prev });
     }
   }
@@ -291,7 +417,8 @@ export class BleManager implements IBleManager {
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, new Uint8Array([mode]));
       });
-    } catch {
+    } catch (e) {
+      console.log('[BLE] writeGearDownMode 失败:', e);
       this.onSnapshot?.({ gearDownMode: prev });
     }
   }
@@ -305,7 +432,8 @@ export class BleManager implements IBleManager {
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, new Uint8Array(speeds));
       });
-    } catch {
+    } catch (e) {
+      console.log('[BLE] writeSpeedCalib 失败:', e);
       this.onSnapshot?.({ speedCalib: prev });
     }
   }
@@ -320,7 +448,8 @@ export class BleManager implements IBleManager {
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, new Uint8Array(points));
       });
-    } catch {
+    } catch (e) {
+      console.log('[BLE] writeNatureCurve 失败:', e);
       this.onSnapshot?.({ natureCurve: prev });
     }
   }
@@ -335,7 +464,8 @@ export class BleManager implements IBleManager {
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, encodeCmd(cmd.setBatteryCapacity(mwh)));
       });
-    } catch {
+    } catch (e) {
+      console.log('[BLE] writeBatteryCapacity 失败:', e);
       if (prev !== undefined) this.onSnapshot?.({ battery: { capacityMwh: prev } } as any);
     }
   }
@@ -349,7 +479,8 @@ export class BleManager implements IBleManager {
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, encodeCmd(cmd.setPowCOut(enable)));
       });
-    } catch {
+    } catch (e) {
+      console.log('[BLE] writePowCOut 失败:', e);
       if (prev !== undefined) this.onSnapshot?.({ powerStatus: { powCOut: prev } } as any);
     }
   }
@@ -363,7 +494,8 @@ export class BleManager implements IBleManager {
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, encodeCmd(cmd.setPowCIn(enable)));
       });
-    } catch {
+    } catch (e) {
+      console.log('[BLE] writePowCIn 失败:', e);
       if (prev !== undefined) this.onSnapshot?.({ powerStatus: { powCIn: prev } } as any);
     }
   }
@@ -383,7 +515,8 @@ export class BleManager implements IBleManager {
     }
     try {
       await this.writer.writeRegisterBit(reg, bit, value);
-    } catch {
+    } catch (e) {
+      console.log('[BLE] writePowSwitch 失败:', e);
       if (prevByte !== undefined) this.onSnapshot?.({ powerConfig: { [regKey]: prevByte } } as any);
     }
   }
@@ -398,7 +531,8 @@ export class BleManager implements IBleManager {
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, encodeCmd(cmd.setRegister(reg, byte)));
       });
-    } catch {
+    } catch (e) {
+      console.log('[BLE] writePowRegister 失败:', e);
       if (prev !== undefined) this.onSnapshot?.({ powerConfig: { [regKey]: prev } } as any);
     }
   }
@@ -410,9 +544,15 @@ export class BleManager implements IBleManager {
   private cleanup(): void {
     this.stopPolling();
     this.chars.clear();
+    this.dfuNotifyCleanup?.();
+    this.dfuNotifyCleanup = null;
+    this.dfuWriteChar = null;
+    this.dfuNotifyChar = null;
+    this.dfuPendingResolve = null;
     this.device = null;
     this.profile = null;
     this.writer = new WriteQueue();
+    this.dfuProtocol.reset();
     this.onState?.('idle');
   }
 }

@@ -40,9 +40,14 @@ describe('dfuProtocol', () => {
     expect(isDataPayload(data)).toBe(true);
   });
 
-  it('parseVersion extracts ASCII version', () => {
-    const data = new Uint8Array([DATA_VERSION, 0x56, 0x31, 0x2e, 0x31]); // "V1.1"
-    expect(parseVersion(data)).toBe('V1.1');
+  it('parseVersion extracts version marker (single byte)', () => {
+    const data = new Uint8Array([DATA_VERSION, 0x0c]); // marker=12 → "1.2"
+    expect(parseVersion(data)).toBe('1.2');
+  });
+
+  it('parseVersion extracts version marker (V2.0)', () => {
+    const data = new Uint8Array([DATA_VERSION, 0x14]); // marker=20 → "2.0"
+    expect(parseVersion(data)).toBe('2.0');
   });
 
   it('parseSnLittleEndian extracts serial number', () => {

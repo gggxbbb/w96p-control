@@ -3,6 +3,7 @@ import {
   buildControlPayload,
   buildWriteFlashPayload,
   buildUnlockPayload,
+  alignTo4,
   parseVersion,
   parsePageSize,
   CTRL_GET_VERSION,
@@ -15,6 +16,7 @@ import {
   CTRL_OK,
 } from './dfuProtocol';
 import type { FirmwareInfo } from './firmware';
+import { FLASH_OFFSET } from './firmware';
 import type { DfuStep } from '../stores/dfu';
 import { useDfuStore } from '../stores/dfu';
 
@@ -113,7 +115,7 @@ export class DfuStateMachine {
   }
 
   private async stepGetVersion(): Promise<void> {
-    const payload = buildControlPayload(CTRL_GET_VERSION);
+    const payload = buildControlPayload(CTRL_GET_VERSION, true);
     const resp = await this.manager.request(payload, DFU_TIMEOUT_NORMAL);
     const version = parseVersion(resp);
     const store = useDfuStore.getState();
@@ -130,7 +132,7 @@ export class DfuStateMachine {
 
   private async stepCheckInDfu(): Promise<void> {
     setStep('check_in_dfu', '查询 DFU 模式...');
-    const payload = buildControlPayload(CTRL_CHECK_IN_DFU);
+    const payload = buildControlPayload(CTRL_CHECK_IN_DFU, true);
     const resp = await this.manager.request(payload, DFU_TIMEOUT_NORMAL);
 
     if (resp.length > 0 && (resp[0]! & 0x7f) === CTRL_OK) {
@@ -141,7 +143,7 @@ export class DfuStateMachine {
 
     // Enter DFU
     setStep('enter_dfu', '进入 DFU 模式...');
-    const enterPayload = buildControlPayload(CTRL_ENTER_DFU);
+    const enterPayload = buildControlPayload(CTRL_ENTER_DFU, true);
     await this.manager.request(enterPayload, DFU_TIMEOUT_NORMAL);
     useDfuStore.getState().appendLog('已发送进入 DFU 命令，等待设备重启...', 'info');
     setStep('wait_reboot', '等待设备重启...');
@@ -159,7 +161,7 @@ export class DfuStateMachine {
 
   private async stepGetPageSize(): Promise<void> {
     setStep('get_page_size', '查询 Flash 页大小...');
-    const payload = buildControlPayload(CTRL_GET_PAGE_SIZE);
+    const payload = buildControlPayload(CTRL_GET_PAGE_SIZE, true);
     const resp = await this.manager.request(payload, DFU_TIMEOUT_NORMAL);
     this.pageSize = parsePageSize(resp);
     const store = useDfuStore.getState();
@@ -175,8 +177,8 @@ export class DfuStateMachine {
 
   private async stepReqUnlock(): Promise<void> {
     setStep('req_unlock', '请求 Flash 解锁...');
-    const unlockData = new Uint8Array(UNLOCK_BYTES);
-    unlockData.fill(0x00);
+    // 使用固件文件前 96 字节作为解锁数据（对齐 APK）
+    const unlockData = this.firmware.rawData.slice(0, UNLOCK_BYTES);
 
     const payload = buildUnlockPayload(unlockData);
     await this.manager.request(payload, DFU_TIMEOUT_NORMAL);
@@ -185,7 +187,7 @@ export class DfuStateMachine {
 
   private async stepStartUp(): Promise<void> {
     setStep('start_up', '准备写入固件...');
-    const payload = buildControlPayload(CTRL_START_UP);
+    const payload = buildControlPayload(CTRL_START_UP, true);
     await this.manager.request(payload, DFU_TIMEOUT_START_UP);
     useDfuStore.getState().appendLog('开始写入固件...', 'info');
     await delay(300);
@@ -193,8 +195,9 @@ export class DfuStateMachine {
 
   private async stepWriteFlash(): Promise<void> {
     setStep('write_flash', '写入固件数据...');
+    // Flash 写入从 FLASH_OFFSET(96) 开始（前 96 字节已用于解锁，对齐 APK）
     const data = this.firmware.rawData;
-    const total = data.length;
+    const total = data.length - FLASH_OFFSET;
     const store = useDfuStore.getState();
     store.appendLog(
       `固件大小: ${total} bytes (${Math.ceil(total / this.chunkSize)} 个分片)`,
@@ -205,8 +208,20 @@ export class DfuStateMachine {
       if (this.aborted) return;
 
       const end = Math.min(offset + this.chunkSize, total);
-      const chunk = data.slice(offset, end);
-      const writePayload = buildWriteFlashPayload(chunk);
+      const chunk = data.slice(FLASH_OFFSET + offset, FLASH_OFFSET + end);
+
+      // 对齐到 4 字节并用 0xFF 填充（对齐 APK alignTo4）
+      const alignedSize = alignTo4(chunk.length);
+      let alignedChunk: Uint8Array;
+      if (alignedSize > chunk.length) {
+        alignedChunk = new Uint8Array(alignedSize);
+        alignedChunk.fill(0xff);
+        alignedChunk.set(chunk, 0);
+      } else {
+        alignedChunk = chunk;
+      }
+
+      const writePayload = buildWriteFlashPayload(alignedChunk);
       await this.manager.request(writePayload, DFU_TIMEOUT_NORMAL);
 
       const pct = Math.round((end / total) * 100);
@@ -222,7 +237,7 @@ export class DfuStateMachine {
 
   private async stepEndUp(): Promise<void> {
     setStep('end_up', '完成升级...');
-    const payload = buildControlPayload(CTRL_END_UP);
+    const payload = buildControlPayload(CTRL_END_UP, true);
     await this.manager.request(payload, DFU_TIMEOUT_END_UP);
     useDfuStore.getState().appendLog('升级结束确认已发送', 'success');
   }
