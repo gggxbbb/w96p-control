@@ -7,6 +7,7 @@ const BLE_MAX_CHUNK = 197; // MTU 200 - 3
 
 export class DfuManager {
   private gatt: BluetoothRemoteGATTServer | null = null;
+  private device: BluetoothDevice | null = null;
   private writeChar: BluetoothRemoteGATTCharacteristic | null = null;
   private notifyChar: BluetoothRemoteGATTCharacteristic | null = null;
   private protocol = new BlePackageProtocol(true);
@@ -31,11 +32,12 @@ export class DfuManager {
       optionalServices: [DFU_SERVICE],
     });
 
+    this.device = device;
+
     this.log(`找到设备: ${device.name ?? 'unknown'} (${device.id})`, 'info');
 
     device.addEventListener('gattserverdisconnected', () => {
       this.log('设备已断开连接', 'warn');
-      // Clean up pending request if any
       if (this.pendingResolve) {
         this.pendingResolve = null;
       }
@@ -44,8 +46,23 @@ export class DfuManager {
     this.log('正在连接 GATT...', 'info');
     this.gatt = await device.gatt!.connect();
 
+    await this.setupService();
+  }
+
+  /** 重连已配对的设备（不需要用户手势，用于 DFU 重启后） */
+  async reconnect(): Promise<void> {
+    if (!this.device) throw new Error('无已配对设备，请先调用 connect()');
+
+    this.log('正在重新连接设备...', 'info');
+    this.gatt = await this.device.gatt!.connect();
+
+    this.log('重新连接成功', 'success');
+    await this.setupService();
+  }
+
+  private async setupService(): Promise<void> {
     this.log('正在获取 FEE0 服务...', 'info');
-    const service = await this.gatt.getPrimaryService(DFU_SERVICE);
+    const service = await this.gatt!.getPrimaryService(DFU_SERVICE);
 
     this.writeChar = await service.getCharacteristic(DFU_WRITE);
     this.notifyChar = await service.getCharacteristic(DFU_NOTIFY);
@@ -106,6 +123,7 @@ export class DfuManager {
       await this.gatt.disconnect();
     }
     this.gatt = null;
+    this.device = null;
     this.writeChar = null;
     this.notifyChar = null;
     this.notifyCleanup = null;

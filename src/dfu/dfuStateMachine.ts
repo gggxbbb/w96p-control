@@ -155,7 +155,7 @@ export class DfuStateMachine {
     setStep('scan_reconnect', '正在搜索设备...');
     await delay(1000);
     setStep('connect_reconnect', '正在重新连接...');
-    await this.manager.connect();
+    await this.manager.reconnect();
     useDfuStore.getState().appendLog('DFU 模式重连成功', 'success');
   }
 
