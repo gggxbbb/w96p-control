@@ -9,6 +9,13 @@ const COLORS = {
   error: '#f87171',
 };
 
+const CHAR_NAMES: Record<string, string> = {
+  fff1: '档位', fff2: '定时', fff3: '转速', fff4: '自然风', fff5: '休眠', fff6: '减档', fff7: '校准',
+  ffd1: '电池', ffd2: '电源', ffd3: '电机', ffd4: '寄存器',
+  ffe3: '曲线',
+  fee1: 'DFU写', fee2: 'DFU通知',
+};
+
 export default function DebugBlePage() {
   const metrics = useBleMetrics();
   const [, setTick] = useState(0);
@@ -96,12 +103,6 @@ export default function DebugBlePage() {
       {/* 按特征统计 */}
       <Card title="按特征平均耗时" style={{ marginBottom: 16 }}>
         {(() => {
-          const CHAR_NAMES: Record<string, string> = {
-            fff1: '档位', fff2: '定时', fff3: '转速', fff4: '自然风', fff5: '休眠', fff6: '减档', fff7: '校准',
-            ffd1: '电池', ffd2: '电源', ffd3: '电机', ffd4: '寄存器',
-            ffe3: '曲线',
-            fee1: 'DFU写', fee2: 'DFU通知',
-          };
           const groups: Record<string, { sum: number; cnt: number; max: number; type: string }> = {};
           for (const op of metrics.ops) {
             if (op.error) continue;
@@ -165,7 +166,7 @@ export default function DebugBlePage() {
             <thead>
               <tr style={{ opacity: 0.5, textAlign: 'left' }}>
                 <th style={{ padding: '4px 8px', width: 80 }}>类型</th>
-                <th style={{ padding: '4px 8px', width: 60 }}>特征</th>
+                <th style={{ padding: '4px 8px', width: 130 }}>特征</th>
                 <th style={{ padding: '4px 8px', width: 50 }}>大小</th>
                 <th style={{ padding: '4px 8px', width: 60 }}>耗时</th>
                 <th style={{ padding: '4px 8px' }}>错误</th>
@@ -183,7 +184,9 @@ export default function DebugBlePage() {
                   <td style={{ padding: '3px 8px', color: COLORS[op.type] }}>
                     {op.type === 'write' ? '写' : op.type === 'read' ? '读' : '轮询'}
                   </td>
-                  <td style={{ padding: '3px 8px' }}>{op.charId}</td>
+                  <td style={{ padding: '3px 8px' }}>
+                    {op.charId} <span style={{ opacity: 0.5 }}>{CHAR_NAMES[op.charId] ?? ''}</span>
+                  </td>
                   <td style={{ padding: '3px 8px' }}>{op.size > 0 ? op.size + 'B' : '-'}</td>
                   <td style={{ padding: '3px 8px', color: op.duration > 100 ? COLORS.error : undefined }}>
                     {op.duration}ms
