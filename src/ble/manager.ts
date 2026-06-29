@@ -214,6 +214,7 @@ export class BleManager implements IBleManager {
     const prevSpeed = useDeviceStore.getState().fanSpeed;
     const prevNw = useDeviceStore.getState().natureWindOn;
 
+    /* 风扇V1.2 固件已修复此问题
     // V3.4 行为：风扇关机时调转速，先自动开机到 1 档
     if (prevSpeed === 0 && pct > 0) {
       try {
@@ -222,6 +223,7 @@ export class BleManager implements IBleManager {
         return; // writeGear 内部已回滚，放弃后续写入
       }
     }
+    */
 
     this.onSnapshot?.({ fanSpeed: pct, natureWindOn: false });
     try {
