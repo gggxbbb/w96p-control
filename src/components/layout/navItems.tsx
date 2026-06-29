@@ -66,8 +66,8 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/nature-wind', label: '自然风', icon: NAV_ICONS.nature },
   { to: '/power', label: '电源', icon: NAV_ICONS.power },
   { to: '/power-config', label: '寄存器', icon: NAV_ICONS.config },
-  // 暂时隐藏：固件升级和历史页尚未就绪
-  // { to: '/ota', label: '固件升级', icon: NAV_ICONS.ota },
+  { to: '/ota', label: '固件升级', icon: NAV_ICONS.ota },
+  // 暂时隐藏：历史页尚未就绪
   // { to: '/history', label: '历史', icon: NAV_ICONS.history },
   { to: '/settings', label: '设置', icon: NAV_ICONS.settings },
 ];

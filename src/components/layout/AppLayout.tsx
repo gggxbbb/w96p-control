@@ -14,7 +14,8 @@ export function AppLayout() {
   return (
     <div
       style={{
-        height: '100vh',
+        position: 'fixed',
+        inset: 0,
         display: 'flex',
         flexDirection: 'column',
         background: 'var(--color-bg-page)',

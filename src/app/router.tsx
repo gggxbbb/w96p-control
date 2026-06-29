@@ -11,6 +11,7 @@ const PowerConfig = lazy(() => import('../pages/power-config'));
 const History = lazy(() => import('../pages/history'));
 const Settings = lazy(() => import('../pages/settings'));
 const Ota = lazy(() => import('../pages/ota'));
+const DebugBle = lazy(() => import('../pages/debug-ble'));
 
 function Loading() {
   return (
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
       { path: 'ota', element: <Suspense fallback={<Loading />}><ConnGuard><Ota /></ConnGuard></Suspense> },
       { path: 'history', element: <Suspense fallback={<Loading />}><ConnGuard><History /></ConnGuard></Suspense> },
       { path: 'settings', element: <Suspense fallback={<Loading />}><Settings /></Suspense> },
+      { path: 'debug/ble', element: <Suspense fallback={<Loading />}><DebugBle /></Suspense> },
     ],
   },
 ]);

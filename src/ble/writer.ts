@@ -1,6 +1,7 @@
 import type { PowReg } from './commands';
 import { cmd, encodeCmd } from './commands';
 import type { GattScheduler } from './scheduler';
+import { useBleMetrics } from '../stores/bleMetrics';
 
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
@@ -55,6 +56,8 @@ export class WriteQueue {
   ): Promise<void> {
     const hex = Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' ');
     const charId = char.uuid.slice(4, 8);
+    const t0 = performance.now();
+    let lastErr: unknown = null;
     for (let i = 0; i < retries; i++) {
       try {
         console.log('[BLE] 写入 ' + charId + ' (' + data.length + 'B): ' + hex);
@@ -63,10 +66,20 @@ export class WriteQueue {
         } else {
           await char.writeValue(data as BufferSource);
         }
+        useBleMetrics.getState().recordOp({
+          ts: t0, type: 'write', charId, size: data.length,
+          duration: Math.round(performance.now() - t0),
+        });
         return;
       } catch (e) {
+        lastErr = e;
         if (i === retries - 1) {
           console.log('[BLE] rawWrite 最终失败（已重试' + retries + '次）:', e);
+          useBleMetrics.getState().recordOp({
+            ts: t0, type: 'write', charId, size: data.length,
+            duration: Math.round(performance.now() - t0),
+            error: String(e instanceof Error ? e.message : e),
+          });
           throw e;
         }
         await sleep(200);

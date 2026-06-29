@@ -79,7 +79,7 @@ body {
 @media (max-width: 767px) {
   .menu-toggle { display: flex; }
   .device-name { display: none; }
-  .status-label { display: none; }
+  .status-label { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 }
 
 /* ===== react-grid-layout 样式覆盖 ===== */
