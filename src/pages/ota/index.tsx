@@ -160,6 +160,9 @@ export default function OtaPage() {
         </div>
         本工具与 Witrn 官方无关。固件升级操作不可逆，不当操作可能导致设备无法使用（变砖）。
         请确认您完全理解操作风险并自行承担所有后果。
+        <div style={{ marginTop: 8, fontWeight: 600 }}>
+          ⚠️ OTA 流程尚未完全跑通，暂时请勿使用。
+        </div>
         建议优先使用官方软件或提供担保的固件升级工具。
       </div>
 
