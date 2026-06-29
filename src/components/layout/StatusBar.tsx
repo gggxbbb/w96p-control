@@ -1,11 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { useConnectionStore } from '../../stores/connection';
 import { useSettingsStore } from '../../stores/settings';
 import { useBleMetrics } from '../../stores/bleMetrics';
-import DebugBle from '../../pages/debug-ble';
 
-// Note: router 中的 /debug/ble 路由仍用 lazy import，那是页面级拆分
-// StatusBar 中直接 import 以避免 Suspense 导致的 store 状态同步问题
+const DebugBle = lazy(() => import('../../pages/debug-ble'));
 
 function sep() {
   return <span style={{ color: 'var(--color-text-dim)', flexShrink: 0, opacity: 0.4 }}>|</span>;
@@ -171,7 +169,9 @@ export function StatusBar() {
               </button>
             </div>
             <div style={{ flex: 1, overflow: 'auto', padding: '0 16px 16px' }}>
-              <DebugBle />
+              <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', opacity: 0.4 }}>加载中...</div>}>
+                <DebugBle />
+              </Suspense>
             </div>
           </div>
         </div>
