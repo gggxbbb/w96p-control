@@ -8,7 +8,7 @@ import { WriteQueue } from './writer';
 import { GattScheduler } from './scheduler';
 import type { IBleManager, BleState, BleSnapshot } from './types';
 import { useDeviceStore } from '../stores/device';
-import { useBleMetrics } from '../stores/bleMetrics';
+import { useBleMetrics, type OpRecord } from '../stores/bleMetrics';
 import { BlePackageProtocol } from '../dfu/packageProtocol';
 import { buildControlPayload, parseVersion, parseSnLittleEndian, CTRL_GET_VERSION, CTRL_GET_SN } from '../dfu/dfuProtocol';
 
@@ -31,19 +31,19 @@ export class BleManager implements IBleManager {
   profile: Profile | null = null;
 
   /** 计时的 GATT 读取（记录 metrics） */
-  private async timedRead(uuid: string): Promise<DataView> {
+  private async timedRead(uuid: string, opType: OpRecord['type'] = 'read'): Promise<DataView> {
     const t0 = performance.now();
     const charId = uuid.slice(4, 8);
     try {
       const v = await this.chars.get(uuid)!.readValue();
       useBleMetrics.getState().recordOp({
-        ts: t0, type: 'read', charId, size: v.byteLength,
+        ts: t0, type: opType, charId, size: v.byteLength,
         duration: Math.round(performance.now() - t0),
       });
       return new DataView(v.buffer);
     } catch (e) {
       useBleMetrics.getState().recordOp({
-        ts: t0, type: 'read', charId, size: 0,
+        ts: t0, type: opType, charId, size: 0,
         duration: Math.round(performance.now() - t0),
         error: String(e instanceof Error ? e.message : e),
       });
@@ -298,14 +298,14 @@ export class BleManager implements IBleManager {
 
     try {
       await this.scheduler.enqueuePoll(async () => {
-        const speed = await this.timedRead(CHARS.FAN_SPEED);
-        const bat = await this.timedRead(CHARS.BATTERY_INFO);
-        const pwr = await this.timedRead(CHARS.POWER_STATUS);
-        const mot = await this.timedRead(CHARS.MOTOR_INFO);
-        const nw = await this.timedRead(CHARS.NATURE_WIND);
-        const gdm = await this.timedRead(CHARS.GEAR_DOWN_MODE);
-        const pc = await this.timedRead(CHARS.POWER_CONFIG);
-        const timer = await this.timedRead(CHARS.TIMER);
+        const speed = await this.timedRead(CHARS.FAN_SPEED, 'poll');
+        const bat = await this.timedRead(CHARS.BATTERY_INFO, 'poll');
+        const pwr = await this.timedRead(CHARS.POWER_STATUS, 'poll');
+        const mot = await this.timedRead(CHARS.MOTOR_INFO, 'poll');
+        const nw = await this.timedRead(CHARS.NATURE_WIND, 'poll');
+        const gdm = await this.timedRead(CHARS.GEAR_DOWN_MODE, 'poll');
+        const pc = await this.timedRead(CHARS.POWER_CONFIG, 'poll');
+        const timer = await this.timedRead(CHARS.TIMER, 'poll');
 
         const speedDv = speed;
         const batDv = bat;
