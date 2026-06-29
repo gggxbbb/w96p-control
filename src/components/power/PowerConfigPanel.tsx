@@ -103,60 +103,75 @@ export function PowerConfigPanel() {
   const srcNames = ['非快充', 'PD Source', 'PPS Source', 'QC2.0', 'QC3.0', 'FCP', 'PE2.0/1.1', 'SFCP', 'AFC', 'SCP', 'LVDC1'];
 
   return (
-    <PageGrid pageKey="power-config" pageName="寄存器" defaultLayouts={PC_LAYOUTS}>
-      <DraggableCard key="protocol">
-        <Card title="当前快充协议">
-          <div style={{ display: 'flex', gap: '16px', fontSize: '12px' }}>
-            <span>输入：<span style={{ color: 'var(--color-accent)' }}>{sinkNames[powerConfig.powSink] ?? '未知'}</span></span>
-            <span>输出：<span style={{ color: 'var(--color-accent)' }}>{srcNames[powerConfig.powSrc] ?? '未知'}</span></span>
-            <span>PD 版本：<span style={{ color: 'var(--color-text)' }}>{(powerConfig.pow2A & 0x40) ? 'PD2.0' : 'PD3.0'}</span></span>
-          </div>
-        </Card>
-      </DraggableCard>
+    <>
+      <div style={{
+        background: 'rgba(255, 107, 107, 0.1)',
+        border: '0.5px solid var(--color-danger)',
+        borderRadius: '6px',
+        padding: '12px 14px',
+        marginBottom: '12px',
+        fontSize: '11px',
+        lineHeight: '1.7',
+        color: 'var(--color-danger)',
+      }}>
+        <div style={{ fontWeight: 600, marginBottom: '6px', fontSize: '12px' }}>⚠️ 风险警告</div>
+        <div>本控制平台为第三方开发，96Pro 无输出能力，页面内大部分功能实际无效。</div>
+        <div>涉及快充协议魔改，属高风险操作。不熟悉快充原理的新手请勿使用，可能导致设备永久损坏。</div>
+        <div>使用本页面即表示您自行承担一切后果，开发者不对此负责。</div>
+      </div>
+      <PageGrid pageKey="power-config" pageName="寄存器" defaultLayouts={PC_LAYOUTS}>
+        <DraggableCard key="protocol">
+          <Card title="当前快充协议">
+            <div style={{ display: 'flex', gap: '16px', fontSize: '12px' }}>
+              <span>输入：<span style={{ color: 'var(--color-accent)' }}>{sinkNames[powerConfig.powSink] ?? '未知'}</span></span>
+              <span>输出：<span style={{ color: 'var(--color-accent)' }}>{srcNames[powerConfig.powSrc] ?? '未知'}</span></span>
+              <span>PD 版本：<span style={{ color: 'var(--color-text)' }}>{(powerConfig.pow2A & 0x40) ? 'PD2.0' : 'PD3.0'}</span></span>
+            </div>
+          </Card>
+        </DraggableCard>
 
-      {regs.map((reg) => {
-        const switches = switchesByReg(reg);
-        const segs = segsByReg(reg);
-        if (switches.length === 0 && segs.length === 0) return null;
-        return (
-          <DraggableCard key={reg}>
-            <Card title={REG_TITLES[reg]} subtitle={`当前值 0x${getRegValue(reg).toString(16).padStart(2, '0').toUpperCase()}`}>
-                {switches.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: segs.length > 0 ? '12px' : 0 }}>
-                    {switches.map((def) => {
-                      const bitSet = isBitSet(def.reg, def.bit);
-                      // inverted: 位=0 表示使能，所以 enabled = !bitSet
-                      // 非 inverted: 位=1 表示使能，所以 enabled = bitSet
-                      const enabled = def.inverted ? !bitSet : bitSet;
-                      return (
-                        <Toggle
-                          key={def.key}
-                          checked={enabled}
-                          onChange={(on) => handleSwitch(def, on)}
-                          label={def.label}
-                        />
-                      );
-                    })}
-                  </div>
-                )}
-                {segs.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {segs.map((def) => (
-                      <div key={def.key}>
-                        <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>{def.label}</div>
-                        <SegBtn
-                          options={def.options}
-                          value={getSegValue(def)}
-                          onChange={(v) => handleSeg(def, v)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-            </Card>
-          </DraggableCard>
-        );
-      })}
-    </PageGrid>
+        {regs.map((reg) => {
+          const switches = switchesByReg(reg);
+          const segs = segsByReg(reg);
+          if (switches.length === 0 && segs.length === 0) return null;
+          return (
+            <DraggableCard key={reg}>
+              <Card title={REG_TITLES[reg]} subtitle={`当前值 0x${getRegValue(reg).toString(16).padStart(2, '0').toUpperCase()}`}>
+                  {switches.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: segs.length > 0 ? '12px' : 0 }}>
+                      {switches.map((def) => {
+                        const bitSet = isBitSet(def.reg, def.bit);
+                        const enabled = def.inverted ? !bitSet : bitSet;
+                        return (
+                          <Toggle
+                            key={def.key}
+                            checked={enabled}
+                            onChange={(on) => handleSwitch(def, on)}
+                            label={def.label}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
+                  {segs.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {segs.map((def) => (
+                        <div key={def.key}>
+                          <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>{def.label}</div>
+                          <SegBtn
+                            options={def.options}
+                            value={getSegValue(def)}
+                            onChange={(v) => handleSeg(def, v)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+              </Card>
+            </DraggableCard>
+          );
+        })}
+      </PageGrid>
+    </>
   );
 }
