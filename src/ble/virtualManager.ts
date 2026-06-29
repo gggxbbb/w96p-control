@@ -108,6 +108,7 @@ export class VirtualManager implements IBleManager {
       vbusVmV: isCharging ? 5000 : 0,
       vbusCurMa: isCharging ? 1000 : 0,
       vbusConnected: isCharging,
+      powC: isCharging ? 1 : 0,
       powSta: isCharging ? 1 : 0,
       powCOut: this.powCOut,
       powCIn: this.powCIn,
