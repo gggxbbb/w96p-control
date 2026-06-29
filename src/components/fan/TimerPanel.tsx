@@ -1,13 +1,37 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useBle } from '../../hooks/useBle';
 import { useDeviceStore } from '../../stores/device';
 import { useToastStore } from '../../stores/toast';
 import { Card } from '../ui/Card';
 import { fmtTimer } from '../../lib/format';
 
-const MAX_SEC = 8 * 3600; // 8 hours
+const MAX_SEC = 8 * 3600;
 
 function pad(n: number) { return n.toString().padStart(2, '0'); }
+
+// 独立组件，避免 TimerPanel 重渲染时丢失输入焦点
+function StepperField({ value, max, onChange }: { value: number; max: number; onChange: (v: number) => void }) {
+  const inc = useCallback(() => onChange(Math.min(max, value + 1)), [value, max, onChange]);
+  const dec = useCallback(() => onChange(Math.max(0, value - 1)), [value, max, onChange]);
+  const handleInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const n = parseInt(e.target.value.replace(/\D/g, ''), 10);
+    if (!isNaN(n)) onChange(Math.min(max, Math.max(0, n)));
+  }, [max, onChange]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <button onClick={inc} style={stepperArrow}>▲</button>
+      <input
+        type="text"
+        inputMode="numeric"
+        value={pad(value)}
+        onChange={handleInput}
+        style={stepperInput}
+      />
+      <button onClick={dec} style={stepperArrow}>▼</button>
+    </div>
+  );
+}
 
 export function TimerPanel() {
   const { setTimer, cancelTimer, readTimer } = useBle();
@@ -48,27 +72,6 @@ export function TimerPanel() {
     show(`已设置定时 ${fmtTimer(sec)}`);
   };
 
-  const Stepper = ({ value, max, setValue }: { value: number; max: number; setValue: (v: number) => void }) => (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <button onClick={() => setValue(Math.min(max, value + 1))} style={stepperArrow}>
-        ▲
-      </button>
-      <input
-        type="text"
-        inputMode="numeric"
-        value={pad(value)}
-        onChange={(e) => {
-          const n = parseInt(e.target.value.replace(/\D/g, ''), 10);
-          if (!isNaN(n)) setValue(Math.min(max, Math.max(0, n)));
-        }}
-        style={stepperInput}
-      />
-      <button onClick={() => setValue(Math.max(0, value - 1))} style={stepperArrow}>
-        ▼
-      </button>
-    </div>
-  );
-
   return (
     <Card title="定时关机">
       <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '12px' }}>
@@ -78,11 +81,11 @@ export function TimerPanel() {
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'center', gap: '4px', alignItems: 'center', marginBottom: '12px' }}>
-        <Stepper value={h} max={8} setValue={setH} />
+        <StepperField value={h} max={8} onChange={setH} />
         <span style={colon}>:</span>
-        <Stepper value={m} max={59} setValue={setM} />
+        <StepperField value={m} max={59} onChange={setM} />
         <span style={colon}>:</span>
-        <Stepper value={s} max={59} setValue={setS} />
+        <StepperField value={s} max={59} onChange={setS} />
       </div>
 
       <div style={{ textAlign: 'center', marginBottom: '12px', fontSize: '11px', color: 'var(--color-text-muted)' }}>
@@ -106,69 +109,38 @@ export function TimerPanel() {
 }
 
 const colon: React.CSSProperties = {
-  fontSize: '18px',
-  fontWeight: 700,
-  color: 'var(--color-text-muted)',
-  alignSelf: 'center',
-  marginTop: '-4px',
+  fontSize: '18px', fontWeight: 700, color: 'var(--color-text-muted)',
+  alignSelf: 'center', marginTop: '-4px',
 };
 
 const stepperArrow: React.CSSProperties = {
-  background: 'none',
-  border: 'none',
-  color: 'var(--color-text-muted)',
-  fontSize: '10px',
-  cursor: 'pointer',
-  padding: '0 4px',
-  lineHeight: 1,
+  background: 'none', border: 'none', color: 'var(--color-text-muted)',
+  fontSize: '10px', cursor: 'pointer', padding: '0 4px', lineHeight: 1,
 };
 
 const stepperInput: React.CSSProperties = {
-  width: '48px',
-  textAlign: 'center',
-  fontSize: '24px',
-  fontWeight: 700,
-  fontFamily: 'var(--font-mono, monospace)',
-  fontVariantNumeric: 'tabular-nums',
-  background: 'var(--color-bg-page)',
-  border: '1px solid var(--color-border-strong)',
-  borderRadius: '6px',
-  padding: '4px 0',
-  color: 'var(--color-text)',
+  width: '48px', textAlign: 'center', fontSize: '24px', fontWeight: 700,
+  fontFamily: 'var(--font-mono, monospace)', fontVariantNumeric: 'tabular-nums',
+  background: 'var(--color-bg-page)', border: '1px solid var(--color-border-strong)',
+  borderRadius: '6px', padding: '4px 0', color: 'var(--color-text)',
 };
 
 const primaryBtnStyle: React.CSSProperties = {
-  background: 'var(--color-success)',
-  color: 'var(--color-bg-page)',
-  border: 'none',
-  borderRadius: '4px',
-  padding: '6px 12px',
-  fontSize: '11px',
-  fontFamily: 'var(--font-sans)',
-  cursor: 'pointer',
-  flex: 1,
+  background: 'var(--color-success)', color: 'var(--color-bg-page)',
+  border: 'none', borderRadius: '4px', padding: '6px 12px',
+  fontSize: '11px', fontFamily: 'var(--font-sans)', cursor: 'pointer', flex: 1,
 };
 
 const dangerBtnStyle: React.CSSProperties = {
-  background: 'transparent',
-  color: 'var(--color-danger)',
-  border: '0.5px solid var(--color-danger)',
-  borderRadius: '4px',
-  padding: '6px 12px',
-  fontSize: '11px',
-  fontFamily: 'var(--font-sans)',
-  cursor: 'pointer',
-  flex: 1,
+  background: 'transparent', color: 'var(--color-danger)',
+  border: '0.5px solid var(--color-danger)', borderRadius: '4px',
+  padding: '6px 12px', fontSize: '11px', fontFamily: 'var(--font-sans)',
+  cursor: 'pointer', flex: 1,
 };
 
 const presetBtnStyle: React.CSSProperties = {
-  background: 'transparent',
-  color: 'var(--color-text-muted)',
-  border: '0.5px solid var(--color-border-strong)',
-  borderRadius: '4px',
-  padding: '6px 10px',
-  fontSize: '11px',
-  fontFamily: 'var(--font-sans)',
-  cursor: 'pointer',
-  flex: 1,
+  background: 'transparent', color: 'var(--color-text-muted)',
+  border: '0.5px solid var(--color-border-strong)', borderRadius: '4px',
+  padding: '6px 10px', fontSize: '11px', fontFamily: 'var(--font-sans)',
+  cursor: 'pointer', flex: 1,
 };
