@@ -186,8 +186,8 @@ export class VirtualManager implements IBleManager {
     this.onSnapshot?.({ natureWindOn: on });
   }
 
-  async writeTimer(minutes: number): Promise<void> {
-    this.timerRemainingSec = minutes * 60;
+  async writeTimer(sec: number): Promise<void> {
+    this.timerRemainingSec = sec;
     this.onSnapshot?.({ timerRemainingSec: this.timerRemainingSec });
   }
 

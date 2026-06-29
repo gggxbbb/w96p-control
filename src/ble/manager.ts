@@ -433,10 +433,9 @@ export class BleManager implements IBleManager {
     }
   }
 
-  async writeTimer(minutes: number): Promise<void> {
+  async writeTimer(sec: number): Promise<void> {
     this.lastWriteMs = Date.now();
     const prev = useDeviceStore.getState().timerRemainingSec;
-    const sec = minutes * 60;
     this.onSnapshot?.({ timerRemainingSec: sec });
     try {
       const char = this.chars.get(CHARS.TIMER)!;

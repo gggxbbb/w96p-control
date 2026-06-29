@@ -105,7 +105,7 @@ export function useBle() {
     setGear: (g: 0 | 1 | 2 | 3 | 4) => m.writeGear(g),
     setFanSpeed: (p: number) => m.writeFanSpeed(p),
     toggleNatureWind: (on: boolean) => m.writeNatureWind(on),
-    setTimer: (min: number) => m.writeTimer(min),
+    setTimer: (sec: number) => m.writeTimer(sec),
     cancelTimer: () => m.writeTimer(0),
     setShutdownDelay: (s: number) => m.writeShutdownDelay(s),
     setGearDownMode: (mode: 0 | 1) => m.writeGearDownMode(mode),
