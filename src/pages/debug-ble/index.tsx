@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useState } from 'react';
 import { useBleMetrics, BUCKETS } from '../../stores/bleMetrics';
 import { Card } from '../../components/ui/Card';
 
@@ -18,31 +17,27 @@ const CHAR_NAMES: Record<string, string> = {
 
 export default function DebugBlePage() {
   const metrics = useBleMetrics();
-  const [, setTick] = useState(0);
 
-  // Force re-render periodically for live updates
-  useEffect(() => {
-    const id = setInterval(() => setTick(t => t + 1), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  const avgLatency = useCallback((filter: string) => {
-    const ops = metrics.ops.filter(o => !filter || o.type === filter);
+  const avgW = (() => {
+    const ops = metrics.ops.filter(o => o.type === 'write' && !o.error);
     if (ops.length === 0) return 0;
     return Math.round(ops.reduce((a, b) => a + b.duration, 0) / ops.length);
-  }, [metrics.ops]);
-
-  const p95 = useCallback(() => {
+  })();
+  const avgR = (() => {
+    const ops = metrics.ops.filter(o => (o.type === 'read' || o.type === 'poll') && !o.error);
+    if (ops.length === 0) return 0;
+    return Math.round(ops.reduce((a, b) => a + b.duration, 0) / ops.length);
+  })();
+  const p95 = (() => {
     const all = metrics.ops.filter(o => !o.error).map(o => o.duration).sort((a, b) => a - b);
     if (all.length === 0) return 0;
     return all[Math.ceil(all.length * 0.95) - 1]!;
-  }, [metrics.ops]);
-
-  const p99 = useCallback(() => {
+  })();
+  const p99 = (() => {
     const all = metrics.ops.filter(o => !o.error).map(o => o.duration).sort((a, b) => a - b);
     if (all.length === 0) return 0;
     return all[Math.ceil(all.length * 0.99) - 1]!;
-  }, [metrics.ops]);
+  })();
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '16px 0' }}>
@@ -75,10 +70,10 @@ export default function DebugBlePage() {
       {/* 延迟统计 */}
       <Card title="操作延迟分布" style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', gap: 8, marginBottom: 8, fontSize: 11, opacity: 0.6 }}>
-          <span>写: {avgLatency('write')}ms</span>
-          <span>读: {avgLatency('read')}ms</span>
-          <span>P95: {p95()}ms</span>
-          <span>P99: {p99()}ms</span>
+          <span>写: {avgW}ms</span>
+          <span>读: {avgR}ms</span>
+          <span>P95: {p95}ms</span>
+          <span>P99: {p99}ms</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 60 }}>
           {BUCKETS.map((b, i) => {
