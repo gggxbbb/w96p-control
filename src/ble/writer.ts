@@ -1,13 +1,19 @@
 import type { PowReg } from './commands';
 import { cmd, encodeCmd } from './commands';
+import type { GattScheduler } from './scheduler';
 
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
 export class WriteQueue {
-  private chain: Promise<unknown> = Promise.resolve();
+  private scheduler: GattScheduler | null = null;
   private natureWindOn = false;
   private _natureChar: BluetoothRemoteGATTCharacteristic | null = null;
   private regChar: BluetoothRemoteGATTCharacteristic | null = null;
+
+  /** 绑定调度器，此后所有写入通过调度器的高优写队列执行 */
+  bindScheduler(s: GattScheduler): void {
+    this.scheduler = s;
+  }
 
   get natureChar(): BluetoothRemoteGATTCharacteristic | null {
     return this._natureChar;
@@ -27,12 +33,21 @@ export class WriteQueue {
     this.natureWindOn = on;
   }
 
+  /** 将写任务提交到调度器的高优写队列 */
   enqueue<T>(task: () => Promise<T>): Promise<T> {
-    const run = this.chain.then(task, task);
-    this.chain = run.then(() => undefined, () => undefined);
-    return run as Promise<T>;
+    if (!this.scheduler) throw new Error('WriteQueue: scheduler 未绑定');
+    return new Promise<T>((resolve, reject) => {
+      this.scheduler!.enqueueWrite(async () => {
+        try {
+          resolve(await task());
+        } catch (e) {
+          reject(e);
+        }
+      });
+    });
   }
 
+  /** 直接 GATT 写入（含重试），不经过调度器 */
   async rawWrite(
     char: BluetoothRemoteGATTCharacteristic,
     data: Uint8Array,

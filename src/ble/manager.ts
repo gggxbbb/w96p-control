@@ -5,6 +5,7 @@ import {
 } from './parsers';
 import { cmd, encodeCmd, type PowReg } from './commands';
 import { WriteQueue } from './writer';
+import { GattScheduler } from './scheduler';
 import type { IBleManager, BleState, BleSnapshot } from './types';
 import { useDeviceStore } from '../stores/device';
 import { BlePackageProtocol } from '../dfu/packageProtocol';
@@ -20,10 +21,17 @@ const u16be = (dv: DataView, off = 0) =>
 export class BleManager implements IBleManager {
   private device: BluetoothDevice | null = null;
   private chars = new Map<string, BluetoothRemoteGATTCharacteristic>();
+  private scheduler = new GattScheduler('BLE');
   private writer = new WriteQueue();
-  private pollId: number | null = null;
+  private pollTimer: ReturnType<typeof setTimeout> | null = null;
+  private pollActive = false;
+  private pollIntervalMs = 1000;
   private lastWriteMs = 0;
   profile: Profile | null = null;
+
+  constructor() {
+    this.writer.bindScheduler(this.scheduler);
+  }
 
   // DFU query fields
   private dfuProtocol = new BlePackageProtocol(true);
@@ -111,35 +119,36 @@ export class BleManager implements IBleManager {
 
   private async readInitial(): Promise<void> {
     if (!this.profile) return;
-    // Step 1: read 5 small characteristics in parallel (each ≤16 bytes, low fragment risk)
+
     try {
-      const [timer, calib, nw, gdm, sd] = await Promise.all([
-        this.chars.get(CHARS.TIMER)!.readValue(),
-        this.chars.get(CHARS.SPEED_CALIB)!.readValue(),
-        this.chars.get(CHARS.NATURE_WIND)!.readValue(),
-        this.chars.get(CHARS.GEAR_DOWN_MODE)!.readValue(),
-        this.chars.get(CHARS.SHUTDOWN_DELAY)!.readValue(),
-      ]);
-      const timerDv = new DataView(timer.buffer);
-      const calibDv = new DataView(calib.buffer);
-      const nwDv = new DataView(nw.buffer);
-      const gdmDv = new DataView(gdm.buffer);
-      const sdDv = new DataView(sd.buffer);
-      this.writer.setNatureWindOn(u8(nwDv) === 1);
-      this.onSnapshot?.({
-        timerRemainingSec: u16be(timerDv),
-        speedCalib: [
-          u8(calibDv, 0), u8(calibDv, 1), u8(calibDv, 2), u8(calibDv, 3),
-        ],
-        natureWindOn: u8(nwDv) === 1,
-        gearDownMode: u8(gdmDv) as 0 | 1,
-        shutdownDelaySec: u16be(sdDv),
+      await this.scheduler.enqueueRead(async () => {
+        const timer = await this.chars.get(CHARS.TIMER)!.readValue();
+        const calib = await this.chars.get(CHARS.SPEED_CALIB)!.readValue();
+        const nw = await this.chars.get(CHARS.NATURE_WIND)!.readValue();
+        const gdm = await this.chars.get(CHARS.GEAR_DOWN_MODE)!.readValue();
+        const sd = await this.chars.get(CHARS.SHUTDOWN_DELAY)!.readValue();
+
+        const timerDv = new DataView(timer.buffer);
+        const calibDv = new DataView(calib.buffer);
+        const nwDv = new DataView(nw.buffer);
+        const gdmDv = new DataView(gdm.buffer);
+        const sdDv = new DataView(sd.buffer);
+        this.writer.setNatureWindOn(u8(nwDv) === 1);
+        this.onSnapshot?.({
+          timerRemainingSec: u16be(timerDv),
+          speedCalib: [
+            u8(calibDv, 0), u8(calibDv, 1), u8(calibDv, 2), u8(calibDv, 3),
+          ],
+          natureWindOn: u8(nwDv) === 1,
+          gearDownMode: u8(gdmDv) as 0 | 1,
+          shutdownDelaySec: u16be(sdDv),
+        });
+        console.log('[BLE] 初始读取完成: timer=' + u16be(timerDv) + 's, fan=' + u8(calibDv, 0) + '/' + u8(calibDv, 1) + '/' + u8(calibDv, 2) + '/' + u8(calibDv, 3) + ', nw=' + u8(nwDv) + ', gdm=' + u8(gdmDv));
       });
-      console.log('[BLE] 初始读取完成: timer=' + u16be(timerDv) + 's, fan=' + u8(calibDv, 0) + '/' + u8(calibDv, 1) + '/' + u8(calibDv, 2) + '/' + u8(calibDv, 3) + ', nw=' + u8(nwDv) + ', gdm=' + u8(gdmDv));
     } catch (e) {
       console.log('[BLE] 初始读取失败:', e);
       this.onError?.(String(e instanceof Error ? e.message : e));
-      return; // don't attempt curve if basic reads fail
+      return;
     }
     // Step 2: read NATURE_CURVE separately (128B → ~7 GATT fragments) with retry
     await this.readCurveWithRetry();
@@ -149,12 +158,14 @@ export class BleManager implements IBleManager {
   private async readCurveWithRetry(maxRetries = 2): Promise<void> {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        const v = await this.chars.get(CHARS.NATURE_CURVE)!.readValue();
-        const dv = new DataView(v.buffer);
-        const pts: number[] = [];
-        for (let i = 0; i < dv.byteLength; i++) pts.push(u8(dv, i));
-        this.onSnapshot?.({ natureCurve: pts });
-        console.log('[BLE] 自然风曲线读取完成, ' + pts.length + ' 点');
+        await this.scheduler.enqueueRead(async () => {
+          const v = await this.chars.get(CHARS.NATURE_CURVE)!.readValue();
+          const dv = new DataView(v.buffer);
+          const pts: number[] = [];
+          for (let i = 0; i < dv.byteLength; i++) pts.push(u8(dv, i));
+          this.onSnapshot?.({ natureCurve: pts });
+          console.log('[BLE] 自然风曲线读取完成, ' + pts.length + ' 点');
+        });
         return;
       } catch (e) {
         if (attempt < maxRetries) {
@@ -232,79 +243,102 @@ export class BleManager implements IBleManager {
   }
 
   startPolling(intervalMs: number): void {
-    if (this.pollId !== null) clearInterval(this.pollId);
+    this.stopPolling();
+    this.pollActive = true;
+    this.pollIntervalMs = intervalMs;
     console.log('[BLE] 开始轮询, 间隔 ' + intervalMs + 'ms');
-    this.pollId = window.setInterval(() => { void this.pollOnce(); }, intervalMs);
+    this.scheduleNextPoll();
   }
   stopPolling(): void {
-    if (this.pollId !== null) {
+    this.pollActive = false;
+    if (this.pollTimer !== null) {
       console.log('[BLE] 停止轮询');
-      clearInterval(this.pollId);
-      this.pollId = null;
+      clearTimeout(this.pollTimer);
+      this.pollTimer = null;
     }
+  }
+
+  private scheduleNextPoll(): void {
+    if (!this.pollActive) return;
+    this.pollTimer = setTimeout(() => {
+      this.pollTimer = null;
+      void this.pollOnce();
+    }, this.pollIntervalMs);
   }
 
   private async pollOnce(): Promise<void> {
     if (!this.profile) return;
-    // Capture write timestamp now; if any write fires while we're in the queue,
-    // skip onSnapshot to avoid overwriting optimistic updates with stale reads.
+
+    // Don't start a new poll cycle if the previous one hasn't been consumed yet
+    if (this.scheduler.pendingPollReads > 0) return;
+
     const writeTsBefore = this.lastWriteMs;
-    this.writer.enqueue(async () => {
-      // Sequential reads avoid overwhelming BLE stack
-      const speed = await this.chars.get(CHARS.FAN_SPEED)!.readValue();
-      const bat = await this.chars.get(CHARS.BATTERY_INFO)!.readValue();
-      const pwr = await this.chars.get(CHARS.POWER_STATUS)!.readValue();
-      const mot = await this.chars.get(CHARS.MOTOR_INFO)!.readValue();
-      const nw = await this.chars.get(CHARS.NATURE_WIND)!.readValue();
-      const gdm = await this.chars.get(CHARS.GEAR_DOWN_MODE)!.readValue();
-      const pc = await this.chars.get(CHARS.POWER_CONFIG)!.readValue();
-      const timer = await this.chars.get(CHARS.TIMER)!.readValue();
-      const speedDv = new DataView(speed.buffer);
-      const batDv = new DataView(bat.buffer);
-      const pwrDv = new DataView(pwr.buffer);
-      const motDv = new DataView(mot.buffer);
-      const nwDv = new DataView(nw.buffer);
-      const gdmDv = new DataView(gdm.buffer);
-      const pcDv = new DataView(pc.buffer);
-      const timerDv = new DataView(timer.buffer);
-      const natureOn = u8(nwDv) === 1;
-      this.writer.setNatureWindOn(natureOn);
-      // Skip snapshot if a write was enqueued after poll started — those
-      // reads are stale and would overwrite optimistic UI updates.
-      if (this.lastWriteMs <= writeTsBefore) {
-        this.onSnapshot?.({
-          fanSpeed: u8(speedDv),
-          battery: parseBatteryInfo(batDv),
-          powerStatus: parsePowerStatus(pwrDv),
-          motor: parseMotorInfo(motDv, this.profile!),
-          powerConfig: parsePowerConfig(pcDv),
-          natureWindOn: natureOn,
-          gearDownMode: u8(gdmDv) as 0 | 1,
-          timerRemainingSec: u16be(timerDv),
-        });
-      }
-    }).catch(e => {
+
+    try {
+      await this.scheduler.enqueuePoll(async () => {
+        const speed = await this.chars.get(CHARS.FAN_SPEED)!.readValue();
+        const bat = await this.chars.get(CHARS.BATTERY_INFO)!.readValue();
+        const pwr = await this.chars.get(CHARS.POWER_STATUS)!.readValue();
+        const mot = await this.chars.get(CHARS.MOTOR_INFO)!.readValue();
+        const nw = await this.chars.get(CHARS.NATURE_WIND)!.readValue();
+        const gdm = await this.chars.get(CHARS.GEAR_DOWN_MODE)!.readValue();
+        const pc = await this.chars.get(CHARS.POWER_CONFIG)!.readValue();
+        const timer = await this.chars.get(CHARS.TIMER)!.readValue();
+
+        const speedDv = new DataView(speed.buffer);
+        const batDv = new DataView(bat.buffer);
+        const pwrDv = new DataView(pwr.buffer);
+        const motDv = new DataView(mot.buffer);
+        const nwDv = new DataView(nw.buffer);
+        const gdmDv = new DataView(gdm.buffer);
+        const pcDv = new DataView(pc.buffer);
+        const timerDv = new DataView(timer.buffer);
+        const natureOn = u8(nwDv) === 1;
+        this.writer.setNatureWindOn(natureOn);
+
+        if (this.lastWriteMs <= writeTsBefore) {
+          this.onSnapshot?.({
+            fanSpeed: u8(speedDv),
+            battery: parseBatteryInfo(batDv),
+            powerStatus: parsePowerStatus(pwrDv),
+            motor: parseMotorInfo(motDv, this.profile!),
+            powerConfig: parsePowerConfig(pcDv),
+            natureWindOn: natureOn,
+            gearDownMode: u8(gdmDv) as 0 | 1,
+            timerRemainingSec: u16be(timerDv),
+          });
+        }
+      });
+    } catch (e) {
       console.log('[BLE] 轮询失败:', e);
       this.onError?.(String(e instanceof Error ? e.message : e));
-    });
+    } finally {
+      if (this.pollActive) this.scheduleNextPoll();
+    }
   }
 
   async readTimer(): Promise<number> {
-    const v = await this.chars.get(CHARS.TIMER)!.readValue();
-    return u16be(new DataView(v.buffer));
+    return this.scheduler.enqueueRead(async () => {
+      const v = await this.chars.get(CHARS.TIMER)!.readValue();
+      return u16be(new DataView(v.buffer));
+    });
   }
 
   async readNatureCurve(): Promise<number[]> {
-    const v = await this.chars.get(CHARS.NATURE_CURVE)!.readValue();
-    const dv = new DataView(v.buffer);
-    const arr: number[] = [];
-    for (let i = 0; i < dv.byteLength; i++) arr.push(dv.getUint8(i));
-    return arr;
+    return this.scheduler.enqueueRead(async () => {
+      const v = await this.chars.get(CHARS.NATURE_CURVE)!.readValue();
+      const dv = new DataView(v.buffer);
+      const arr: number[] = [];
+      for (let i = 0; i < dv.byteLength; i++) arr.push(dv.getUint8(i));
+      return arr;
+    });
   }
 
   async readBatteryCapacity(): Promise<number> {
-    const v = await this.chars.get(CHARS.BATTERY_INFO)!.readValue();
-    return parseBatteryInfo(new DataView(v.buffer)).capacityMwh;
+    return this.scheduler.enqueueRead(async () => {
+      const v = await this.chars.get(CHARS.BATTERY_INFO)!.readValue();
+      return parseBatteryInfo(new DataView(v.buffer)).capacityMwh;
+    });
   }
 
   async writeGear(gear: 0 | 1 | 2 | 3 | 4): Promise<void> {
@@ -538,11 +572,14 @@ export class BleManager implements IBleManager {
   }
 
   disconnect(): void {
+    this.scheduler.destroy();
+    this.stopPolling();
     this.device?.gatt?.disconnect();
   }
 
   private cleanup(): void {
     this.stopPolling();
+    this.scheduler.destroy();
     this.chars.clear();
     this.dfuNotifyCleanup?.();
     this.dfuNotifyCleanup = null;
