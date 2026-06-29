@@ -1,4 +1,4 @@
-type Status = 'default' | 'success' | 'warning' | 'danger';
+type Status = 'muted' | 'default' | 'success' | 'warning' | 'danger';
 
 interface StatusPillProps {
   status: Status;
@@ -6,6 +6,7 @@ interface StatusPillProps {
 }
 
 const statusConfig: Record<Status, { color: string; bg: string }> = {
+  muted: { color: 'var(--color-border)', bg: 'transparent' },
   default: { color: 'var(--color-text-muted)', bg: 'transparent' },
   success: { color: 'var(--color-success)', bg: 'transparent' },
   warning: { color: 'var(--color-warning)', bg: 'transparent' },

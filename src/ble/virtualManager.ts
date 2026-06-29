@@ -107,7 +107,7 @@ export class VirtualManager implements IBleManager {
     const powerStatus: PowerStatus = {
       vbusVmV: isCharging ? 5000 : 0,
       vbusCurMa: isCharging ? 1000 : 0,
-      powC: 1,
+      vbusConnected: isCharging,
       powSta: isCharging ? 1 : 0,
       powCOut: this.powCOut,
       powCIn: this.powCIn,

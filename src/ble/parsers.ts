@@ -8,6 +8,7 @@ export interface BatteryInfo {
 export interface PowerStatus {
   vbusVmV: number;
   vbusCurMa: number;
+  vbusConnected: boolean;
   powC: number;
   powSta: number;
   powCOut: boolean;
@@ -45,15 +46,20 @@ export const parseBatteryInfo = (dv: DataView): BatteryInfo => ({
   capacityMwh: readU32BE(dv, 4),
 });
 
-export const parsePowerStatus = (dv: DataView): PowerStatus => ({
-  vbusVmV: readU32BE(dv, 0),
-  vbusCurMa: readI16BE(dv, 4),
-  powC: dv.byteLength > 6 ? dv.getUint8(6) : 0,
-  powSta: dv.byteLength > 7 ? dv.getUint8(7) : 0,
-  powCOut: dv.byteLength > 8 ? dv.getUint8(8) === 0 : false,  // 0=使能
-  powCIn: dv.byteLength > 9 ? dv.getUint8(9) === 0 : false,
-  powCHi: dv.byteLength > 10 ? dv.getUint8(10) : 0,
-});
+export const parsePowerStatus = (dv: DataView): PowerStatus => {
+  const rawCur = readI16BE(dv, 4);
+  const disconnected = rawCur === 32767; // 0x7FFF 哨兵 = VBUS 未接入
+  return {
+    vbusVmV: readU32BE(dv, 0),
+    vbusCurMa: disconnected ? 0 : rawCur,
+    vbusConnected: !disconnected,
+    powC: dv.byteLength > 6 ? dv.getUint8(6) : 0,
+    powSta: dv.byteLength > 7 ? dv.getUint8(7) : 0,
+    powCOut: dv.byteLength > 8 ? dv.getUint8(8) === 0 : false,  // 0=使能
+    powCIn: dv.byteLength > 9 ? dv.getUint8(9) === 0 : false,
+    powCHi: dv.byteLength > 10 ? dv.getUint8(10) : 0,
+  };
+};
 
 export const parseMotorInfo = (dv: DataView, profile: Profile): MotorInfo => {
   const currentMa = readU16BE(dv, 0);

@@ -15,6 +15,7 @@ export function StatusSummary() {
   const motor = useDeviceStore((s) => s.motor);
 
   const isCharging = powerStatus?.powSta === 1;
+  const vbusConnected = powerStatus?.vbusConnected ?? false;
   const isStalled = motor?.block === true;
 
   const items: SummaryItem[] = [
@@ -27,7 +28,7 @@ export function StatusSummary() {
     { label: '减档', value: gearDownMode === 0 ? '逐级' : '直接' },
     {
       label: '充电',
-      value: isCharging ? '充电中' : '放电中',
+      value: vbusConnected ? (isCharging ? '充电中' : '放电中') : '未连接',
       accent: isCharging ? 'var(--color-success)' : 'var(--color-text-muted)',
     },
     {

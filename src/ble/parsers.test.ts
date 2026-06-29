@@ -33,6 +33,7 @@ describe('parsePowerStatus', () => {
     ]));
     expect(result.vbusVmV).toBe(5000);
     expect(result.vbusCurMa).toBe(1000);
+    expect(result.vbusConnected).toBe(true);
     expect(result.powC).toBe(1);
     expect(result.powSta).toBe(1);
     expect(result.powCOut).toBe(true);
