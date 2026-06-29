@@ -80,8 +80,6 @@ export function StatusBar() {
           fontFamily: 'var(--font-sans)',
           fontVariantNumeric: 'tabular-nums',
           flexShrink: 0,
-          position: 'relative',
-          zIndex: 1001,
         }}
       >
         <span style={{ color: statusColor, flexShrink: 0 }}>●</span>
