@@ -8,18 +8,19 @@ export function SpeedCalibPanel() {
   const { profile, setSpeedCalib } = useBle();
   const speedCalib = useDeviceStore((s) => s.speedCalib);
   const show = useToastStore((s) => s.show);
-  const [speeds, setSpeeds] = useState<[number, number, number, number]>([...speedCalib] as [number, number, number, number]);
+  const [speeds, setSpeeds] = useState<string[]>([...speedCalib.map(String)]);
 
-  useEffect(() => { setSpeeds([...speedCalib] as [number, number, number, number]); }, [speedCalib]);
+  useEffect(() => { setSpeeds([...speedCalib.map(String)]); }, [speedCalib]);
 
   const defaults = profile?.defaultSpeeds ?? [30, 50, 70, 100];
 
   const apply = () => {
-    setSpeedCalib(speeds);
+    const nums = speeds.map((s) => parseInt(s, 10) || 0) as [number, number, number, number];
+    setSpeedCalib(nums);
     show('档位风速已应用');
   };
   const reset = () => {
-    setSpeeds([...defaults] as [number, number, number, number]);
+    setSpeeds([...defaults.map(String)]);
     setSpeedCalib([...defaults] as [number, number, number, number]);
     show('已恢复默认档位风速');
   };
@@ -36,12 +37,9 @@ export function SpeedCalibPanel() {
               max={100}
               value={speeds[i]}
               onChange={(e) => {
-                const v = parseInt(e.target.value, 10);
-                if (!isNaN(v)) {
-                  const next = [...speeds] as [number, number, number, number];
-                  next[i] = v;
-                  setSpeeds(next);
-                }
+                const next = [...speeds];
+                next[i] = e.target.value;
+                setSpeeds(next);
               }}
               style={numberInputStyle}
             />
