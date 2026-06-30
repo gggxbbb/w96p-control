@@ -61,6 +61,7 @@ export default function NatureWind() {
     storedCurve.length === 128 ? storedCurve : [...DEFAULT_CURVE],
   );
   const [textValue, setTextValue] = useState('');
+  const [generatorPoints, setGeneratorPoints] = useState<number[]>([]);
 
   useEffect(() => {
     if (storedCurve.length === 128) {
@@ -82,8 +83,12 @@ export default function NatureWind() {
     show('曲线已加载到编辑器，可手动微调');
   };
 
-  const handleGeneratorApply = (pts: number[]) => {
-    setNatureCurve(pts);
+  const handleGeneratorApply = () => {
+    if (generatorPoints.length !== 128) {
+      show('请先在信号发生器中生成曲线');
+      return;
+    }
+    setNatureCurve(generatorPoints);
     show('自然风曲线已写入设备');
   };
 
@@ -205,7 +210,7 @@ export default function NatureWind() {
         <Card title="信号发生器">
           <SignalGenerator
             onSendToEditor={handleSendToEditor}
-            onApplyToDevice={handleGeneratorApply}
+            onPointsChange={setGeneratorPoints}
           />
         </Card>
       </DraggableCard>
@@ -245,6 +250,22 @@ export default function NatureWind() {
             }}
           >
             从设备读取曲线
+          </button>
+          <button
+            onClick={handleGeneratorApply}
+            style={{
+              flex: 1,
+              background: 'var(--color-success)',
+              color: 'var(--color-bg-page)',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '10px',
+              fontSize: '12px',
+              fontFamily: 'var(--font-sans)',
+              cursor: 'pointer',
+            }}
+          >
+            应用到设备
           </button>
         </div>
         </Card>

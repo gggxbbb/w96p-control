@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import type { CSSProperties } from 'react';
 import {
   synthesizeWithEnvelope,
@@ -14,7 +14,7 @@ import type { LayerConfig, EnvelopeConfig, WaveformType } from '../../lib/curveP
 
 interface SignalGeneratorProps {
   onSendToEditor: (points: number[]) => void;
-  onApplyToDevice: (points: number[]) => void;
+  onPointsChange: (points: number[]) => void;
 }
 
 /* ================================================================
@@ -391,7 +391,7 @@ function WaveformPreview({ composite }: { composite: number[] }) {
 
 export function SignalGenerator({
   onSendToEditor,
-  onApplyToDevice,
+  onPointsChange,
 }: SignalGeneratorProps) {
   const [layers, setLayers] = useState<LayerConfig[]>([
     { ...DEFAULT_LAYER },
@@ -404,6 +404,15 @@ export function SignalGenerator({
     () => synthesizeWithEnvelope(128, layers, envelope, 0, 100),
     [layers, envelope],
   );
+
+  // Report composite to parent on every change
+  const prevRef = useRef(composite);
+  useEffect(() => {
+    if (prevRef.current !== composite) {
+      prevRef.current = composite;
+      onPointsChange(composite);
+    }
+  }, [composite, onPointsChange]);
 
   const updateLayer = useCallback(
     (index: number, layer: LayerConfig) => {
@@ -466,22 +475,6 @@ export function SignalGenerator({
           }}
         >
           发送到编辑器
-        </button>
-        <button
-          onClick={() => onApplyToDevice(composite)}
-          style={{
-            flex: 1,
-            background: 'var(--color-success)',
-            color: 'var(--color-bg-page)',
-            border: 'none',
-            borderRadius: '4px',
-            padding: '6px 10px',
-            fontSize: '11px',
-            fontFamily: 'var(--font-sans)',
-            cursor: 'pointer',
-          }}
-        >
-          应用到设备
         </button>
       </div>
     </div>
