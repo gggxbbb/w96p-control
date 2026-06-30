@@ -19,21 +19,21 @@ interface MetricCardProps {
 }
 
 /** 仪表模式下各类指标的合理默认范围 */
-const GAUGE_PRESETS: Record<string, { min: number; max: number }> = {
+const GAUGE_PRESETS: Record<string, { min: number; max: number; dangerLow?: boolean }> = {
   // 风扇
   '转速': { min: 0, max: 100 },
   // 电池 — 充电时电流/功率可为负
   '电池功率': { min: -20, max: 20 },
-  '电池电压': { min: 3.0, max: 4.2 },
+  '电池电压': { min: 3.0, max: 4.2, dangerLow: true },
   // 电机
   '电机功率': { min: 0, max: 20 },
   '电机功率（近似）': { min: 0, max: 20 },
   '电机电流': { min: 0, max: 2000 },
   '电机电压': { min: 0, max: 12 },
   // 电源面板 — 充/放电双向，电流/功率对称
-  '电压': { min: 3.0, max: 4.2 },
+  '电压': { min: 3.0, max: 4.2, dangerLow: true },
   '电流': { min: -3000, max: 3000 },
-  '容量': { min: 0, max: 10000 },
+  '容量': { min: 0, max: 10000, dangerLow: true },
   '功率': { min: -20, max: 20 },
   'VBUS 电压': { min: 0, max: 12 },
   'VBUS 电流': { min: -3000, max: 3000 },
@@ -43,10 +43,10 @@ const GAUGE_PRESETS: Record<string, { min: number; max: number }> = {
 const DEFAULT_GAUGE_RANGE = { min: 0, max: 100 };
 
 /** 统一颜色：按值在 min-max 范围中的百分比分区 */
-function getColor(numericValue: number, min: number, max: number): string {
+function getColor(numericValue: number, min: number, max: number, dangerLow?: boolean): string {
   if (Number.isNaN(numericValue)) return 'var(--color-text)';
   const range = max - min || 1;
-  const pct = (numericValue - min) / range;
+  const pct = dangerLow ? 1 - ((numericValue - min) / range) : (numericValue - min) / range;
   if (pct >= 0.9) return 'var(--color-danger)';
   if (pct >= 0.7) return 'var(--color-warning)';
   return 'var(--color-text)';
@@ -78,7 +78,8 @@ export function MetricCard({
 
   const min = storeMin ?? GAUGE_PRESETS[label]?.min ?? gaugeMin;
   const max = storeMax ?? GAUGE_PRESETS[label]?.max ?? gaugeMax;
-  const color = getColor(numericValue, min, max);
+  const dangerLow = GAUGE_PRESETS[label]?.dangerLow ?? false;
+  const color = getColor(numericValue, min, max, dangerLow);
 
   const [configOpen, setConfigOpen] = useState(false);
   const [draftMin, setDraftMin] = useState(min);
@@ -236,7 +237,7 @@ export function MetricCard({
 
       {/* value */}
       {showGauge ? (
-        <Gauge value={numericValue} min={min} max={max} unit={effectiveUnit} color={color} />
+        <Gauge value={numericValue} min={min} max={max} unit={effectiveUnit} color={color} dangerLow={dangerLow} />
       ) : (
         <div
           style={{
@@ -295,8 +296,8 @@ function fmtLabel(n: number): string {
   return fmtNum(n);
 }
 
-/** 生成 subArcs 分区着色 */
-function buildSubArcs(min: number, max: number): { limit: number; color: string }[] {
+/** 生成 subArcs 分区着色，dangerLow 时低端为危险区 */
+function buildSubArcs(min: number, max: number, dangerLow?: boolean): { limit: number; color: string }[] {
   const range = max - min || 1;
   const isBipolar = min < 0;
   const txt = 'var(--color-text)';
@@ -313,6 +314,13 @@ function buildSubArcs(min: number, max: number): { limit: number; color: string 
       { limit: max, color: danger },
     ];
   }
+  if (dangerLow) {
+    return [
+      { limit: min + range * 0.1, color: danger },
+      { limit: min + range * 0.3, color: warn },
+      { limit: max, color: txt },
+    ];
+  }
   return [
     { limit: min + range * 0.7, color: txt },
     { limit: min + range * 0.9, color: warn },
@@ -326,9 +334,10 @@ interface GaugeProps {
   max: number;
   unit?: string;
   color: string;
+  dangerLow?: boolean;
 }
 
-function Gauge({ value, min, max, unit, color }: GaugeProps) {
+function Gauge({ value, min, max, unit, color, dangerLow }: GaugeProps) {
   const valueStr = fmtNum(value);
 
   return (
@@ -340,7 +349,7 @@ function Gauge({ value, min, max, unit, color }: GaugeProps) {
           minValue={min}
           maxValue={max}
           arc={{
-            subArcs: buildSubArcs(min, max),
+            subArcs: buildSubArcs(min, max, dangerLow),
             padding: 0.02,
             width: 0.18,
             cornerRadius: 2,
