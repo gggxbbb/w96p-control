@@ -103,21 +103,6 @@ export default function NatureWind() {
     show('已恢复默认曲线');
   };
 
-  const handleApply = async () => {
-    if (editPoints.length !== 128) {
-      show('曲线必须 128 点');
-      return;
-    }
-    try {
-      await setNatureCurve(editPoints);
-      const pts = await readNatureCurve();
-      useDeviceStore.getState().setSnapshot({ natureCurveReadAt: Date.now(), natureCurve: pts } as any);
-      show('曲线已写入设备并读回确认');
-    } catch {
-      show('写入失败');
-    }
-  };
-
   const handleRead = async () => {
     try {
       const pts = await readNatureCurve();

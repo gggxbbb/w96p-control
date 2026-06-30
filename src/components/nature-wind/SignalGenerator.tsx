@@ -52,8 +52,6 @@ function Knob({ value, min, max, step, label, unit, onChange, size = 48 }: KnobP
 
   // Bg arc (270° sweep, from -135 to +135)
   const bgR = r + 2;
-  const arcStart = polar(bgR, -135);
-  const arcEnd = polar(bgR, 135);
 
   const handlePointerDown = (e: PointerEvent<SVGSVGElement>) => {
     e.preventDefault();
@@ -182,8 +180,10 @@ const WAVEFORM_LABELS: Record<WaveformType, string> = {
 
 const WAVEFORMS: WaveformType[] = ['sine', 'triangle', 'square', 'sawtooth', 'noise'];
 
+type LayerNumericKey = Exclude<keyof LayerConfig, 'enabled' | 'invert' | 'waveform'>;
+
 interface SliderSpec {
-  key: keyof LayerConfig;
+  key: LayerNumericKey;
   label: string;
   min: number;
   max: number;
@@ -198,8 +198,10 @@ const LAYER_SLIDERS: SliderSpec[] = [
   { key: 'phase', label: '相位', min: 0, max: 360, step: 1, unit: '°' },
 ];
 
+type EnvNumericKey = Exclude<keyof EnvelopeConfig, 'enabled'>;
+
 interface EnvSliderSpec {
-  key: keyof EnvelopeConfig;
+  key: EnvNumericKey;
   label: string;
   min: number;
   max: number;
