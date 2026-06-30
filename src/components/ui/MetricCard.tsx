@@ -9,6 +9,8 @@ interface MetricCardProps {
   unit?: string;
   /** 着色用的原始数值，避免 display value 被格式化后 parse 出错误量级 */
   rawValue?: number;
+  /** 数值小数位数（仅当 value 为 number 且无 rawValue 时生效），默认不截断 */
+  decimals?: number;
   /** @deprecated 颜色现在按值百分比自动分区，不再使用此属性 */
   accent?: string;
   /** gauge 模式的最小值，默认 0 */
@@ -59,6 +61,7 @@ export function MetricCard({
   value,
   unit,
   rawValue,
+  decimals,
   accent: _accent,
   gaugeMin = 0,
   gaugeMax = 100,
@@ -75,6 +78,12 @@ export function MetricCard({
 
   const numericValue = rawValue ?? (typeof value === 'number' ? value : parseFloat(String(value)));
   const showGauge = variant === 'gauge' && !Number.isNaN(numericValue);
+
+  // 数值显示格式化：decimals 只对纯数字 value 生效（字符串原样展示）
+  const displayValue: string =
+    decimals !== undefined && typeof value === 'number'
+      ? value.toFixed(decimals)
+      : String(value);
 
   // 从字符串 value 中推断单位（如 "3.85 V" → "V"），显式 unit prop 优先
   const effectiveUnit = unit ?? (typeof value === 'string' ? String(value).replace(/^-?[\d.]+/, '').trim() : undefined);
@@ -258,13 +267,13 @@ export function MetricCard({
         >
           <span
             style={{
-              fontSize: `clamp(14px, ${Math.max(18, 42 - String(value).length * 3)}px, 26px)`,
+              fontSize: `clamp(14px, ${Math.max(18, 42 - displayValue.length * 3)}px, 26px)`,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
             }}
           >
-            {value}
+            {displayValue}
             {unit && (
               <span style={{ fontSize: 'clamp(10px, 60%, 16px)', color: 'var(--color-text-muted)', marginLeft: '2px', fontWeight: 400 }}>
                 {unit}

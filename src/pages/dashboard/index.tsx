@@ -104,6 +104,7 @@ export default function Dashboard() {
           label="电池功率"
           value={batteryPower}
           unit="W"
+          decimals={2}
           accent={batteryPower > 0 ? 'success' : 'default'}
         />
       </DraggableCard>
@@ -112,19 +113,21 @@ export default function Dashboard() {
           label="电机功率"
           value={motorPower}
           unit="W"
+          decimals={2}
         />
       </DraggableCard>
       <DraggableCard key="motor-cur">
         <MetricCard label="电机电流" value={motor ? motor.currentMa : '--'} unit="mA" />
       </DraggableCard>
       <DraggableCard key="batt-volt">
-        <MetricCard label="电池电压" value={battery ? battery.voltageMv / 1000 : '--'} unit="V" />
+        <MetricCard label="电池电压" value={battery ? battery.voltageMv / 1000 : '--'} unit="V" decimals={2} />
       </DraggableCard>
       <DraggableCard key="vbus-volt">
         <MetricCard
           label="VBUS 电压"
           value={powerStatus ? powerStatus.vbusVmV / 1000 : '--'}
           unit="V"
+          decimals={2}
         />
       </DraggableCard>
       <DraggableCard key="motor-volt">
@@ -132,6 +135,7 @@ export default function Dashboard() {
           label="电机电压"
           value={motor && motor.voltageMv > 0 ? motor.voltageMv / 1000 : '--'}
           unit="V"
+          decimals={2}
         />
       </DraggableCard>
 

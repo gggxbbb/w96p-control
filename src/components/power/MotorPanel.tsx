@@ -23,12 +23,12 @@ export function MotorPanel() {
         <MetricCard label="电机电流" value={motor ? motor.currentMa : '--'} unit="mA" />
         {profile?.parseMotorFull && (
           <>
-            <MetricCard label="电机电压" value={motor && motor.voltageMv > 0 ? motor.voltageMv / 1000 : '--'} unit="V" />
-            <MetricCard label="电机功率" value={motorPower} unit="W" />
+            <MetricCard label="电机电压" value={motor && motor.voltageMv > 0 ? motor.voltageMv / 1000 : '--'} unit="V" decimals={2} />
+            <MetricCard label="电机功率" value={motorPower} unit="W" decimals={2} />
           </>
         )}
         {!profile?.motorPowerUsesMotorVoltage && (
-          <MetricCard label="电机功率（近似）" value={motorPower} unit="W" />
+          <MetricCard label="电机功率（近似）" value={motorPower} unit="W" decimals={2} />
         )}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {motor?.block ? <StatusPill status="danger" label="堵转" /> : <StatusPill status="default" label="正常" />}

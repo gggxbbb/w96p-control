@@ -33,10 +33,10 @@ export function BatteryPanel() {
   return (
     <Card title="电池信息">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px', marginBottom: '12px' }}>
-        <MetricCard label="电压" value={battery ? battery.voltageMv / 1000 : '--'} unit="V" />
+        <MetricCard label="电压" value={battery ? battery.voltageMv / 1000 : '--'} unit="V" decimals={2} />
         <MetricCard label="电流" value={battery ? battery.currentMa : '--'} unit="mA" />
         <MetricCard label="容量" value={battery ? battery.capacityMwh : '--'} unit="mWh" />
-        <MetricCard label="功率" value={power} unit="W" />
+        <MetricCard label="功率" value={power} unit="W" decimals={2} />
       </div>
       <div style={{ paddingTop: '10px', borderTop: '0.5px solid var(--color-border)' }}>
         <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>容量设置</div>
