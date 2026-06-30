@@ -30,15 +30,15 @@ const GAUGE_PRESETS: Record<string, { min: number; max: number; dangerLow?: bool
   // 电机
   '电机功率': { min: 0, max: 20 },
   '电机功率（近似）': { min: 0, max: 20 },
-  '电机电流': { min: 0, max: 2000 },
+  '电机电流': { min: 0, max: 5000 },
   '电机电压': { min: 0, max: 12 },
   // 电源面板 — 充/放电双向，电流/功率对称
   '电压': { min: 3.0, max: 4.2, dangerLow: true },
-  '电流': { min: -3000, max: 3000 },
-  '容量': { min: 0, max: 10000, dangerLow: true },
+  '电流': { min: -5000, max: 5000 },
+  '容量': { min: 0, max: 200000, dangerLow: true },
   '功率': { min: -20, max: 20 },
   'VBUS 电压': { min: 0, max: 12 },
-  'VBUS 电流': { min: -3000, max: 3000 },
+  'VBUS 电流': { min: -5000, max: 5000 },
   'VBUS 功率': { min: -20, max: 20 },
 };
 
