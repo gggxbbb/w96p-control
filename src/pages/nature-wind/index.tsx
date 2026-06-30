@@ -83,15 +83,17 @@ export default function NatureWind() {
     show('曲线已加载到编辑器，可手动微调');
   };
 
-  const handleGeneratorApply = async () => {
-    if (generatorPoints.length !== 128) {
-      show('请先在信号发生器中生成曲线');
+  const handleApply = async () => {
+    // 优先使用编辑器的 editPoints，若为空则用信号发生器的 generatorPoints
+    const pts = editPoints.length === 128 ? editPoints : generatorPoints;
+    if (pts.length !== 128) {
+      show('请先在编辑器或信号发生器中生成曲线');
       return;
     }
     try {
-      await setNatureCurve(generatorPoints);
-      const pts = await readNatureCurve();
-      useDeviceStore.getState().setSnapshot({ natureCurveReadAt: Date.now(), natureCurve: pts } as any);
+      await setNatureCurve(pts);
+      const readBack = await readNatureCurve();
+      useDeviceStore.getState().setSnapshot({ natureCurveReadAt: Date.now(), natureCurve: readBack } as any);
       show('曲线已写入设备并读回确认');
     } catch {
       show('写入失败');
@@ -255,7 +257,7 @@ export default function NatureWind() {
             从设备读取曲线
           </button>
           <button
-            onClick={handleGeneratorApply}
+            onClick={handleApply}
             style={{
               flex: 1,
               background: 'var(--color-success)',
