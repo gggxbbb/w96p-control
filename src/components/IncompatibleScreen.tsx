@@ -33,17 +33,21 @@ function isSimpleIcon(icon: SimpleIcon | ReactNode): icon is SimpleIcon {
   return typeof icon === 'object' && icon !== null && 'path' in icon;
 }
 
-export function IncompatibleScreen() {
+export function IncompatibleScreen({ reason }: { reason?: string }) {
+  const subtitle = reason ?? (
+    <>
+      Web Bluetooth API 仅在 Chromium 系浏览器中可用（Chrome / Edge / Opera 等）。
+      <br />
+      请使用以下浏览器打开此页面：
+    </>
+  );
+
   return (
     <div className="incompatible-root">
       <div className="incompatible-card">
         <div className="incompatible-icon">⚠</div>
         <h1>浏览器不支持 Web Bluetooth</h1>
-        <p>
-          Web Bluetooth API 仅在 Chromium 系浏览器中可用（Chrome / Edge / Opera 等）。
-          <br />
-          请使用以下浏览器打开此页面：
-        </p>
+        <p>{subtitle}</p>
         <div className="ios-warning">
           ⚠ iPhone / iPad 用户请注意：iOS 系统强制所有浏览器使用 WebKit 内核，
           不支持 Web Bluetooth。请使用安卓手机或 Windows/macOS/ChromeOS 桌面设备。
