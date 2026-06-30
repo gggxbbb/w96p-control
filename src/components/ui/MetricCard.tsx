@@ -76,8 +76,8 @@ export function MetricCard({
   // 从字符串 value 中推断单位（如 "3.85 V" → "V"），显式 unit prop 优先
   const effectiveUnit = unit ?? (typeof value === 'string' ? String(value).replace(/^-?[\d.]+/, '').trim() : undefined);
 
-  const min = storeMin ?? gaugeMin;
-  const max = storeMax ?? gaugeMax;
+  const min = storeMin ?? GAUGE_PRESETS[label]?.min ?? gaugeMin;
+  const max = storeMax ?? GAUGE_PRESETS[label]?.max ?? gaugeMax;
   const color = getColor(numericValue, min, max);
 
   const [configOpen, setConfigOpen] = useState(false);
