@@ -1,22 +1,10 @@
 @import "tailwindcss";
+@import "misans/lib/Normal/MiSans-Regular.min.css";
+@import "misans/lib/Normal/MiSans-Medium.min.css";
 
-/* MiSans 字体：当前通过 index.html 的 <link> 引入 jsdelivr CDN（子集化分片，按 unicode-range 按需加载）。
-   TODO: 待用户提供本地完整 woff2 后，改回下方 @font-face 本地引用以支持离线/PWA。
-   CDN 注册的 font-family 名为 'MiSans'，Regular=weight 330，Medium=weight 500。
-   --font-sans: 'MiSans' 无需改动。
-@font-face {
-  font-family: 'MiSans';
-  src: url('/fonts/MiSans-Regular.woff2') format('woff2');
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'MiSans';
-  src: url('/fonts/MiSans-Medium.woff2') format('woff2');
-  font-weight: 500;
-  font-display: swap;
-}
-*/
+/* MiSans 字体：本地 pnpm 安装，Vite 处理 woff2 资源路径。
+   Regular=weight 330，Medium=weight 500。
+   --font-sans: 'MiSans' 无需改动。 */
 
 @theme {
   --font-sans: 'MiSans', ui-sans-serif, system-ui, sans-serif;
@@ -197,4 +185,156 @@ body {
 /* 非编辑模式下隐藏缩放手柄 */
 .w96p-grid.locked .react-resizable-handle {
   display: none !important;
+}
+
+/* ---- BrowserGate loading ---- */
+.gate-loading {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: var(--color-bg-page);
+}
+.gate-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: gate-spin 0.7s linear infinite;
+}
+@keyframes gate-spin {
+  to { transform: rotate(360deg); }
+}
+.gate-loading p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+}
+
+/* 页面级懒加载 spinner */
+.page-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 60px 20px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-family: var(--font-sans);
+}
+.page-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: gate-spin 0.7s linear infinite;
+}
+
+/* ---- Browser incompatible screen ---- */
+.incompatible-root {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-page);
+  padding: 20px;
+}
+.incompatible-card {
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+}
+.incompatible-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+.incompatible-card h1 {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 0 12px;
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+.incompatible-card > p {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin: 0 0 24px;
+  line-height: 1.6;
+  font-family: var(--font-sans);
+}
+.browser-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.browser-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  text-decoration: none;
+  transition: border-color 0.15s;
+}
+.browser-card:hover {
+  border-color: var(--color-accent);
+}
+.browser-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.browser-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+}
+.browser-info strong {
+  font-size: 15px;
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+.browser-info span {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+}
+.retry-btn {
+  padding: 10px 28px;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-bg-surface);
+  color: var(--color-text);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.retry-btn:hover {
+  background: var(--color-bg-inset);
+}
+.ios-warning {
+  margin: 0 0 20px;
+  padding: 12px 16px;
+  background: var(--color-bg-inset);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  text-align: left;
+  font-family: var(--font-sans);
 }

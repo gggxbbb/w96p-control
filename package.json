@@ -10,12 +10,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "misans": "^4.1.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-gauge-component": "^2.0.29",
     "react-grid-layout": "^2.2.3",
     "react-router-dom": "^7.18.0",
     "recharts": "^3.9.0",
+    "simple-icons": "^16.24.1",
     "zustand": "^5.0.14"
   },
   "devDependencies": {

@@ -15,8 +15,9 @@ const DebugBle = lazy(() => import('../pages/debug-ble'));
 
 function Loading() {
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', padding: '40px', color: 'var(--color-text-muted)', fontSize: '13px' }}>
-      加载中...
+    <div className="page-loading">
+      <span className="page-spinner" />
+      <span>加载中…</span>
     </div>
   );
 }
