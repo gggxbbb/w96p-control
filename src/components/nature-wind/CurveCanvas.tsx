@@ -14,11 +14,37 @@ function readColor(name: string, fallback: string): string {
   return v || fallback;
 }
 
+/** 线性插值：从 (lastIdx, lastVal) 到 (idx, val) 之间的所有整数点 */
+function interpolatePoints(
+  points: number[],
+  lastIdx: number,
+  lastVal: number,
+  idx: number,
+  val: number,
+  clampMin: number,
+  clampMax: number,
+) {
+  const minIdx = Math.min(lastIdx, idx);
+  const maxIdx = Math.max(lastIdx, idx);
+  for (let i = minIdx; i <= maxIdx; i++) {
+    const t = maxIdx === minIdx ? 0 : (i - minIdx) / (maxIdx - minIdx);
+    let v: number;
+    if (lastIdx <= idx) {
+      v = lastVal + (val - lastVal) * t;
+    } else {
+      v = val + (lastVal - val) * t;
+    }
+    points[i] = Math.round(Math.max(clampMin, Math.min(clampMax, v)));
+  }
+}
+
 export function CurveCanvas({ points, onChange, min, max }: CurveCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
   const [size, setSize] = useState({ w: 600, h: 120 });
+  // 上一次处理过的画布坐标和对应值，用于插值
+  const lastPosRef = useRef<{ x: number; y: number } | null>(null);
 
   // 响应容器宽度
   useEffect(() => {
@@ -30,6 +56,16 @@ export function CurveCanvas({ points, onChange, min, max }: CurveCanvasProps) {
     ro.observe(containerRef.current);
     return () => ro.disconnect();
   }, []);
+
+  const indexAt = (canvasX: number): number => {
+    return Math.max(0, Math.min(127, Math.round((canvasX / size.w) * 127)));
+  };
+
+  const valueAt = (canvasY: number): number => {
+    const range = max - min || 1;
+    const v = min + (1 - canvasY / size.h) * range;
+    return Math.round(Math.max(min, Math.min(max, v)));
+  };
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -47,7 +83,6 @@ export function CurveCanvas({ points, onChange, min, max }: CurveCanvasProps) {
     const colorBgPage = readColor('--color-bg-page', '#1A1A18');
     const colorBgInset = readColor('--color-bg-inset', '#232320');
     const colorAccent = readColor('--color-accent', '#378ADD');
-    const colorText = readColor('--color-text', '#E8E7E2');
 
     // 背景
     ctx.fillStyle = colorBgPage;
@@ -76,7 +111,7 @@ export function CurveCanvas({ points, onChange, min, max }: CurveCanvasProps) {
 
     // 曲线
     ctx.strokeStyle = colorAccent;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 2;
     ctx.lineJoin = 'round';
     ctx.beginPath();
     points.forEach((v, i) => {
@@ -86,64 +121,66 @@ export function CurveCanvas({ points, onChange, min, max }: CurveCanvasProps) {
       else ctx.lineTo(x, y);
     });
     ctx.stroke();
-
-    // 拖拽点高亮
-    if (dragIndex !== null) {
-      const x = (dragIndex / 127) * w;
-      const v = points[dragIndex];
-      const y = h - ((v - min) / range) * h;
-      ctx.fillStyle = colorText;
-      ctx.beginPath();
-      ctx.arc(x, y, 4, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }, [points, dragIndex, size, min, max]);
+  }, [points, size, min, max]);
 
   useEffect(() => {
     draw();
   }, [draw]);
 
-  const findNearestIndex = (x: number): number => {
-    return Math.max(0, Math.min(127, Math.round((x / size.w) * 127)));
-  };
-
-  const yToValue = (y: number): number => {
-    const range = max - min || 1;
-    const v = min + (1 - y / size.h) * range;
-    return Math.round(Math.max(min, Math.min(max, v)));
-  };
-
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return;
+    canvasRef.current.setPointerCapture(e.pointerId);
+    setIsDrawing(true);
+
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    const idx = findNearestIndex(x);
-    setDragIndex(idx);
-    // 立即应用按下位置的 y 值，提升手感
     const y = e.clientY - rect.top;
-    const v = yToValue(y);
+    const idx = indexAt(x);
+    const v = valueAt(y);
+
+    lastPosRef.current = { x, y };
+
     if (points[idx] !== v) {
       const next = [...points];
       next[idx] = v;
       onChange(next);
     }
-    canvasRef.current.setPointerCapture(e.pointerId);
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (dragIndex === null || !canvasRef.current) return;
+    if (!isDrawing || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    const v = yToValue(y);
-    if (points[dragIndex] !== v) {
-      const next = [...points];
-      next[dragIndex] = v;
-      onChange(next);
+
+    const lastPos = lastPosRef.current;
+    if (!lastPos) {
+      lastPosRef.current = { x, y };
+      return;
     }
+
+    const newIdx = indexAt(x);
+    const newVal = valueAt(y);
+    const lastIdx = indexAt(lastPos.x);
+    const lastVal = valueAt(lastPos.y);
+
+    if (newIdx === lastIdx && newVal === lastVal) return;
+
+    const next = [...points];
+    if (Math.abs(newIdx - lastIdx) <= 1) {
+      // 相邻或同点，直接设置
+      next[newIdx] = newVal;
+    } else {
+      // 快速拖拽时线性插值填充中间点
+      interpolatePoints(next, lastIdx, lastVal, newIdx, newVal, min, max);
+    }
+    lastPosRef.current = { x, y };
+    onChange(next);
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    setDragIndex(null);
+    setIsDrawing(false);
+    lastPosRef.current = null;
     canvasRef.current?.releasePointerCapture(e.pointerId);
   };
 
