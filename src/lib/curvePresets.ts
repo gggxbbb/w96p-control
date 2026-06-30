@@ -51,6 +51,7 @@ export interface LayerConfig {
   frequency: number;
   offset: number;
   phase: number;
+  invert: boolean;
 }
 
 export interface EnvelopeConfig {
@@ -104,11 +105,12 @@ export function generateLayer(
   length: number,
   config: LayerConfig,
 ): number[] {
-  const { amplitude, frequency, offset, phase, waveform } = config;
+  const { amplitude, frequency, offset, phase, waveform, invert } = config;
   const pts: number[] = [];
+  const sign = invert ? -1 : 1;
   for (let i = 0; i < length; i++) {
     const raw = generateWaveSample(i, length, waveform, amplitude, frequency, phase);
-    pts.push(raw + offset);
+    pts.push(raw * sign + offset);
   }
   return pts;
 }
@@ -175,6 +177,7 @@ export const DEFAULT_LAYER: LayerConfig = {
   frequency: 2,
   offset: 0,
   phase: 0,
+  invert: false,
 };
 
 export const LAYER_OFF: LayerConfig = {
@@ -184,6 +187,7 @@ export const LAYER_OFF: LayerConfig = {
   frequency: 3,
   offset: 0,
   phase: 0,
+  invert: false,
 };
 
 export const DEFAULT_ENVELOPE: EnvelopeConfig = {

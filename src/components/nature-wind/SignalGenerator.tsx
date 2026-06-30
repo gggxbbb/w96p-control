@@ -161,31 +161,40 @@ function LayerControl({
   index: number;
   onChange: (l: LayerConfig) => void;
 }) {
-  const [open, setOpen] = useState(index === 0);
-  const summary = open
-    ? null
-    : `Layer ${index + 1} · ${WAVEFORM_LABELS[layer.waveform]} · ${layer.frequency}`;
   const textColor = layer.enabled ? 'var(--color-text)' : 'var(--color-text-muted)';
 
   return (
     <div style={{ marginBottom: '6px' }}>
       <div
-        onClick={() => setOpen(!open)}
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: '6px',
-          cursor: 'pointer',
-          userSelect: 'none',
+          marginBottom: '4px',
         }}
       >
-        <span style={{ fontSize: '12px', color: textColor, lineHeight: 1 }}>
-          {open ? '▾' : '▸'}
+        <span style={{ fontSize: '11px', color: textColor, fontWeight: 500 }}>
+          Layer {index + 1}
         </span>
-        {summary && (
-          <span style={{ fontSize: '10px', color: textColor }}>{summary}</span>
-        )}
+        <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
+          {WAVEFORM_LABELS[layer.waveform]} · {layer.frequency}
+        </span>
         <div style={{ flex: 1 }} />
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onChange({ ...layer, invert: !layer.invert });
+          }}
+          style={{
+            ...btnS,
+            color: layer.invert ? 'var(--color-accent)' : 'var(--color-text-muted)',
+            borderColor: layer.invert
+              ? 'var(--color-accent)'
+              : 'var(--color-border-strong)',
+          }}
+        >
+          {layer.invert ? '反' : '正'}
+        </button>
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -202,43 +211,30 @@ function LayerControl({
           {layer.enabled ? '开' : '关'}
         </button>
       </div>
-
-      {open && (
-        <div
-          style={{
-            paddingLeft: '16px',
-            marginTop: '6px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '4px',
-          }}
-        >
-          <WaveformSegBtn
-            value={layer.waveform}
-            onChange={(w) => onChange({ ...layer, waveform: w })}
+      <WaveformSegBtn
+        value={layer.waveform}
+        onChange={(w) => onChange({ ...layer, waveform: w })}
+      />
+      {LAYER_SLIDERS.map((spec) => (
+        <div key={spec.key} style={sliderRow}>
+          <span style={labelS}>{spec.label}</span>
+          <input
+            type="range"
+            min={spec.min}
+            max={spec.max}
+            step={spec.step}
+            value={layer[spec.key] as number}
+            onChange={(e) =>
+              onChange({ ...layer, [spec.key]: Number(e.target.value) })
+            }
+            style={rangeS}
           />
-          {LAYER_SLIDERS.map((spec) => (
-            <div key={spec.key} style={sliderRow}>
-              <span style={labelS}>{spec.label}</span>
-              <input
-                type="range"
-                min={spec.min}
-                max={spec.max}
-                step={spec.step}
-                value={layer[spec.key] as number}
-                onChange={(e) =>
-                  onChange({ ...layer, [spec.key]: Number(e.target.value) })
-                }
-                style={rangeS}
-              />
-              <span style={valS}>
-                {String(layer[spec.key])}
-                {spec.unit}
-              </span>
-            </div>
-          ))}
+          <span style={valS}>
+            {String(layer[spec.key])}
+            {spec.unit}
+          </span>
         </div>
-      )}
+      ))}
     </div>
   );
 }
@@ -285,34 +281,22 @@ function EnvelopeControl({
   env: EnvelopeConfig;
   onChange: (e: EnvelopeConfig) => void;
 }) {
-  const [open, setOpen] = useState(false);
-
   return (
     <div style={{ marginBottom: '8px' }}>
       <div
-        onClick={() => setOpen(!open)}
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: '6px',
-          cursor: 'pointer',
-          userSelect: 'none',
+          marginBottom: '4px',
         }}
       >
-        <span style={{ fontSize: '12px', color: 'var(--color-text)' }}>
-          {open ? '▾' : '▸'}
+        <span style={{ fontSize: '11px', color: 'var(--color-text)', fontWeight: 500 }}>
+          包络 · ADSR
         </span>
-        {!open && (
-          <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
-            包络 · ADSR · {env.enabled ? '已启用' : '关闭'}
-          </span>
-        )}
         <div style={{ flex: 1 }} />
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onChange({ ...env, enabled: !env.enabled });
-          }}
+          onClick={() => onChange({ ...env, enabled: !env.enabled })}
           style={{
             ...btnS,
             color: env.enabled ? 'var(--color-accent)' : 'var(--color-text-muted)',
@@ -324,40 +308,27 @@ function EnvelopeControl({
           {env.enabled ? '开' : '关'}
         </button>
       </div>
-
-      {open && (
-        <div
-          style={{
-            paddingLeft: '16px',
-            marginTop: '6px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '4px',
-          }}
-        >
-          <EnvelopePreview env={env} />
-          {ENV_SLIDERS.map((spec) => (
-            <div key={spec.key} style={sliderRow}>
-              <span style={labelS}>{spec.label}</span>
-              <input
-                type="range"
-                min={spec.min}
-                max={spec.max}
-                step={spec.step}
-                value={env[spec.key]}
-                onChange={(e) =>
-                  onChange({ ...env, [spec.key]: Number(e.target.value) })
-                }
-                style={rangeS}
-              />
-              <span style={valS}>
-                {String(env[spec.key])}
-                {spec.unit}
-              </span>
-            </div>
-          ))}
+      <EnvelopePreview env={env} />
+      {ENV_SLIDERS.map((spec) => (
+        <div key={spec.key} style={sliderRow}>
+          <span style={labelS}>{spec.label}</span>
+          <input
+            type="range"
+            min={spec.min}
+            max={spec.max}
+            step={spec.step}
+            value={env[spec.key]}
+            onChange={(e) =>
+              onChange({ ...env, [spec.key]: Number(e.target.value) })
+            }
+            style={rangeS}
+          />
+          <span style={valS}>
+            {String(env[spec.key])}
+            {spec.unit}
+          </span>
         </div>
-      )}
+      ))}
     </div>
   );
 }
