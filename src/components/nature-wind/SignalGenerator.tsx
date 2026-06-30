@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import type { CSSProperties, PointerEvent } from 'react';
 import {
   synthesizeWithEnvelope,
