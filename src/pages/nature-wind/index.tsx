@@ -92,6 +92,11 @@ export default function NatureWind() {
     show('自然风曲线已写入设备');
   };
 
+  const handleResetDefault = () => {
+    setEditPoints([...DEFAULT_CURVE]);
+    show('已恢复默认曲线');
+  };
+
   const handleApply = () => {
     if (editPoints.length !== 128) {
       show('曲线必须 128 点');
@@ -234,7 +239,8 @@ export default function NatureWind() {
 
       <DraggableCard key="actions">
         <Card title="操作">
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
           <button
             onClick={handleRead}
             style={{
@@ -266,6 +272,23 @@ export default function NatureWind() {
             }}
           >
             应用到设备
+          </button>
+          </div>
+          <button
+            onClick={handleResetDefault}
+            style={{
+              flex: 1,
+              background: 'transparent',
+              color: 'var(--color-text-muted)',
+              border: '0.5px solid var(--color-border-strong)',
+              borderRadius: '4px',
+              padding: '10px',
+              fontSize: '12px',
+              fontFamily: 'var(--font-sans)',
+              cursor: 'pointer',
+            }}
+          >
+            恢复默认曲线
           </button>
         </div>
         </Card>
