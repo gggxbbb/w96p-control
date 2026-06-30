@@ -61,7 +61,6 @@ export default function NatureWind() {
     storedCurve.length === 128 ? storedCurve : [...DEFAULT_CURVE],
   );
   const [textValue, setTextValue] = useState('');
-  const [generatorPoints, setGeneratorPoints] = useState<number[]>([]);
 
   useEffect(() => {
     if (storedCurve.length === 128) {
@@ -84,14 +83,12 @@ export default function NatureWind() {
   };
 
   const handleApply = async () => {
-    // 优先使用编辑器的 editPoints，若为空则用信号发生器的 generatorPoints
-    const pts = editPoints.length === 128 ? editPoints : generatorPoints;
-    if (pts.length !== 128) {
+    if (editPoints.length !== 128) {
       show('请先在编辑器或信号发生器中生成曲线');
       return;
     }
     try {
-      await setNatureCurve(pts);
+      await setNatureCurve(editPoints);
       const readBack = await readNatureCurve();
       useDeviceStore.getState().setSnapshot({ natureCurveReadAt: Date.now(), natureCurve: readBack } as any);
       show('曲线已写入设备并读回确认');
@@ -214,7 +211,6 @@ export default function NatureWind() {
         <Card title="信号发生器">
           <SignalGenerator
             onSendToEditor={handleSendToEditor}
-            onPointsChange={setGeneratorPoints}
           />
         </Card>
       </DraggableCard>

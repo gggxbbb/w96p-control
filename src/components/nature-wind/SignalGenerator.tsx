@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import type { CSSProperties, PointerEvent } from 'react';
 import {
   synthesizeWithEnvelope,
@@ -14,7 +14,6 @@ import type { LayerConfig, EnvelopeConfig, WaveformType } from '../../lib/curveP
 
 interface SignalGeneratorProps {
   onSendToEditor: (points: number[]) => void;
-  onPointsChange: (points: number[]) => void;
 }
 
 /* ================================================================
@@ -509,7 +508,6 @@ function WaveformPreview({ composite }: { composite: number[] }) {
 
 export function SignalGenerator({
   onSendToEditor,
-  onPointsChange,
 }: SignalGeneratorProps) {
   const [layers, setLayers] = useState<LayerConfig[]>([
     { ...DEFAULT_LAYER },
@@ -522,15 +520,6 @@ export function SignalGenerator({
     () => synthesizeWithEnvelope(128, layers, envelope, 0, 100),
     [layers, envelope],
   );
-
-  // Report composite to parent on every change
-  const prevRef = useRef(composite);
-  useEffect(() => {
-    if (prevRef.current !== composite) {
-      prevRef.current = composite;
-      onPointsChange(composite);
-    }
-  }, [composite, onPointsChange]);
 
   const updateLayer = useCallback(
     (index: number, layer: LayerConfig) => {
