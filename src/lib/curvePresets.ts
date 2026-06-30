@@ -69,6 +69,7 @@ export function generateWaveSample(
   frequency: number,
   phase: number,
 ): number {
+  if (length <= 0) return 0;
   if (amplitude === 0) return 0;
   const phaseRad = (phase / 360) * Math.PI * 2;
 
@@ -119,8 +120,9 @@ export function synthesizeLayers(
   const points = new Array(length).fill(0);
   for (const layer of layers) {
     if (!layer.enabled) continue;
+    const layerPts = generateLayer(length, layer);
     for (let i = 0; i < length; i++) {
-      points[i] += generateWaveSample(i, length, layer.waveform, layer.amplitude, layer.frequency, layer.phase) + layer.offset;
+      points[i] += layerPts[i];
     }
   }
   return points;
@@ -140,13 +142,13 @@ export function applyEnvelope(
   return points.map((v, i) => {
     let coeff: number;
     if (i < attack) {
-      coeff = attack > 0 ? i / attack : 1;
+      coeff = attack > 1 ? i / (attack - 1) : 1;
     } else if (i < sustainStart) {
-      coeff = decay > 0 ? 1 - (1 - sustain) * ((i - attack) / decay) : sustain;
+      coeff = decay > 1 ? 1 - (1 - sustain) * ((i - attack) / (decay - 1)) : sustain;
     } else if (i < releaseStart) {
       coeff = sustain;
     } else {
-      coeff = release > 0 ? sustain * (1 - (i - releaseStart) / release) : 0;
+      coeff = release > 1 ? sustain * (1 - (i - releaseStart) / (release - 1)) : 0;
     }
     return Math.max(clampMin, Math.min(clampMax, v * coeff));
   });
