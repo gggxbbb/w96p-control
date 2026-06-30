@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, PointerEvent } from 'react';
 import {
   synthesizeWithEnvelope,
   DEFAULT_LAYER,
@@ -15,6 +15,157 @@ import type { LayerConfig, EnvelopeConfig, WaveformType } from '../../lib/curveP
 interface SignalGeneratorProps {
   onSendToEditor: (points: number[]) => void;
   onPointsChange: (points: number[]) => void;
+}
+
+/* ================================================================
+   Knob component
+   ================================================================ */
+
+interface KnobProps {
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  label: string;
+  unit: string;
+  onChange: (v: number) => void;
+  size?: number;
+}
+
+function Knob({ value, min, max, step, label, unit, onChange, size = 48 }: KnobProps) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const dragInfo = useRef<{ startY: number; startVal: number } | null>(null);
+
+  // Map value range to angle: min -> -135°, max -> +135°
+  const range = max - min || 1;
+  const ratio = (value - min) / range;
+  const angle = -135 + ratio * 270;
+
+  // Arc endpoint (tick mark)
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = size * 0.35;
+  const tickR = r - 2;
+  const rad = ((angle - 90) * Math.PI) / 180;
+  const tx = cx + tickR * Math.cos(rad);
+  const ty = cy + tickR * Math.sin(rad);
+
+  // Bg arc (270° sweep, from -135 to +135)
+  const bgR = r + 2;
+  const arcStart = polar(bgR, -135);
+  const arcEnd = polar(bgR, 135);
+
+  const handlePointerDown = (e: PointerEvent<SVGSVGElement>) => {
+    e.preventDefault();
+    (e.target as Element).setPointerCapture(e.pointerId);
+    dragInfo.current = { startY: e.clientY, startVal: value };
+  };
+
+  const handlePointerMove = (e: PointerEvent<SVGSVGElement>) => {
+    if (!dragInfo.current) return;
+    const dy = dragInfo.current.startY - e.clientY;
+    const sensitivity = (range / 100) * 2;
+    let newVal = dragInfo.current.startVal + dy * sensitivity;
+    // Snap to step
+    newVal = Math.round(newVal / step) * step;
+    newVal = Math.max(min, Math.min(max, newVal));
+    if (newVal !== value) onChange(newVal);
+  };
+
+  const handlePointerUp = () => {
+    dragInfo.current = null;
+  };
+
+  // Format display value
+  const display = step < 1 ? value.toFixed(2).replace(/0+$/, '').replace(/\.$/, '') : String(value);
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '1px',
+        userSelect: 'none',
+      }}
+    >
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${size} ${size}`}
+        width={size}
+        height={size}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        style={{ touchAction: 'none', cursor: 'ns-resize' }}
+      >
+        {/* Outer ring background */}
+        <circle
+          cx={cx}
+          cy={cy}
+          r={r + 4}
+          fill="none"
+          stroke="var(--color-border-strong)"
+          strokeWidth="1"
+        />
+        {/* Active arc */}
+        <path
+          d={arcPath(cx, cy, bgR, -135, angle)}
+          fill="none"
+          stroke="var(--color-accent)"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        {/* Tick line from center to edge */}
+        <line
+          x1={cx}
+          y1={cy}
+          x2={tx}
+          y2={ty}
+          stroke="var(--color-text)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        {/* Center dot */}
+        <circle cx={cx} cy={cy} r="2" fill="var(--color-accent)" />
+      </svg>
+      {/* Value display */}
+      <span
+        style={{
+          fontSize: '10px',
+          color: 'var(--color-text)',
+          fontVariantNumeric: 'tabular-nums',
+          lineHeight: 1,
+        }}
+      >
+        {display}{unit}
+      </span>
+      {/* Label */}
+      <span
+        style={{
+          fontSize: '9px',
+          color: 'var(--color-text-muted)',
+          lineHeight: 1,
+        }}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
+/* Helpers */
+function polar(r: number, deg: number): [number, number] {
+  const rad = ((deg - 90) * Math.PI) / 180;
+  return [r * Math.cos(rad), r * Math.sin(rad)];
+}
+
+function arcPath(cx: number, cy: number, r: number, fromDeg: number, toDeg: number): string {
+  const [x1, y1] = polar(r, fromDeg);
+  const [x2, y2] = polar(r, toDeg);
+  const large = toDeg - fromDeg > 180 ? 1 : 0;
+  return `M${cx + x1},${cy + y1} A${r},${r} 0 ${large} 1 ${cx + x2},${cy + y2}`;
 }
 
 /* ================================================================
@@ -67,33 +218,11 @@ const ENV_SLIDERS: EnvSliderSpec[] = [
    Inline styles
    ================================================================ */
 
-const sliderRow: CSSProperties = {
+const knobRow: CSSProperties = {
   display: 'flex',
-  alignItems: 'center',
-  gap: '6px',
-  fontSize: '10px',
-};
-
-const labelS: CSSProperties = {
-  minWidth: '36px',
-  color: 'var(--color-text-muted)',
-};
-
-const rangeS: CSSProperties = {
-  flex: 1,
-  height: '4px',
-  appearance: 'none' as any,
-  background: 'var(--color-border-strong)',
-  borderRadius: '2px',
-  outline: 'none',
-  cursor: 'pointer',
-};
-
-const valS: CSSProperties = {
-  minWidth: '40px',
-  textAlign: 'right' as any,
-  color: 'var(--color-text-muted)',
-  fontVariantNumeric: 'tabular-nums',
+  justifyContent: 'space-around',
+  gap: '4px',
+  marginTop: '4px',
 };
 
 const btnS: CSSProperties = {
@@ -119,7 +248,7 @@ function WaveformSegBtn({
   onChange: (v: WaveformType) => void;
 }) {
   return (
-    <div style={{ display: 'flex', marginBottom: '6px' }}>
+    <div style={{ display: 'flex', marginBottom: '2px' }}>
       {WAVEFORMS.map((w, idx) => {
         const active = value === w;
         return (
@@ -164,13 +293,13 @@ function LayerControl({
   const textColor = layer.enabled ? 'var(--color-text)' : 'var(--color-text-muted)';
 
   return (
-    <div style={{ marginBottom: '6px' }}>
+    <div style={{ marginBottom: '8px' }}>
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: '6px',
-          marginBottom: '4px',
+          marginBottom: '2px',
         }}
       >
         <span style={{ fontSize: '11px', color: textColor, fontWeight: 500 }}>
@@ -215,26 +344,20 @@ function LayerControl({
         value={layer.waveform}
         onChange={(w) => onChange({ ...layer, waveform: w })}
       />
-      {LAYER_SLIDERS.map((spec) => (
-        <div key={spec.key} style={sliderRow}>
-          <span style={labelS}>{spec.label}</span>
-          <input
-            type="range"
+      <div style={knobRow}>
+        {LAYER_SLIDERS.map((spec) => (
+          <Knob
+            key={spec.key}
+            label={spec.label}
+            value={layer[spec.key] as number}
             min={spec.min}
             max={spec.max}
             step={spec.step}
-            value={layer[spec.key] as number}
-            onChange={(e) =>
-              onChange({ ...layer, [spec.key]: Number(e.target.value) })
-            }
-            style={rangeS}
+            unit={spec.unit}
+            onChange={(v) => onChange({ ...layer, [spec.key]: v })}
           />
-          <span style={valS}>
-            {String(layer[spec.key])}
-            {spec.unit}
-          </span>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
@@ -245,10 +368,9 @@ function EnvelopePreview({ env }: { env: EnvelopeConfig }) {
     const { attack, decay, sustain, release } = env;
     const susStart = attack + decay;
     const relStart = total - release;
-    const H = 24;
-    const W = 120;
+    const H = 20;
+    const W = 160;
 
-    // Build envelope contour in SVG coordinates (Y inverted)
     const pts: [number, number][] = [[0, H]];
     if (attack > 0) pts.push([(attack / total) * W, 0]);
     if (decay > 0) pts.push([(susStart / total) * W, H - sustain * H]);
@@ -262,7 +384,7 @@ function EnvelopePreview({ env }: { env: EnvelopeConfig }) {
   }, [env]);
 
   return (
-    <svg width="120" height="24" viewBox="0 0 120 24" style={{ alignSelf: 'flex-end' }}>
+    <svg width="100%" height="20" viewBox="0 0 160 20" style={{ display: 'block' }}>
       <polyline
         points={polyline}
         fill="none"
@@ -288,7 +410,7 @@ function EnvelopeControl({
           display: 'flex',
           alignItems: 'center',
           gap: '6px',
-          marginBottom: '4px',
+          marginBottom: '2px',
         }}
       >
         <span style={{ fontSize: '11px', color: 'var(--color-text)', fontWeight: 500 }}>
@@ -309,26 +431,20 @@ function EnvelopeControl({
         </button>
       </div>
       <EnvelopePreview env={env} />
-      {ENV_SLIDERS.map((spec) => (
-        <div key={spec.key} style={sliderRow}>
-          <span style={labelS}>{spec.label}</span>
-          <input
-            type="range"
+      <div style={knobRow}>
+        {ENV_SLIDERS.map((spec) => (
+          <Knob
+            key={spec.key}
+            label={spec.label}
+            value={env[spec.key]}
             min={spec.min}
             max={spec.max}
             step={spec.step}
-            value={env[spec.key]}
-            onChange={(e) =>
-              onChange({ ...env, [spec.key]: Number(e.target.value) })
-            }
-            style={rangeS}
+            unit={spec.unit}
+            onChange={(v) => onChange({ ...env, [spec.key]: v })}
           />
-          <span style={valS}>
-            {String(env[spec.key])}
-            {spec.unit}
-          </span>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
