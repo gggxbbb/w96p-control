@@ -156,7 +156,8 @@ export function MetricCard({
             >
               {variant === 'gauge' ? '#' : '◔'}
             </button>
-            <button
+            {/* TODO: 自定义范围暂时隐藏 */}
+            {false && <button
               onClick={(e) => {
                 e.stopPropagation();
                 openConfig();
@@ -165,7 +166,7 @@ export function MetricCard({
               style={iconBtnStyle}
             >
               ⚙
-            </button>
+            </button>}
           </div>
         )}
       </div>
