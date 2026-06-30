@@ -35,7 +35,7 @@ const GAUGE_PRESETS: Record<string, { min: number; max: number; dangerLow?: bool
   // 电源面板 — 充/放电双向，电流/功率对称
   '电压': { min: 3.0, max: 4.2, dangerLow: true },
   '电流': { min: -5000, max: 5000 },
-  '容量': { min: 0, max: 20000, dangerLow: true },
+  '容量': { min: 10000, max: 20000, dangerLow: true },
   '功率': { min: -20, max: 20 },
   'VBUS 电压': { min: 0, max: 12 },
   'VBUS 电流': { min: -5000, max: 5000 },
