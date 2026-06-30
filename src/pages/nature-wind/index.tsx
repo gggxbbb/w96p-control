@@ -9,34 +9,39 @@ import { DraggableCard } from '../../components/ui/DraggableCard';
 import { SegBtn } from '../../components/ui/SegBtn';
 import { CurveCanvas } from '../../components/nature-wind/CurveCanvas';
 import { CurveChart } from '../../components/nature-wind/CurveChart';
-import { CurvePresets } from '../../components/nature-wind/CurvePresets';
+import { SignalGenerator } from '../../components/nature-wind/SignalGenerator';
+import { DeviceCurve } from '../../components/nature-wind/DeviceCurve';
 import { DEFAULT_CURVE } from '../../lib/curvePresets';
 import type { ResponsiveLayouts } from 'react-grid-layout';
 
 const NW_LAYOUTS: ResponsiveLayouts = {
   lg: [
-    { i: 'editor', x: 0, y: 0, w: 12, h: 8 },
-    { i: 'presets', x: 0, y: 8, w: 4, h: 4 },
-    { i: 'preview', x: 4, y: 8, w: 8, h: 4 },
-    { i: 'actions', x: 0, y: 12, w: 12, h: 3 },
+    { i: 'generator', x: 0, y: 0, w: 4, h: 12 },
+    { i: 'editor', x: 4, y: 0, w: 8, h: 8 },
+    { i: 'preview', x: 4, y: 8, w: 4, h: 4 },
+    { i: 'device', x: 8, y: 8, w: 4, h: 4 },
+    { i: 'actions', x: 0, y: 12, w: 12, h: 2 },
   ],
   md: [
-    { i: 'editor', x: 0, y: 0, w: 10, h: 8 },
-    { i: 'presets', x: 0, y: 8, w: 4, h: 4 },
-    { i: 'preview', x: 4, y: 8, w: 6, h: 4 },
-    { i: 'actions', x: 0, y: 12, w: 10, h: 3 },
+    { i: 'generator', x: 0, y: 0, w: 4, h: 12 },
+    { i: 'editor', x: 4, y: 0, w: 6, h: 8 },
+    { i: 'preview', x: 4, y: 8, w: 3, h: 4 },
+    { i: 'device', x: 7, y: 8, w: 3, h: 4 },
+    { i: 'actions', x: 0, y: 12, w: 10, h: 2 },
   ],
   sm: [
-    { i: 'editor', x: 0, y: 0, w: 6, h: 8 },
-    { i: 'presets', x: 0, y: 8, w: 6, h: 3 },
-    { i: 'preview', x: 0, y: 11, w: 6, h: 4 },
-    { i: 'actions', x: 0, y: 15, w: 6, h: 3 },
+    { i: 'generator', x: 0, y: 0, w: 6, h: 8 },
+    { i: 'editor', x: 0, y: 8, w: 6, h: 8 },
+    { i: 'preview', x: 0, y: 16, w: 3, h: 4 },
+    { i: 'device', x: 3, y: 16, w: 3, h: 4 },
+    { i: 'actions', x: 0, y: 20, w: 6, h: 2 },
   ],
   xs: [
-    { i: 'editor', x: 0, y: 0, w: 2, h: 10 },
-    { i: 'presets', x: 0, y: 10, w: 2, h: 3 },
-    { i: 'preview', x: 0, y: 13, w: 2, h: 4 },
-    { i: 'actions', x: 0, y: 17, w: 2, h: 3 },
+    { i: 'generator', x: 0, y: 0, w: 2, h: 10 },
+    { i: 'editor', x: 0, y: 10, w: 2, h: 10 },
+    { i: 'preview', x: 0, y: 20, w: 2, h: 4 },
+    { i: 'device', x: 0, y: 24, w: 2, h: 4 },
+    { i: 'actions', x: 0, y: 28, w: 2, h: 2 },
   ],
 };
 
@@ -46,6 +51,7 @@ export default function NatureWind() {
   const editorMode = useSettingsStore((s) => s.curveEditorMode);
   const setCurveMode = useSettingsStore((s) => s.setCurveMode);
   const show = useToastStore((s) => s.show);
+  const natureCurveReadAt = useDeviceStore((s) => s.natureCurveReadAt);
 
   const min = profile?.minSpeed ?? 0;
   const max = profile?.maxSpeed ?? 100;
@@ -71,11 +77,14 @@ export default function NatureWind() {
     setEditPoints(pts);
   };
 
-  const handlePresetApply = (pts: number[]) => {
-    // 钳制到 profile 范围
-    const clamped = pts.map((v) => Math.max(min, Math.min(max, v)));
-    setEditPoints(clamped);
-    show('已加载预设，点击"应用"写入设备');
+  const handleSendToEditor = (pts: number[]) => {
+    setEditPoints(pts);
+    show('曲线已加载到编辑器，可手动微调');
+  };
+
+  const handleGeneratorApply = (pts: number[]) => {
+    setNatureCurve(pts);
+    show('自然风曲线已写入设备');
   };
 
   const handleApply = () => {
@@ -91,6 +100,7 @@ export default function NatureWind() {
     try {
       const pts = await readNatureCurve();
       setEditPoints(pts);
+      useDeviceStore.getState().setSnapshot({ natureCurveReadAt: Date.now() } as any);
       show(`已读取 ${pts.length} 点曲线`);
     } catch {
       show('读取失败');
@@ -191,9 +201,12 @@ export default function NatureWind() {
         </Card>
       </DraggableCard>
 
-      <DraggableCard key="presets">
-        <Card title="预设曲线">
-          <CurvePresets min={min} max={max} onApply={handlePresetApply} />
+      <DraggableCard key="generator">
+        <Card title="信号发生器">
+          <SignalGenerator
+            onSendToEditor={handleSendToEditor}
+            onApplyToDevice={handleGeneratorApply}
+          />
         </Card>
       </DraggableCard>
 
@@ -203,25 +216,20 @@ export default function NatureWind() {
         </Card>
       </DraggableCard>
 
+      <DraggableCard key="device">
+        <Card title="设备实际曲线">
+          <DeviceCurve
+            points={storedCurve}
+            min={min}
+            max={max}
+            readAt={natureCurveReadAt}
+          />
+        </Card>
+      </DraggableCard>
+
       <DraggableCard key="actions">
         <Card title="操作">
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            onClick={handleApply}
-            style={{
-              flex: 1,
-              background: 'var(--color-success)',
-              color: 'var(--color-bg-page)',
-              border: 'none',
-              borderRadius: '4px',
-              padding: '10px',
-              fontSize: '12px',
-              fontFamily: 'var(--font-sans)',
-              cursor: 'pointer',
-            }}
-          >
-            应用到设备
-          </button>
           <button
             onClick={handleRead}
             style={{
@@ -236,7 +244,7 @@ export default function NatureWind() {
               cursor: 'pointer',
             }}
           >
-            读取设备曲线
+            从设备读取曲线
           </button>
         </div>
         </Card>

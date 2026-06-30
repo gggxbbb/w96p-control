@@ -11,6 +11,7 @@ interface DeviceState {
   gearDownMode: 0 | 1;
   speedCalib: [number, number, number, number];
   natureCurve: number[];
+  natureCurveReadAt: number | null;
   battery: BatteryInfo | null;
   powerStatus: PowerStatus | null;
   motor: MotorInfo | null;
@@ -29,6 +30,7 @@ const initialState = {
   gearDownMode: 0 as 0 | 1,
   speedCalib: [30, 50, 70, 100] as [number, number, number, number],
   natureCurve: [] as number[],
+  natureCurveReadAt: null as number | null,
   battery: null,
   powerStatus: null,
   motor: null,
