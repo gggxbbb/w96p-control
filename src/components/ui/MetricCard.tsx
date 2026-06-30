@@ -7,6 +7,8 @@ interface MetricCardProps {
   label: string;
   value: number | string;
   unit?: string;
+  /** 着色用的原始数值，避免 display value 被格式化后 parse 出错误量级 */
+  rawValue?: number;
   /** @deprecated 颜色现在按值百分比自动分区，不再使用此属性 */
   accent?: string;
   /** gauge 模式的最小值，默认 0 */
@@ -56,6 +58,7 @@ export function MetricCard({
   label,
   value,
   unit,
+  rawValue,
   accent: _accent,
   gaugeMin = 0,
   gaugeMax = 100,
@@ -70,7 +73,7 @@ export function MetricCard({
   const setVariant = useMetricStore((s) => s.setVariant);
   const setRange = useMetricStore((s) => s.setRange);
 
-  const numericValue = typeof value === 'number' ? value : parseFloat(String(value));
+  const numericValue = rawValue ?? (typeof value === 'number' ? value : parseFloat(String(value)));
   const showGauge = variant === 'gauge' && !Number.isNaN(numericValue);
 
   // 从字符串 value 中推断单位（如 "3.85 V" → "V"），显式 unit prop 优先

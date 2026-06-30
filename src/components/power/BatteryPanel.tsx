@@ -34,10 +34,10 @@ export function BatteryPanel() {
   return (
     <Card title="电池信息">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px', marginBottom: '12px' }}>
-        <MetricCard label="电压" value={battery ? fmtVoltage(battery.voltageMv) : '--'} />
-        <MetricCard label="电流" value={battery ? fmtCurrent(battery.currentMa) : '--'} accent={battery && battery.currentMa > 0 ? 'success' : 'default'} />
-        <MetricCard label="容量" value={battery ? `${battery.capacityMwh}` : '--'} unit="mWh" />
-        <MetricCard label="功率" value={fmtPower(power)} accent={power > 0 ? 'success' : 'default'} />
+        <MetricCard label="电压" value={battery ? fmtVoltage(battery.voltageMv) : '--'} rawValue={battery ? battery.voltageMv / 1000 : undefined} />
+        <MetricCard label="电流" value={battery ? fmtCurrent(battery.currentMa) : '--'} rawValue={battery?.currentMa} />
+        <MetricCard label="容量" value={battery ? `${battery.capacityMwh}` : '--'} unit="mWh" rawValue={battery?.capacityMwh} />
+        <MetricCard label="功率" value={fmtPower(power)} rawValue={power} />
       </div>
       <div style={{ paddingTop: '10px', borderTop: '0.5px solid var(--color-border)' }}>
         <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>容量设置</div>
