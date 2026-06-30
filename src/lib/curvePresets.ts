@@ -37,3 +37,157 @@ export const randomCurve = (min: number, max: number): number[] => {
   }
   return arr;
 };
+
+// ============================================================
+// 信号发生器 — 波形合成 & 包络
+// ============================================================
+
+export type WaveformType = 'sine' | 'triangle' | 'square' | 'sawtooth' | 'noise';
+
+export interface LayerConfig {
+  enabled: boolean;
+  waveform: WaveformType;
+  amplitude: number;
+  frequency: number;
+  offset: number;
+  phase: number;
+}
+
+export interface EnvelopeConfig {
+  enabled: boolean;
+  attack: number;
+  decay: number;
+  sustain: number;
+  release: number;
+}
+
+export function generateWaveSample(
+  i: number,
+  length: number,
+  waveform: WaveformType,
+  amplitude: number,
+  frequency: number,
+  phase: number,
+): number {
+  if (amplitude === 0) return 0;
+  const phaseRad = (phase / 360) * Math.PI * 2;
+
+  switch (waveform) {
+    case 'sine':
+      return amplitude * Math.sin(2 * Math.PI * frequency * i / length + phaseRad);
+
+    case 'triangle': {
+      const tp = ((i * frequency / length) + (phase / 360)) % 1;
+      return amplitude * (2 * Math.abs(2 * tp - 1) - 1);
+    }
+
+    case 'square':
+      return amplitude * Math.sign(Math.sin(2 * Math.PI * frequency * i / length + phaseRad));
+
+    case 'sawtooth': {
+      const sp = ((i * frequency / length) + (phase / 360)) % 1;
+      return amplitude * (2 * sp - 1);
+    }
+
+    case 'noise': {
+      const hash = (i * 2654435761) >>> 0;
+      return amplitude * ((hash % 20001) / 10000 - 1);
+    }
+
+    default:
+      return 0;
+  }
+}
+
+export function generateLayer(
+  length: number,
+  config: LayerConfig,
+): number[] {
+  const { amplitude, frequency, offset, phase, waveform } = config;
+  const pts: number[] = [];
+  for (let i = 0; i < length; i++) {
+    const raw = generateWaveSample(i, length, waveform, amplitude, frequency, phase);
+    pts.push(raw + offset);
+  }
+  return pts;
+}
+
+export function synthesizeLayers(
+  length: number,
+  layers: LayerConfig[],
+): number[] {
+  const points = new Array(length).fill(0);
+  for (const layer of layers) {
+    if (!layer.enabled) continue;
+    for (let i = 0; i < length; i++) {
+      points[i] += generateWaveSample(i, length, layer.waveform, layer.amplitude, layer.frequency, layer.phase) + layer.offset;
+    }
+  }
+  return points;
+}
+
+export function applyEnvelope(
+  points: number[],
+  env: EnvelopeConfig,
+  clampMin = 0,
+  clampMax = 100,
+): number[] {
+  const total = points.length;
+  const { attack, decay, sustain, release } = env;
+  const sustainStart = attack + decay;
+  const releaseStart = total - release;
+
+  return points.map((v, i) => {
+    let coeff: number;
+    if (i < attack) {
+      coeff = attack > 0 ? i / attack : 1;
+    } else if (i < sustainStart) {
+      coeff = decay > 0 ? 1 - (1 - sustain) * ((i - attack) / decay) : sustain;
+    } else if (i < releaseStart) {
+      coeff = sustain;
+    } else {
+      coeff = release > 0 ? sustain * (1 - (i - releaseStart) / release) : 0;
+    }
+    return Math.max(clampMin, Math.min(clampMax, v * coeff));
+  });
+}
+
+export function synthesizeWithEnvelope(
+  length: number,
+  layers: LayerConfig[],
+  envelope: EnvelopeConfig,
+  clampMin = 0,
+  clampMax = 100,
+): number[] {
+  const composite = synthesizeLayers(length, layers);
+  if (envelope.enabled) {
+    return applyEnvelope(composite, envelope, clampMin, clampMax);
+  }
+  return composite.map((v) => Math.max(clampMin, Math.min(clampMax, v)));
+}
+
+export const DEFAULT_LAYER: LayerConfig = {
+  enabled: true,
+  waveform: 'sine',
+  amplitude: 30,
+  frequency: 2,
+  offset: 0,
+  phase: 0,
+};
+
+export const LAYER_OFF: LayerConfig = {
+  enabled: false,
+  waveform: 'sine',
+  amplitude: 20,
+  frequency: 3,
+  offset: 0,
+  phase: 0,
+};
+
+export const DEFAULT_ENVELOPE: EnvelopeConfig = {
+  enabled: false,
+  attack: 8,
+  decay: 8,
+  sustain: 0.7,
+  release: 16,
+};
