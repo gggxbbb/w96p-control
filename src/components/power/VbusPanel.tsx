@@ -5,7 +5,6 @@ import { Card } from '../ui/Card';
 import { MetricCard } from '../ui/MetricCard';
 import { StatusPill } from '../ui/StatusPill';
 import { Toggle } from '../ui/Toggle';
-import { fmtVoltage, fmtCurrent, fmtPower } from '../../lib/format';
 
 export function VbusPanel() {
   const { setPowCOut, setPowCIn } = useBle();
@@ -22,9 +21,9 @@ export function VbusPanel() {
   return (
     <Card title="VBUS / 电源状态">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px', marginBottom: '12px' }}>
-        <MetricCard label="VBUS 电压" value={powerStatus ? fmtVoltage(powerStatus.vbusVmV) : '--'} rawValue={powerStatus ? powerStatus.vbusVmV / 1000 : undefined} />
-        <MetricCard label="VBUS 电流" value={powerStatus ? fmtCurrent(powerStatus.vbusCurMa) : '--'} rawValue={powerStatus?.vbusCurMa} />
-        <MetricCard label="VBUS 功率" value={fmtPower(vbusPower)} rawValue={vbusPower} />
+        <MetricCard label="VBUS 电压" value={powerStatus ? powerStatus.vbusVmV / 1000 : '--'} unit="V" />
+        <MetricCard label="VBUS 电流" value={powerStatus ? powerStatus.vbusCurMa : '--'} unit="mA" />
+        <MetricCard label="VBUS 功率" value={vbusPower} unit="W" />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {vbusConnected
             ? (isCharging ? <StatusPill status="success" label="充电中" /> : <StatusPill status="default" label="放电中" />)

@@ -10,7 +10,6 @@ import { Slider } from '../../components/ui/Slider';
 import { Toggle } from '../../components/ui/Toggle';
 import { GearRow } from '../../components/fan/GearRow';
 import { StatusSummary } from '../../components/dashboard/StatusSummary';
-import { fmtVoltage, fmtPower } from '../../lib/format';
 import type { ResponsiveLayouts } from 'react-grid-layout';
 
 const DASHBOARD_LAYOUTS: ResponsiveLayouts = {
@@ -103,32 +102,36 @@ export default function Dashboard() {
       <DraggableCard key="batt-power">
         <MetricCard
           label="电池功率"
-          value={fmtPower(batteryPower)}
+          value={batteryPower}
+          unit="W"
           accent={batteryPower > 0 ? 'success' : 'default'}
         />
       </DraggableCard>
       <DraggableCard key="motor-power">
         <MetricCard
           label="电机功率"
-          value={fmtPower(motorPower)}
+          value={motorPower}
+          unit="W"
         />
       </DraggableCard>
       <DraggableCard key="motor-cur">
         <MetricCard label="电机电流" value={motor ? motor.currentMa : '--'} unit="mA" />
       </DraggableCard>
       <DraggableCard key="batt-volt">
-        <MetricCard label="电池电压" value={battery ? fmtVoltage(battery.voltageMv) : '--'} />
+        <MetricCard label="电池电压" value={battery ? battery.voltageMv / 1000 : '--'} unit="V" />
       </DraggableCard>
       <DraggableCard key="vbus-volt">
         <MetricCard
           label="VBUS 电压"
-          value={powerStatus ? fmtVoltage(powerStatus.vbusVmV) : '--'}
+          value={powerStatus ? powerStatus.vbusVmV / 1000 : '--'}
+          unit="V"
         />
       </DraggableCard>
       <DraggableCard key="motor-volt">
         <MetricCard
           label="电机电压"
-          value={motor && motor.voltageMv > 0 ? fmtVoltage(motor.voltageMv) : '--'}
+          value={motor && motor.voltageMv > 0 ? motor.voltageMv / 1000 : '--'}
+          unit="V"
         />
       </DraggableCard>
 
