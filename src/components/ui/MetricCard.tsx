@@ -42,9 +42,18 @@ const GAUGE_PRESETS: Record<string, { min: number; max: number; dangerLow?: bool
   'VBUS 电压': { min: 0, max: 12 },
   'VBUS 电流': { min: -5000, max: 5000 },
   'VBUS 功率': { min: -20, max: 20 },
+  // 电源管理
+  '电量': { min: 0, max: 100, dangerLow: true },
+  '电量(电压估算)': { min: 0, max: 100, dangerLow: true },
 };
 
 const DEFAULT_GAUGE_RANGE = { min: 0, max: 100 };
+
+/** 不适合仪表模式的卡片标签 */
+const NO_GAUGE_LABELS = new Set(['档位', '定时']);
+
+/** 不需要按值着色的卡片标签 */
+const NO_COLOR_LABELS = new Set(['定时', '档位']);
 
 /** 统一颜色：按值在 min-max 范围中的百分比分区 */
 function getColor(numericValue: number, min: number, max: number, dangerLow?: boolean): string {
@@ -70,7 +79,7 @@ export function MetricCard({
   children,
 }: MetricCardProps) {
   const editable = useEditMode();
-  const variant = useMetricStore((s) => s.configs[label]?.variant ?? 'number');
+  const variant: 'number' | 'gauge' = NO_GAUGE_LABELS.has(label) ? 'number' : useMetricStore((s) => s.configs[label]?.variant ?? 'number');
   const storeMin = useMetricStore((s) => s.configs[label]?.min);
   const storeMax = useMetricStore((s) => s.configs[label]?.max);
   const setVariant = useMetricStore((s) => s.setVariant);
@@ -91,7 +100,7 @@ export function MetricCard({
   const min = storeMin ?? GAUGE_PRESETS[label]?.min ?? gaugeMin;
   const max = storeMax ?? GAUGE_PRESETS[label]?.max ?? gaugeMax;
   const dangerLow = GAUGE_PRESETS[label]?.dangerLow ?? false;
-  const color = getColor(numericValue, min, max, dangerLow);
+  const color = NO_COLOR_LABELS.has(label) ? 'var(--color-text)' : getColor(numericValue, min, max, dangerLow);
 
   const [configOpen, setConfigOpen] = useState(false);
   const [draftMin, setDraftMin] = useState(min);
@@ -157,7 +166,7 @@ export function MetricCard({
         </span>
 
         {/* edit-mode buttons */}
-        {editable && (
+        {editable && !NO_GAUGE_LABELS.has(label) && (
           <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
             <button
               onClick={(e) => {
