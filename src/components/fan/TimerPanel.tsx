@@ -5,7 +5,7 @@ import { useToastStore } from '../../stores/toast';
 import { Card } from '../ui/Card';
 import { fmtTimer } from '../../lib/format';
 
-const MAX_SEC = 8 * 3600;
+const MAX_SEC = 12 * 3600;
 
 function pad(n: number) { return n.toString().padStart(2, '0'); }
 
@@ -81,7 +81,7 @@ export function TimerPanel() {
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'center', gap: '4px', alignItems: 'center', marginBottom: '12px' }}>
-        <StepperField value={h} max={8} onChange={setH} />
+        <StepperField value={h} max={12} onChange={setH} />
         <span style={colon}>:</span>
         <StepperField value={m} max={59} onChange={setM} />
         <span style={colon}>:</span>

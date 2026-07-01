@@ -7,6 +7,8 @@ interface DeviceState {
   fanSpeed: number;
   timerRemainingSec: number;
   natureWindOn: boolean;
+  natureWindSum: number;
+  natureWindTime: number;
   shutdownDelaySec: number;
   gearDownMode: 0 | 1;
   speedCalib: [number, number, number, number];
@@ -26,6 +28,8 @@ const initialState = {
   fanSpeed: 0,
   timerRemainingSec: 0,
   natureWindOn: false,
+  natureWindSum: 0,
+  natureWindTime: 0,
   shutdownDelaySec: 0,
   gearDownMode: 0 as 0 | 1,
   speedCalib: [30, 50, 70, 100] as [number, number, number, number],

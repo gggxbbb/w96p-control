@@ -9,6 +9,8 @@ interface MetricCardProps {
   unit?: string;
   /** 着色用的原始数值，避免 display value 被格式化后 parse 出错误量级 */
   rawValue?: number;
+  /** 数值小数位数（仅当 value 为 number 且无 rawValue 时生效），默认不截断 */
+  decimals?: number;
   /** @deprecated 颜色现在按值百分比自动分区，不再使用此属性 */
   accent?: string;
   /** gauge 模式的最小值，默认 0 */
@@ -40,9 +42,18 @@ const GAUGE_PRESETS: Record<string, { min: number; max: number; dangerLow?: bool
   'VBUS 电压': { min: 0, max: 12 },
   'VBUS 电流': { min: -5000, max: 5000 },
   'VBUS 功率': { min: -20, max: 20 },
+  // 电源管理
+  '电量': { min: 0, max: 100, dangerLow: true },
+  '电量(电压估算)': { min: 0, max: 100, dangerLow: true },
 };
 
 const DEFAULT_GAUGE_RANGE = { min: 0, max: 100 };
+
+/** 不适合仪表模式的卡片标签 */
+const NO_GAUGE_LABELS = new Set(['档位', '定时']);
+
+/** 不需要按值着色的卡片标签 */
+const NO_COLOR_LABELS = new Set(['定时', '档位']);
 
 /** 统一颜色：按值在 min-max 范围中的百分比分区 */
 function getColor(numericValue: number, min: number, max: number, dangerLow?: boolean): string {
@@ -59,6 +70,7 @@ export function MetricCard({
   value,
   unit,
   rawValue,
+  decimals,
   accent: _accent,
   gaugeMin = 0,
   gaugeMax = 100,
@@ -67,7 +79,7 @@ export function MetricCard({
   children,
 }: MetricCardProps) {
   const editable = useEditMode();
-  const variant = useMetricStore((s) => s.configs[label]?.variant ?? 'number');
+  const variant: 'number' | 'gauge' = NO_GAUGE_LABELS.has(label) ? 'number' : useMetricStore((s) => s.configs[label]?.variant ?? 'number');
   const storeMin = useMetricStore((s) => s.configs[label]?.min);
   const storeMax = useMetricStore((s) => s.configs[label]?.max);
   const setVariant = useMetricStore((s) => s.setVariant);
@@ -76,13 +88,19 @@ export function MetricCard({
   const numericValue = rawValue ?? (typeof value === 'number' ? value : parseFloat(String(value)));
   const showGauge = variant === 'gauge' && !Number.isNaN(numericValue);
 
+  // 数值显示格式化：decimals 只对纯数字 value 生效（字符串原样展示）
+  const displayValue: string =
+    decimals !== undefined && typeof value === 'number'
+      ? value.toFixed(decimals)
+      : String(value);
+
   // 从字符串 value 中推断单位（如 "3.85 V" → "V"），显式 unit prop 优先
   const effectiveUnit = unit ?? (typeof value === 'string' ? String(value).replace(/^-?[\d.]+/, '').trim() : undefined);
 
   const min = storeMin ?? GAUGE_PRESETS[label]?.min ?? gaugeMin;
   const max = storeMax ?? GAUGE_PRESETS[label]?.max ?? gaugeMax;
   const dangerLow = GAUGE_PRESETS[label]?.dangerLow ?? false;
-  const color = getColor(numericValue, min, max, dangerLow);
+  const color = NO_COLOR_LABELS.has(label) ? 'var(--color-text)' : getColor(numericValue, min, max, dangerLow);
 
   const [configOpen, setConfigOpen] = useState(false);
   const [draftMin, setDraftMin] = useState(min);
@@ -148,7 +166,7 @@ export function MetricCard({
         </span>
 
         {/* edit-mode buttons */}
-        {editable && (
+        {editable && !NO_GAUGE_LABELS.has(label) && (
           <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
             <button
               onClick={(e) => {
@@ -258,13 +276,13 @@ export function MetricCard({
         >
           <span
             style={{
-              fontSize: `clamp(14px, ${Math.max(18, 42 - String(value).length * 3)}px, 26px)`,
+              fontSize: `clamp(14px, ${Math.max(18, 42 - displayValue.length * 3)}px, 26px)`,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
             }}
           >
-            {value}
+            {displayValue}
             {unit && (
               <span style={{ fontSize: 'clamp(10px, 60%, 16px)', color: 'var(--color-text-muted)', marginLeft: '2px', fontWeight: 400 }}>
                 {unit}

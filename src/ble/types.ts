@@ -8,6 +8,8 @@ export interface BleSnapshot {
   fanSpeed?: number;
   timerRemainingSec?: number;
   natureWindOn?: boolean;
+  natureWindSum?: number;
+  natureWindTime?: number;
   shutdownDelaySec?: number;
   gearDownMode?: 0 | 1;
   speedCalib?: [number, number, number, number];
@@ -34,6 +36,8 @@ export interface IBleManager {
   readTimer(): Promise<number>;
   readNatureCurve(): Promise<number[]>;
   readBatteryCapacity(): Promise<number>;
+  readNatureWindSum?(): Promise<number>;
+  readNatureWindTime?(): Promise<number>;
   writeGear(gear: 0 | 1 | 2 | 3 | 4): Promise<void>;
   writeFanSpeed(pct: number): Promise<void>;
   writeNatureWind(on: boolean): Promise<void>;
@@ -45,6 +49,10 @@ export interface IBleManager {
   writeBatteryCapacity(mah: number, v: number): Promise<void>;
   writePowCOut(enable: boolean): Promise<void>;
   writePowCIn(enable: boolean): Promise<void>;
+  writePowCHi(enable: boolean): Promise<void>;
+  writeNatureWindCtrl(op: 1 | 2): Promise<void>;
+  writeBatteryClr(): Promise<void>;
+  writePowerClr(): Promise<void>;
   writePowSwitch(reg: PowReg, bit: number, enable: boolean, inverted: boolean): Promise<void>;
   writePowRegister(reg: PowReg, byte: number): Promise<void>;
 }

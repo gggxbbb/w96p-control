@@ -6,9 +6,11 @@ interface DeviceCurveProps {
   min: number;
   max: number;
   readAt: number | null; // epoch ms
+  pointCount?: number;
+  totalTime?: number; // seconds
 }
 
-export function DeviceCurve({ points, min, max, readAt }: DeviceCurveProps) {
+export function DeviceCurve({ points, min, max, readAt, pointCount, totalTime }: DeviceCurveProps) {
   const hasData = points.length === 128;
 
   if (!hasData) {
@@ -65,6 +67,8 @@ export function DeviceCurve({ points, min, max, readAt }: DeviceCurveProps) {
         <span>最小 {minVal}</span>
         <span>最大 {maxVal}</span>
         <span>平均 {avgVal.toFixed(1)}</span>
+        {pointCount !== undefined && <span>点数 {pointCount}</span>}
+        {totalTime !== undefined && <span>时长 {totalTime}s</span>}
         {timeStr && <span>读取于 {timeStr}</span>}
       </div>
     </div>

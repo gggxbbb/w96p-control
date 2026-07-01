@@ -15,6 +15,10 @@ interface PageGridProps {
   /** 行高 px */
   rowHeight?: number;
   children: ReactNode;
+  /** 编辑模式下工具栏额外内容 */
+  renderToolbar?: () => ReactNode;
+  /** 重置布局时的额外回调（如重置卡片选择） */
+  onReset?: () => void;
 }
 
 export function PageGrid({
@@ -24,6 +28,8 @@ export function PageGrid({
   cols,
   rowHeight,
   children,
+  renderToolbar,
+  onReset,
 }: PageGridProps) {
   const [editMode, setEditMode] = useState(false);
   const [gridKey, setGridKey] = useState(0);
@@ -31,6 +37,7 @@ export function PageGrid({
   const resetLayout = () => {
     localStorage.removeItem(`w96p-layout-${pageKey}`);
     setGridKey((k) => k + 1);
+    onReset?.();
   };
 
   return (
@@ -38,6 +45,7 @@ export function PageGrid({
       <div style={toolbarStyle}>
         <span style={titleStyle}>{pageName}</span>
         <div style={{ display: 'flex', gap: '8px' }}>
+          {editMode && renderToolbar?.()}
           {editMode && (
             <button onClick={resetLayout} style={btnStyle}>
               重置布局

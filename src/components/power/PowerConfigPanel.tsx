@@ -54,7 +54,7 @@ const PC_LAYOUTS: ResponsiveLayouts = {
 };
 
 export function PowerConfigPanel() {
-  const { setPowSwitch, setPowRegister } = useBle();
+  const { setPowSwitch, setPowRegister, writePowerClr } = useBle();
   const powerConfig = useDeviceStore((s) => s.powerConfig);
   const show = useToastStore((s) => s.show);
 
@@ -126,6 +126,25 @@ export function PowerConfigPanel() {
               <span>输入：<span style={{ color: 'var(--color-accent)' }}>{sinkNames[powerConfig.powSink] ?? '未知'}</span></span>
               <span>输出：<span style={{ color: 'var(--color-accent)' }}>{srcNames[powerConfig.powSrc] ?? '未知'}</span></span>
               <span>PD 版本：<span style={{ color: 'var(--color-text)' }}>{(powerConfig.pow2A & 0x40) ? 'PD2.0' : 'PD3.0'}</span></span>
+              <span>电量：<span style={{ color: 'var(--color-text)' }}>{powerConfig.powLevel}%</span></span>
+              <span>芯片温度：<span style={{ color: 'var(--color-text)' }}>{powerConfig.powCoreTemp}℃</span></span>
+            </div>
+            <div style={{ marginTop: '8px' }}>
+              <button
+                onClick={() => { writePowerClr(); show('已清除 PowerCfg 基准'); }}
+                style={{
+                  background: 'transparent',
+                  color: 'var(--color-text-dim)',
+                  border: '0.5px solid var(--color-border)',
+                  borderRadius: '3px',
+                  padding: '3px 8px',
+                  fontSize: '10px',
+                  fontFamily: 'var(--font-sans)',
+                  cursor: 'pointer',
+                }}
+              >
+                清除基准
+              </button>
             </div>
           </Card>
         </DraggableCard>

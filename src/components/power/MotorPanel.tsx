@@ -3,7 +3,6 @@ import { useDeviceStore } from '../../stores/device';
 import { Card } from '../ui/Card';
 import { MetricCard } from '../ui/MetricCard';
 import { StatusPill } from '../ui/StatusPill';
-import { fmtVoltage, fmtCurrent, fmtPower } from '../../lib/format';
 
 export function MotorPanel() {
   const { profile } = useBle();
@@ -21,15 +20,15 @@ export function MotorPanel() {
   return (
     <Card title="电机信息">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px', marginBottom: '12px' }}>
-        <MetricCard label="电机电流" value={motor ? fmtCurrent(motor.currentMa) : '--'} rawValue={motor?.currentMa} />
+        <MetricCard label="电机电流" value={motor ? motor.currentMa : '--'} unit="mA" />
         {profile?.parseMotorFull && (
           <>
-            <MetricCard label="电机电压" value={motor && motor.voltageMv > 0 ? fmtVoltage(motor.voltageMv) : '--'} rawValue={motor ? motor.voltageMv / 1000 : undefined} />
-            <MetricCard label="电机功率" value={fmtPower(motorPower)} rawValue={motorPower} />
+            <MetricCard label="电机电压" value={motor && motor.voltageMv > 0 ? motor.voltageMv / 1000 : '--'} unit="V" decimals={2} />
+            <MetricCard label="电机功率" value={motorPower} unit="W" decimals={2} />
           </>
         )}
         {!profile?.motorPowerUsesMotorVoltage && (
-          <MetricCard label="电机功率（近似）" value={fmtPower(motorPower)} rawValue={motorPower} />
+          <MetricCard label="电机功率（近似）" value={motorPower} unit="W" decimals={2} />
         )}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {motor?.block ? <StatusPill status="danger" label="堵转" /> : <StatusPill status="default" label="正常" />}

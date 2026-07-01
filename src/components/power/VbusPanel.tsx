@@ -5,10 +5,9 @@ import { Card } from '../ui/Card';
 import { MetricCard } from '../ui/MetricCard';
 import { StatusPill } from '../ui/StatusPill';
 import { Toggle } from '../ui/Toggle';
-import { fmtVoltage, fmtCurrent, fmtPower } from '../../lib/format';
 
 export function VbusPanel() {
-  const { setPowCOut, setPowCIn } = useBle();
+  const { setPowCOut, setPowCIn, setPowCHi } = useBle();
   const powerStatus = useDeviceStore((s) => s.powerStatus);
   const battery = useDeviceStore((s) => s.battery);
   const show = useToastStore((s) => s.show);
@@ -22,9 +21,9 @@ export function VbusPanel() {
   return (
     <Card title="VBUS / 电源状态">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px', marginBottom: '12px' }}>
-        <MetricCard label="VBUS 电压" value={powerStatus ? fmtVoltage(powerStatus.vbusVmV) : '--'} rawValue={powerStatus ? powerStatus.vbusVmV / 1000 : undefined} />
-        <MetricCard label="VBUS 电流" value={powerStatus ? fmtCurrent(powerStatus.vbusCurMa) : '--'} rawValue={powerStatus?.vbusCurMa} />
-        <MetricCard label="VBUS 功率" value={fmtPower(vbusPower)} rawValue={vbusPower} />
+        <MetricCard label="VBUS 电压" value={powerStatus ? powerStatus.vbusVmV / 1000 : '--'} unit="V" decimals={2} />
+        <MetricCard label="VBUS 电流" value={powerStatus ? powerStatus.vbusCurMa : '--'} unit="mA" />
+        <MetricCard label="VBUS 功率" value={vbusPower} unit="W" decimals={2} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {vbusConnected
             ? (isCharging ? <StatusPill status="success" label="充电中" /> : <StatusPill status="default" label="放电中" />)
@@ -41,6 +40,11 @@ export function VbusPanel() {
           checked={powerStatus?.powCIn ?? false}
           onChange={(on) => { setPowCIn(on); show(`C 口输入快充已${on ? '使能' : '关闭'}`); }}
           label="C 口输入快充"
+        />
+        <Toggle
+          checked={powerStatus?.powCHi ?? false}
+          onChange={(on) => { setPowCHi(on); show(`C 口高压输入协议 1 已${on ? '使能' : '关闭'}`); }}
+          label="C 口高压输入协议 1"
         />
       </div>
     </Card>
