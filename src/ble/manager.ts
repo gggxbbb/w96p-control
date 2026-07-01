@@ -237,7 +237,7 @@ export class BleManager implements IBleManager {
     }
   }
 
-  /** 发送 DFU 命令并等待响应 */
+  /** 发送 DFU 命令并等待响应（写入走调度器，避免与轮询并发） */
   private sendDfu(payload: Uint8Array, timeoutMs = 3000): Promise<Uint8Array> {
     return new Promise<Uint8Array>((resolve, reject) => {
       if (!this.dfuWriteChar) {
@@ -259,7 +259,9 @@ export class BleManager implements IBleManager {
 
       const frame = this.dfuProtocol.pack(payload);
       console.log('[BLE] DFU 发送命令:', Array.from(payload).map(b => b.toString(16).padStart(2, '0')).join(' '));
-      this.dfuWriteChar!.writeValueWithoutResponse(frame as BufferSource).catch((e) => {
+      this.scheduler.enqueueWrite(async () => {
+        await this.dfuWriteChar!.writeValueWithoutResponse(frame as BufferSource);
+      }).catch((e) => {
         clearTimeout(timeout);
         this.dfuPendingResolve = null;
         console.log('[BLE] DFU 写入失败:', e);
