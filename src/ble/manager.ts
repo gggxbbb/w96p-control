@@ -67,6 +67,10 @@ export class BleManager implements IBleManager {
   onError?: (msg: string) => void;
 
   async connect(): Promise<void> {
+    // 确保重连后调度器与写入队列已绑定（cleanup 可能已销毁旧 scheduler 并创建新 writer）
+    this.scheduler = new GattScheduler('BLE');
+    this.writer.bindScheduler(this.scheduler);
+
     this.onState?.('connecting');
     try {
       this.device = await navigator.bluetooth.requestDevice({
