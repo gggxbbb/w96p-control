@@ -114,6 +114,10 @@ export function useBle() {
     setBatteryCapacity: (mah: number, v: number) => m.writeBatteryCapacity(mah, v),
     setPowCOut: (on: boolean) => m.writePowCOut(on),
     setPowCIn: (on: boolean) => m.writePowCIn(on),
+    setPowCHi: (on: boolean) => m.writePowCHi(on),
+    writeNatureWindCtrl: (op: 1 | 2) => m.writeNatureWindCtrl(op),
+    writeBatteryClr: () => m.writeBatteryClr(),
+    writePowerClr: () => m.writePowerClr(),
     setPowSwitch: (reg: PowReg, bit: number, enable: boolean, inverted: boolean) =>
       m.writePowSwitch(reg, bit, enable, inverted),
     setPowRegister: (reg: PowReg, byte: number) => m.writePowRegister(reg, byte),

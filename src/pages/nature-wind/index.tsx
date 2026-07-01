@@ -20,38 +20,40 @@ const NW_LAYOUTS: ResponsiveLayouts = {
     { i: 'editor', x: 4, y: 0, w: 8, h: 8 },
     { i: 'preview', x: 4, y: 8, w: 4, h: 4 },
     { i: 'device', x: 8, y: 8, w: 4, h: 4 },
-    { i: 'actions', x: 0, y: 12, w: 12, h: 2 },
+    { i: 'actions', x: 0, y: 12, w: 12, h: 4 },
   ],
   md: [
     { i: 'generator', x: 0, y: 0, w: 4, h: 12 },
     { i: 'editor', x: 4, y: 0, w: 6, h: 8 },
     { i: 'preview', x: 4, y: 8, w: 3, h: 4 },
     { i: 'device', x: 7, y: 8, w: 3, h: 4 },
-    { i: 'actions', x: 0, y: 12, w: 10, h: 2 },
+    { i: 'actions', x: 0, y: 12, w: 10, h: 4 },
   ],
   sm: [
     { i: 'generator', x: 0, y: 0, w: 6, h: 8 },
     { i: 'editor', x: 0, y: 8, w: 6, h: 8 },
     { i: 'preview', x: 0, y: 16, w: 3, h: 4 },
     { i: 'device', x: 3, y: 16, w: 3, h: 4 },
-    { i: 'actions', x: 0, y: 20, w: 6, h: 2 },
+    { i: 'actions', x: 0, y: 20, w: 6, h: 4 },
   ],
   xs: [
     { i: 'generator', x: 0, y: 0, w: 2, h: 10 },
     { i: 'editor', x: 0, y: 10, w: 2, h: 10 },
     { i: 'preview', x: 0, y: 20, w: 2, h: 4 },
     { i: 'device', x: 0, y: 24, w: 2, h: 4 },
-    { i: 'actions', x: 0, y: 28, w: 2, h: 2 },
+    { i: 'actions', x: 0, y: 28, w: 2, h: 4 },
   ],
 };
 
 export default function NatureWind() {
-  const { profile, readNatureCurve, setNatureCurve } = useBle();
+  const { profile, readNatureCurve, setNatureCurve, writeNatureWindCtrl } = useBle();
   const storedCurve = useDeviceStore((s) => s.natureCurve);
   const editorMode = useSettingsStore((s) => s.curveEditorMode);
   const setCurveMode = useSettingsStore((s) => s.setCurveMode);
   const show = useToastStore((s) => s.show);
   const natureCurveReadAt = useDeviceStore((s) => s.natureCurveReadAt);
+  const natureWindSum = useDeviceStore((s) => s.natureWindSum);
+  const natureWindTime = useDeviceStore((s) => s.natureWindTime);
 
   const min = profile?.minSpeed ?? 0;
   const max = profile?.maxSpeed ?? 100;
@@ -100,6 +102,31 @@ export default function NatureWind() {
   const handleResetDefault = () => {
     setEditPoints([...DEFAULT_CURVE]);
     show('已恢复默认曲线');
+  };
+
+  const handleSaveToDevice = async () => {
+    try {
+      await writeNatureWindCtrl(1);
+      show('已将当前曲线保存至设备');
+    } catch {
+      show('保存失败');
+    }
+  };
+
+  const handleRestoreDefault = async () => {
+    try {
+      await writeNatureWindCtrl(2);
+      show('已恢复设备默认曲线');
+      // 读回设备曲线
+      setTimeout(async () => {
+        try {
+          const pts = await readNatureCurve();
+          setEditPoints(pts);
+        } catch { /* 读取失败静默 */ }
+      }, 300);
+    } catch {
+      show('恢复失败');
+    }
   };
 
   const handleRead = async () => {
@@ -228,66 +255,73 @@ export default function NatureWind() {
             min={min}
             max={max}
             readAt={natureCurveReadAt}
+            pointCount={natureWindSum || undefined}
+            totalTime={natureWindTime || undefined}
           />
         </Card>
       </DraggableCard>
 
       <DraggableCard key="actions">
         <Card title="操作">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            onClick={handleRead}
-            style={{
-              flex: 1,
-              background: 'transparent',
-              color: 'var(--color-text-muted)',
-              border: '0.5px solid var(--color-border-strong)',
-              borderRadius: '4px',
-              padding: '10px',
-              fontSize: '12px',
-              fontFamily: 'var(--font-sans)',
-              cursor: 'pointer',
-            }}
-          >
-            从设备读取曲线
-          </button>
-          <button
-            onClick={handleApply}
-            style={{
-              flex: 1,
-              background: 'var(--color-success)',
-              color: 'var(--color-bg-page)',
-              border: 'none',
-              borderRadius: '4px',
-              padding: '10px',
-              fontSize: '12px',
-              fontFamily: 'var(--font-sans)',
-              cursor: 'pointer',
-            }}
-          >
-            应用到设备
-          </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {/* 曲线数据：读写设备 RAM */}
+          <div>
+            <div style={{ fontSize: '10px', color: 'var(--color-text-dim)', marginBottom: '6px' }}>曲线数据 · 立即生效</div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={handleRead} style={secondaryBtn}>
+                从设备读取
+              </button>
+              <button onClick={handleApply} style={primaryBtn}>
+                写入到设备
+              </button>
+            </div>
           </div>
-          <button
-            onClick={handleResetDefault}
-            style={{
-              flex: 1,
-              background: 'transparent',
-              color: 'var(--color-text-muted)',
-              border: '0.5px solid var(--color-border-strong)',
-              borderRadius: '4px',
-              padding: '10px',
-              fontSize: '12px',
-              fontFamily: 'var(--font-sans)',
-              cursor: 'pointer',
-            }}
-          >
-            恢复默认曲线
-          </button>
+          {/* 配置持久化：设备闪存 */}
+          <div>
+            <div style={{ fontSize: '10px', color: 'var(--color-text-dim)', marginBottom: '6px' }}>设备闪存 · 断电保留</div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={handleSaveToDevice} style={secondaryBtn}>
+                保存当前曲线
+              </button>
+              <button onClick={handleRestoreDefault} style={secondaryBtn}>
+                恢复出厂曲线
+              </button>
+            </div>
+          </div>
+          {/* 编辑器内操作 */}
+          <div>
+            <div style={{ fontSize: '10px', color: 'var(--color-text-dim)', marginBottom: '6px' }}>编辑器</div>
+            <button onClick={handleResetDefault} style={{ ...secondaryBtn, flex: 1 }}>
+              载入预设曲线
+            </button>
+          </div>
         </div>
         </Card>
       </DraggableCard>
     </PageGrid>
   );
 }
+
+const primaryBtn: React.CSSProperties = {
+  flex: 1,
+  background: 'var(--color-success)',
+  color: 'var(--color-bg-page)',
+  border: 'none',
+  borderRadius: '4px',
+  padding: '10px',
+  fontSize: '12px',
+  fontFamily: 'var(--font-sans)',
+  cursor: 'pointer',
+};
+
+const secondaryBtn: React.CSSProperties = {
+  flex: 1,
+  background: 'transparent',
+  color: 'var(--color-text-muted)',
+  border: '0.5px solid var(--color-border-strong)',
+  borderRadius: '4px',
+  padding: '10px',
+  fontSize: '12px',
+  fontFamily: 'var(--font-sans)',
+  cursor: 'pointer',
+};

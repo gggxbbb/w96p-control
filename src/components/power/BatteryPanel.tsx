@@ -6,7 +6,7 @@ import { Card } from '../ui/Card';
 import { MetricCard } from '../ui/MetricCard';
 
 export function BatteryPanel() {
-  const { readBatteryCapacity, setBatteryCapacity } = useBle();
+  const { readBatteryCapacity, setBatteryCapacity, writeBatteryClr } = useBle();
   const battery = useDeviceStore((s) => s.battery);
   const show = useToastStore((s) => s.show);
   const [mah, setMah] = useState('5000');
@@ -39,6 +39,11 @@ export function BatteryPanel() {
         <MetricCard label="功率" value={power} unit="W" decimals={2} />
       </div>
       <div style={{ paddingTop: '10px', borderTop: '0.5px solid var(--color-border)' }}>
+        <div style={{ fontSize: '10px', color: 'var(--color-text-dim)', marginBottom: '8px', lineHeight: '1.6' }}>
+          累计充电 {battery ? `${battery.chgMwh} mWh` : '--'} · 累计放电 {battery ? `${battery.dchgMwh} mWh` : '--'}<br />
+          充电时间 {battery ? `${battery.chgTimeS} s` : '--'} · 放电时间 {battery ? `${battery.dchgTimeS} s` : '--'}<br />
+          剩余估算 {battery ? `${battery.rcapMwh} mWh` : '--'} · 电池温度 {battery ? `${battery.tempC} ℃` : '--'}
+        </div>
         <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>容量设置</div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
           <input type="number" min={100} max={50000} value={mah} onChange={(e) => setMah(e.target.value)} style={inputStyle} />
@@ -54,6 +59,12 @@ export function BatteryPanel() {
         <div style={{ display: 'flex', gap: '6px' }}>
           <button onClick={apply} style={primaryBtnStyle}>设置容量</button>
           <button onClick={read} style={presetBtnStyle}>读取容量</button>
+          <button
+            onClick={() => { writeBatteryClr(); show('已清除累计充放电记录'); }}
+            style={presetBtnStyle}
+          >
+            清除统计
+          </button>
         </div>
       </div>
     </Card>

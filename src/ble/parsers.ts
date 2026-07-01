@@ -4,6 +4,12 @@ export interface BatteryInfo {
   voltageMv: number;
   currentMa: number;
   capacityMwh: number;
+  chgMwh: number;
+  dchgMwh: number;
+  rcapMwh: number;
+  tempC: number;
+  chgTimeS: number;
+  dchgTimeS: number;
 }
 export interface PowerStatus {
   vbusVmV: number;
@@ -13,7 +19,7 @@ export interface PowerStatus {
   powSta: number;
   powCOut: boolean;
   powCIn: boolean;
-  powCHi: number;
+  powCHi: boolean;
 }
 export interface MotorInfo {
   currentMa: number;
@@ -21,9 +27,11 @@ export interface MotorInfo {
   voltageMv: number;
 }
 export interface PowerConfigRegs {
+  powLevel: number;
   powVer: number;
   powSink: number;
   powSrc: number;
+  powCoreTemp: number;
   pow1A: number;
   pow1C: number;
   pow1D: number;
@@ -44,6 +52,12 @@ export const parseBatteryInfo = (dv: DataView): BatteryInfo => ({
   voltageMv: readU16BE(dv, 0),
   currentMa: readI16BE(dv, 2),
   capacityMwh: readU32BE(dv, 4),
+  chgMwh: readU32BE(dv, 8),
+  dchgMwh: readU32BE(dv, 12),
+  rcapMwh: readU32BE(dv, 16),
+  tempC: readI16BE(dv, 20),
+  chgTimeS: readU32BE(dv, 22),
+  dchgTimeS: readU32BE(dv, 26),
 });
 
 export const parsePowerStatus = (dv: DataView): PowerStatus => {
@@ -57,7 +71,7 @@ export const parsePowerStatus = (dv: DataView): PowerStatus => {
     powSta: dv.byteLength > 7 ? dv.getUint8(7) : 0,
     powCOut: dv.byteLength > 8 ? dv.getUint8(8) === 0 : false,  // 0=使能
     powCIn: dv.byteLength > 9 ? dv.getUint8(9) === 0 : false,
-    powCHi: dv.byteLength > 10 ? dv.getUint8(10) : 0,
+    powCHi: dv.byteLength > 10 ? dv.getUint8(10) === 0 : false,  // 0=使能
   };
 };
 
@@ -77,9 +91,11 @@ export const parseMotorInfo = (dv: DataView, profile: Profile): MotorInfo => {
 };
 
 export const parsePowerConfig = (dv: DataView): PowerConfigRegs => ({
+  powLevel: dv.byteLength > 0 ? dv.getUint8(0) : 0,
   powVer: dv.byteLength > 1 ? dv.getUint8(1) : 0,
   powSink: dv.byteLength > 2 ? dv.getUint8(2) : 0,
   powSrc: dv.byteLength > 3 ? dv.getUint8(3) : 0,
+  powCoreTemp: dv.byteLength >= 6 ? readI16BE(dv, 4) : 0,
   pow1A: dv.byteLength > 6 ? dv.getUint8(6) : 0,
   pow1C: dv.byteLength > 7 ? dv.getUint8(7) : 0,
   pow1D: dv.byteLength > 8 ? dv.getUint8(8) : 0,

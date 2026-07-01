@@ -149,6 +149,8 @@ export class BleManager implements IBleManager {
         const nw = await this.timedRead(CHARS.NATURE_WIND);
         const gdm = await this.timedRead(CHARS.GEAR_DOWN_MODE);
         const sd = await this.timedRead(CHARS.SHUTDOWN_DELAY);
+        const nwSum = await this.timedRead(CHARS.NATURE_WIND_SUM);
+        const nwTime = await this.timedRead(CHARS.NATURE_WIND_TIME);
 
         const timerDv = timer;
         const calibDv = calib;
@@ -164,6 +166,8 @@ export class BleManager implements IBleManager {
           natureWindOn: u8(nwDv) === 1,
           gearDownMode: u8(gdmDv) as 0 | 1,
           shutdownDelaySec: u16be(sdDv),
+          natureWindSum: u8(nwSum),
+          natureWindTime: new DataView(nwTime.buffer).getUint32(0, false),
         });
         console.log('[BLE] 初始读取完成: timer=' + u16be(timerDv) + 's, fan=' + u8(calibDv, 0) + '/' + u8(calibDv, 1) + '/' + u8(calibDv, 2) + '/' + u8(calibDv, 3) + ', nw=' + u8(nwDv) + ', gdm=' + u8(gdmDv));
       });
@@ -366,6 +370,20 @@ export class BleManager implements IBleManager {
     });
   }
 
+  async readNatureWindSum(): Promise<number> {
+    return this.scheduler.enqueueRead(async () => {
+      const v = await this.timedRead(CHARS.NATURE_WIND_SUM);
+      return u8(v);
+    });
+  }
+
+  async readNatureWindTime(): Promise<number> {
+    return this.scheduler.enqueueRead(async () => {
+      const v = await this.timedRead(CHARS.NATURE_WIND_TIME);
+      return new DataView(v.buffer).getUint32(0, false);
+    });
+  }
+
   async writeGear(gear: 0 | 1 | 2 | 3 | 4): Promise<void> {
     this.lastWriteMs = Date.now();
     const prevNw = useDeviceStore.getState().natureWindOn;
@@ -557,6 +575,57 @@ export class BleManager implements IBleManager {
     } catch (e) {
       console.log('[BLE] writePowCIn 失败:', e);
       if (prev !== undefined) this.onSnapshot?.({ powerStatus: { powCIn: prev } } as any);
+    }
+  }
+
+  async writePowCHi(enable: boolean): Promise<void> {
+    this.lastWriteMs = Date.now();
+    const prev = useDeviceStore.getState().powerStatus?.powCHi;
+    this.onSnapshot?.({ powerStatus: { powCHi: enable } } as any);
+    try {
+      const char = this.chars.get(CHARS.POWER_STATUS)!;
+      await this.writer.enqueue(async () => {
+        await this.writer.rawWrite(char, encodeCmd(cmd.setPowCHi(enable)));
+      });
+    } catch (e) {
+      console.log('[BLE] writePowCHi 失败:', e);
+      if (prev !== undefined) this.onSnapshot?.({ powerStatus: { powCHi: prev } } as any);
+    }
+  }
+
+  async writeNatureWindCtrl(op: 1 | 2): Promise<void> {
+    this.lastWriteMs = Date.now();
+    try {
+      const char = this.chars.get(CHARS.NATURE_WIND_CTRL)!;
+      await this.writer.enqueue(async () => {
+        await this.writer.rawWrite(char, cmd.natureWindCtrl(op));
+      });
+    } catch (e) {
+      console.log('[BLE] writeNatureWindCtrl 失败:', e);
+    }
+  }
+
+  async writeBatteryClr(): Promise<void> {
+    this.lastWriteMs = Date.now();
+    try {
+      const char = this.chars.get(CHARS.BATTERY_INFO)!;
+      await this.writer.enqueue(async () => {
+        await this.writer.rawWrite(char, encodeCmd(cmd.batClr()));
+      });
+    } catch (e) {
+      console.log('[BLE] writeBatteryClr 失败:', e);
+    }
+  }
+
+  async writePowerClr(): Promise<void> {
+    this.lastWriteMs = Date.now();
+    try {
+      const char = this.chars.get(CHARS.POWER_CONFIG)!;
+      await this.writer.enqueue(async () => {
+        await this.writer.rawWrite(char, encodeCmd(cmd.powClr()));
+      });
+    } catch (e) {
+      console.log('[BLE] writePowerClr 失败:', e);
     }
   }
 

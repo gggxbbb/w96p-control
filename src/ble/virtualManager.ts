@@ -30,7 +30,8 @@ export class VirtualManager implements IBleManager {
   private natureCurve: number[] = [...DEFAULT_CURVE];
   private batteryCapacityMwh = 18000;
   private powerConfigRegs: PowerConfigRegs = {
-    powVer: 0, powSink: 1, powSrc: 1,
+    powLevel: 75, powVer: 0, powSink: 1, powSrc: 1,
+    powCoreTemp: 42,
     pow1A: 0x1C, pow1C: 0x00, pow1D: 0x00, pow1E: 0x00,
     pow2A: 0x00, pow2B: 0x10, pow2C: 0x04,
   };
@@ -103,6 +104,8 @@ export class VirtualManager implements IBleManager {
       voltageMv: batVoltage,
       currentMa: batCurrent,
       capacityMwh: this.batteryCapacityMwh,
+      chgMwh: 0, dchgMwh: 0, rcapMwh: 0,
+      tempC: 0, chgTimeS: 0, dchgTimeS: 0,
     };
 
     // VBUS：充电时 5000mV/1000mA，放电时 0
@@ -114,7 +117,7 @@ export class VirtualManager implements IBleManager {
       powSta: isCharging ? 1 : 0,
       powCOut: this.powCOut,
       powCIn: this.powCIn,
-      powCHi: 0,
+      powCHi: false,
     };
 
     // 转速：自然风开启时按曲线点位变化，否则基础值+小幅噪声
@@ -217,6 +220,13 @@ export class VirtualManager implements IBleManager {
 
   async writePowCOut(enable: boolean): Promise<void> { this.powCOut = enable; }
   async writePowCIn(enable: boolean): Promise<void> { this.powCIn = enable; }
+
+  async readNatureWindSum?(): Promise<number> { return 128; }
+  async readNatureWindTime?(): Promise<number> { return 3600; }
+  async writePowCHi(_enable: boolean): Promise<void> { /* no-op for virtual */ }
+  async writeNatureWindCtrl(_op: 1 | 2): Promise<void> { /* no-op for virtual */ }
+  async writeBatteryClr(): Promise<void> { /* no-op for virtual */ }
+  async writePowerClr(): Promise<void> { /* no-op for virtual */ }
 
   async writePowSwitch(reg: PowReg, bit: number, enable: boolean, inverted: boolean): Promise<void> {
     // inverted=true 表示 0=使能（多数位），enable=true 表示用户想"使能"

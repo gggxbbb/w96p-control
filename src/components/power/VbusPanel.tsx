@@ -7,7 +7,7 @@ import { StatusPill } from '../ui/StatusPill';
 import { Toggle } from '../ui/Toggle';
 
 export function VbusPanel() {
-  const { setPowCOut, setPowCIn } = useBle();
+  const { setPowCOut, setPowCIn, setPowCHi } = useBle();
   const powerStatus = useDeviceStore((s) => s.powerStatus);
   const battery = useDeviceStore((s) => s.battery);
   const show = useToastStore((s) => s.show);
@@ -40,6 +40,11 @@ export function VbusPanel() {
           checked={powerStatus?.powCIn ?? false}
           onChange={(on) => { setPowCIn(on); show(`C 口输入快充已${on ? '使能' : '关闭'}`); }}
           label="C 口输入快充"
+        />
+        <Toggle
+          checked={powerStatus?.powCHi ?? false}
+          onChange={(on) => { setPowCHi(on); show(`C 口高压输入协议 1 已${on ? '使能' : '关闭'}`); }}
+          label="C 口高压输入协议 1"
         />
       </div>
     </Card>
