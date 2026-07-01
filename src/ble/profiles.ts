@@ -19,8 +19,8 @@ export const PROFILES = {
   W66D: {
     name: 'W66D',
     defaultSpeeds: [30, 50, 70, 100] as const,
-    minSpeed: 20,
-    maxSpeed: 90,
+    minSpeed: 0,
+    maxSpeed: 100,
     parseMotorFull: false,
     motorPowerUsesMotorVoltage: false,
   },

@@ -93,7 +93,7 @@ export function DisconnectedScreen() {
               onClick={() => { setMenuOpen(false); connectVirtual('W66D'); }}
               style={menuItemStyle}
             >
-              虚拟 W66D（20-90）
+              虚拟 W66D（0-100）
             </button>
           </div>
         )}
