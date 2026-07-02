@@ -5,7 +5,8 @@ import { Card } from '../../components/ui/Card';
 import { PageGrid } from '../../components/ui/PageGrid';
 import { DraggableCard } from '../../components/ui/DraggableCard';
 import { SegBtn } from '../../components/ui/SegBtn';
-import { forceRefresh, isControlledBySW } from '../../lib/forceRefresh';
+import { isControlledBySW } from '../../lib/forceRefresh';
+import { checkAndUpdate } from '../../components/UpdatePrompt';
 import type { ResponsiveLayouts } from 'react-grid-layout';
 
 const SETTINGS_LAYOUTS: ResponsiveLayouts = {
@@ -50,9 +51,8 @@ export default function Settings() {
 
   const handleForceRefresh = useCallback(async () => {
     setRefreshing(true);
-    // 短暂延迟让 UI 先更新
     await new Promise((r) => setTimeout(r, 100));
-    await forceRefresh();
+    await checkAndUpdate();
   }, []);
 
   const swActive = isControlledBySW();
