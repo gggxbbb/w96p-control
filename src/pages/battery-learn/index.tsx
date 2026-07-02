@@ -17,7 +17,7 @@ export default function BatteryLearnPage() {
   const exportData = useBatteryLearnStore((s) => s.exportData);
   const importData = useBatteryLearnStore((s) => s.importData);
   const mergeImportData = useBatteryLearnStore((s) => s.mergeImportData);
-  const { socPct: learnedSoc, coverage } = useBatteryLearn();
+  const { socPct: learnedSoc, coverage, learnedCapacityMwh, healthPct } = useBatteryLearn();
 
   if (!serialNumber) {
     return (
@@ -74,8 +74,8 @@ export default function BatteryLearnPage() {
         <div style={row}>
           <KV label="充电效率" value={data ? <input type="number" min={0.5} max={1} step={0.01} value={data.chargeEfficiency} onChange={handleEffChange} style={inp} /> : '--'} />
           <KV label="当前电压" value={battery ? `${(battery.voltageMv / 1000).toFixed(2)}V` : '--'} />
-          <KV label="学习容量" value={data ? `${Math.round(data.learnedCapacityMwh)} mWh` : '--'} />
-          <KV label="健康度" value={data && data.configuredCapacityMwh > 0 ? `${Math.round(coverage >= 80 ? data.learnedCapacityMwh / data.configuredCapacityMwh * 100 : 100)}%` : '--'} accent />
+          <KV label="学习容量" value={learnedCapacityMwh != null ? `${learnedCapacityMwh} mWh` : '--'} />
+          <KV label="健康度" value={healthPct != null ? `${healthPct}%` : '--'} accent />
         </div>
       </Section>
       <Section label="SOC 跟踪">
@@ -107,7 +107,7 @@ export default function BatteryLearnPage() {
           <CurveChart data={data} chargeTs={chargeTransitions} />
         </Section>
       )}
-      {data && (transitions.length > 0 || chargeTransitions.length > 0) && <TransitionTable data={data} />}
+      {data && (transitions.length > 0 || chargeTransitions.length > 0) && <TransitionTable data={data} learnedCapacityMwh={learnedCapacityMwh} />}
       <div style={{ marginTop: 16, borderTop: '0.5px solid var(--color-border)', paddingTop: 12 }}>
         <div style={{ fontSize: 10, color: 'var(--color-text-dim)', marginBottom: 8 }}>数据管理</div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -180,13 +180,14 @@ function CurveChart({ data, chargeTs }: { data: DeviceLearnData; chargeTs: impor
   );
 }
 
-function TransitionTable({ data }: { data: DeviceLearnData }) {
+function TransitionTable({ data, learnedCapacityMwh }: { data: DeviceLearnData; learnedCapacityMwh: number | null }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<'discharge' | 'charge'>('discharge');
   if (!open) return <div style={{ marginBottom: 12 }}><button onClick={() => setOpen(true)} style={tgl}>▶ 显示转移记录</button></div>;
 
   const ts = tab === 'discharge' ? (data.dischargeTransitions ?? []) : (data.chargeTransitions ?? []);
   const label = tab === 'discharge' ? '放电' : '充电';
+  const capacityLabel = learnedCapacityMwh != null ? `${learnedCapacityMwh}mWh` : '--';
   return (
     <div style={{ marginBottom: 12 }}>
       <button onClick={() => setOpen(false)} style={tgl}>▼ 隐藏转移记录</button>
@@ -199,7 +200,7 @@ function TransitionTable({ data }: { data: DeviceLearnData }) {
         </button>
       </div>
       <div style={{ marginTop: 8, maxHeight: 300, overflow: 'auto', background: 'var(--color-bg-inset)', borderRadius: 6, padding: 10, fontSize: 10, fontFamily: 'var(--font-mono, monospace)', fontVariantNumeric: 'tabular-nums', lineHeight: 1.7 }}>
-        <div style={{ color: 'var(--color-text-dim)', marginBottom: 6 }}>{ts.length} 条{label}转移 · 学习容量: {Math.round(data.learnedCapacityMwh)}mWh · 效率: {data.chargeEfficiency}</div>
+        <div style={{ color: 'var(--color-text-dim)', marginBottom: 6 }}>{ts.length} 条{label}转移 · 学习容量: {capacityLabel} · 效率: {data.chargeEfficiency}</div>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead><tr style={{ opacity: 0.5, textAlign: 'left' }}><th style={{ padding: '2px 6px' }}>from</th><th style={{ padding: '2px 6px' }}>to</th><th style={{ padding: '2px 6px' }}>ΔmV</th><th style={{ padding: '2px 6px' }}>mWh</th><th style={{ padding: '2px 6px' }}>mWh/mV</th></tr></thead>
           <tbody>{ts.map((e, i) => (
