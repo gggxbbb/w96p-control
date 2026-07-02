@@ -251,7 +251,10 @@ export const useBatteryLearnStore = create<BatteryLearnState>()(
 
         // ── 满充检测 ──
         if (isCharging && voltageMv >= FULL_CHARGE_VOLTAGE_MV && absCur < FULL_CHARGE_CURRENT_MA) {
-          const totalDis = sumDischargeBins(d.dischargeTransitions);
+          const dischargeCurve = buildCumulativeCurve(d.dischargeTransitions, d.configuredCapacityMwh);
+          const totalDis = dischargeCurve.length > 0
+            ? dischargeCurve[dischargeCurve.length - 1]!.remainingMwh
+            : 0;
           const totalChg = sumDischargeBins(d.chargeTransitions);
           let newEff = d.chargeEfficiency;
           if (totalChg > 0 && totalDis > 0) {
