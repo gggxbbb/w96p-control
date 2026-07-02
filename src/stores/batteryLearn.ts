@@ -39,6 +39,8 @@ export interface DeviceLearnData {
   pendingMwh: number;
   /** 当前电压方向: 1=上升, -1=下降, 0=未知 */
   direction: number;
+  /** pending 段的充放电状态 */
+  pendingIsCharging: boolean;
 }
 
 /* ── 常量 ── */
@@ -67,6 +69,7 @@ function createDeviceData(capacityMwh: number): DeviceLearnData {
     pendingFromMv: 0,
     pendingMwh: 0,
     direction: 0,
+    pendingIsCharging: false,
   };
 }
 
@@ -267,6 +270,7 @@ export const useBatteryLearnStore = create<BatteryLearnState>()(
                 pendingFromMv: 0,
                 pendingMwh: 0,
                 direction: 0,
+                pendingIsCharging: false,
                 state: 'tracking' as const,
               },
             },
@@ -286,12 +290,56 @@ export const useBatteryLearnStore = create<BatteryLearnState>()(
                 pendingFromMv: curMv,
                 pendingMwh: deltaMwh,
                 direction: 0,
+                pendingIsCharging: isCharging,
                 lastTickTs: now,
                 lastDeltaMwh: isCharging ? deltaMwh : -deltaMwh,
                 state: 'tracking' as const,
               },
             },
           }));
+          return;
+        }
+
+        // ── 充放电状态变化检测 ──
+        if (isCharging !== d.pendingIsCharging) {
+          if (curMv !== pendingMv) {
+            // mV 也变了 → 旧 pending 提交到旧状态列表，当前帧能量归新状态
+            const oldKey = d.pendingIsCharging ? 'chargeTransitions' : 'dischargeTransitions';
+            const oldEntry: TransitionEntry = { fromMv: pendingMv, toMv: curMv, mwh: d.pendingMwh };
+            set((s) => ({
+              devices: {
+                ...s.devices,
+                [serial]: {
+                  ...s.devices[serial]!,
+                  [oldKey]: [...d[oldKey], oldEntry],
+                  pendingFromMv: curMv,
+                  pendingMwh: deltaMwh,
+                  direction: 0,
+                  pendingIsCharging: isCharging,
+                  lastTickTs: now,
+                  lastDeltaMwh: isCharging ? deltaMwh : -deltaMwh,
+                  state: 'tracking' as const,
+                },
+              },
+            }));
+          } else {
+            // 同 mV → 无法产生转移（span=0），丢弃 pending 重启
+            set((s) => ({
+              devices: {
+                ...s.devices,
+                [serial]: {
+                  ...s.devices[serial]!,
+                  pendingFromMv: curMv,
+                  pendingMwh: deltaMwh,
+                  direction: 0,
+                  pendingIsCharging: isCharging,
+                  lastTickTs: now,
+                  lastDeltaMwh: isCharging ? deltaMwh : -deltaMwh,
+                  state: 'tracking' as const,
+                },
+              },
+            }));
+          }
           return;
         }
 
@@ -308,6 +356,7 @@ export const useBatteryLearnStore = create<BatteryLearnState>()(
                 pendingFromMv: curMv,
                 pendingMwh: deltaMwh,
                 direction: dir,
+                pendingIsCharging: isCharging,
                 lastTickTs: now,
                 lastDeltaMwh: isCharging ? deltaMwh : -deltaMwh,
                 state: 'tracking' as const,
@@ -435,6 +484,7 @@ function migrateData(data: Record<string, unknown>): DeviceLearnData {
       dischargeTransitions: Array.isArray(d.dischargeTransitions) ? d.dischargeTransitions as TransitionEntry[] : [],
       chargeTransitions: Array.isArray(d.chargeTransitions) ? d.chargeTransitions as TransitionEntry[] : [],
       learnedCapacityMwh: (typeof d.learnedCapacityMwh === 'number' ? d.learnedCapacityMwh : fresh.learnedCapacityMwh) as number,
+      pendingIsCharging: (typeof d.pendingIsCharging === 'boolean' ? d.pendingIsCharging : false) as boolean,
     } as DeviceLearnData;
   }
   return fresh;

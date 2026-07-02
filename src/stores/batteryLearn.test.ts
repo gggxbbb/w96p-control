@@ -75,6 +75,30 @@ describe('battery learn (transitions)', () => {
     expect(d.dischargeTransitions[1]!.toMv).toBe(3702);
   });
 
+  it('充放电状态变更+同mV → 丢弃pending', () => {
+    const t = useBatteryLearnStore.getState().tick;
+    t(SERIAL, CAP, 3700, 1000, false, 60, 1000);   // 放电, pending 起始
+    t(SERIAL, CAP, 3700, 1000, true, 50, 2000);     // 充电, 同mV → 丢弃放电pending
+    t(SERIAL, CAP, 3701, 1000, true, 50, 3000);     // 充电, mV变化 → 提交充电转移
+    const d = useBatteryLearnStore.getState().devices[SERIAL]!;
+    expect(d.chargeTransitions).toHaveLength(1);
+    expect(d.chargeTransitions[0]!.fromMv).toBe(3700);
+    expect(d.dischargeTransitions).toHaveLength(0);
+  });
+
+  it('充放电状态变更+跨mV → 旧状态提交', () => {
+    const t = useBatteryLearnStore.getState().tick;
+    t(SERIAL, CAP, 3700, 1000, false, 60, 1000);   // 放电, pending 起始
+    t(SERIAL, CAP, 3699, 1000, false, 60, 2000);    // 放电, mV变 → 提交 (3700→3699)
+    t(SERIAL, CAP, 3698, 1000, false, 60, 3000);    // 放电, mV变 → 提交 (3699→3698), pending 归零
+    t(SERIAL, CAP, 3699, 500, true, 50, 4000);      // 充电+跨mV → 旧pending=0, 当前delta归新pending
+    const d = useBatteryLearnStore.getState().devices[SERIAL]!;
+    expect(d.dischargeTransitions).toHaveLength(3);
+    expect(d.dischargeTransitions[2]!.fromMv).toBe(3698);
+    expect(d.dischargeTransitions[2]!.toMv).toBe(3699);
+    expect(d.pendingIsCharging).toBe(true);
+  });
+
   it('充电写入 chargeTransitions', () => {
     const t = useBatteryLearnStore.getState().tick;
     t(SERIAL, CAP, 3800, 500, true, 40, 1000);

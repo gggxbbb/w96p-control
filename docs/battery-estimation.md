@@ -61,6 +61,7 @@ interface DeviceLearnData {
   pendingFromMv: number;   // 当前方向的起始 mV
   pendingMwh: number;      // 当前方向累积未提交的能量
   direction: number;       // +1 上升, -1 下降, 0 未知
+  pendingIsCharging: boolean;  // pending 段的充放电状态（用于检测状态切换）
 }
 ```
 
@@ -115,6 +116,24 @@ commit: { fromMv: pendingFromMv, toMv: curMv, mwh: pendingMwh + deltaMwh }
 写入 dischargeTransitions 或 chargeTransitions（根据 isCharging 标志）
 重置: pendingFromMv = curMv, pendingMwh = 0, direction = dir
 ```
+
+### 4.3.1 充放电状态变化检测
+
+当 `isCharging` 在一帧内变化（充电⇄放电），只靠电压方向检测不够——电压可能不变但状态变了。
+
+```
+if isCharging !== pendingIsCharging:
+    if curMv !== pendingFromMv:
+        // mV 也变了 → 旧 pending 提交到旧状态列表
+        提交: { fromMv: pendingMv, toMv: curMv, mwh: pendingMwh } → 旧列表
+        // 当前帧 deltaMwh 归新状态
+        pendingFromMv = curMv, pendingMwh = deltaMwh, pendingIsCharging = isCharging
+    else:
+        // 同 mV → 无法产生有效转移，丢弃 pending
+        pendingFromMv = curMv, pendingMwh = deltaMwh, pendingIsCharging = isCharging
+```
+
+关键：只提交旧状态累积的 `pendingMwh`，当前帧的 `deltaMwh` 永远属于新状态，不混入。
 
 ### 4.4 电压跳变的天然处理
 
