@@ -4,6 +4,7 @@ import {
   buildCumulativeCurve,
   type DeviceLearnData,
 } from '../../stores/batteryLearn';
+import { useBatteryLearn } from '../../hooks/useBatteryLearn';
 import { SOC_TABLE } from '../../utils/battery';
 import { useState } from 'react';
 
@@ -16,7 +17,7 @@ export default function BatteryLearnPage() {
   const exportData = useBatteryLearnStore((s) => s.exportData);
   const importData = useBatteryLearnStore((s) => s.importData);
   const mergeImportData = useBatteryLearnStore((s) => s.mergeImportData);
-  const getRemainingMwh = useBatteryLearnStore((s) => s.getRemainingMwh);
+  const { socPct: learnedSoc, coverage } = useBatteryLearn();
 
   if (!serialNumber) {
     return (
@@ -28,18 +29,8 @@ export default function BatteryLearnPage() {
   }
 
   const data: DeviceLearnData | undefined = devices[serialNumber];
-  const capacityMwh = data?.configuredCapacityMwh ?? 18000;
   const transitions = data?.dischargeTransitions ?? [];
   const voltSoc = battery ? voltageToSoc(battery.voltageMv) : null;
-
-  const learnedSoc = data && battery
-    ? (() => { const mwh = getRemainingMwh(serialNumber, battery.voltageMv); return mwh != null ? Math.round(mwh / capacityMwh * 100) : null; })()
-    : null;
-
-  const allMv = transitions.flatMap((t) => [t.fromMv, t.toMv]);
-  const coverage = allMv.length > 0
-    ? Math.round((Math.max(...allMv) - Math.min(...allMv)) / 12)
-    : 0;
 
   const handleReset = () => { if (confirm('确定重置？')) resetDevice(serialNumber); };
   const handleEffChange = (e: React.ChangeEvent<HTMLInputElement>) => {
