@@ -204,6 +204,8 @@ interface BatteryLearnState {
   importData: (serial: string, json: string) => { ok: boolean; error?: string };
   mergeImportData: (serial: string, json: string) => { ok: boolean; error?: string };
   getCredibility: (serial: string) => number;
+  /** 查询指定设备在某电压下的剩余容量 (mWh) */
+  getRemainingMwh: (serial: string, voltageMv: number) => number | null;
 }
 
 export const useBatteryLearnStore = create<BatteryLearnState>()(
@@ -457,6 +459,13 @@ export const useBatteryLearnStore = create<BatteryLearnState>()(
         const densB = Math.min(12, Math.round(ts.length / 5));
         const fresh = (Date.now() - d.lastTickTs) < 60 * 86400000 ? 1 : 0.6;
         return Math.min(100, Math.round((base + cycB + densB) * coverage * fresh));
+      },
+      getRemainingMwh: (serial, voltageMv) => {
+        const d = get().devices[serial];
+        if (!d) return null;
+        const ts = d.dischargeTransitions;
+        if (!ts || ts.length === 0) return null;
+        return getRemaining(ts, d.configuredCapacityMwh, d.calibrated, d.learnedCapacityMwh, voltageMv);
       },
     }),
     {

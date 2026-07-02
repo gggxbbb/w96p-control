@@ -2,7 +2,6 @@ import { useDeviceStore } from '../../stores/device';
 import {
   useBatteryLearnStore,
   buildCumulativeCurve,
-  getRemaining,
   type DeviceLearnData,
 } from '../../stores/batteryLearn';
 import { SOC_TABLE } from '../../utils/battery';
@@ -17,6 +16,7 @@ export default function BatteryLearnPage() {
   const exportData = useBatteryLearnStore((s) => s.exportData);
   const importData = useBatteryLearnStore((s) => s.importData);
   const mergeImportData = useBatteryLearnStore((s) => s.mergeImportData);
+  const getRemainingMwh = useBatteryLearnStore((s) => s.getRemainingMwh);
 
   if (!serialNumber) {
     return (
@@ -33,7 +33,7 @@ export default function BatteryLearnPage() {
   const voltSoc = battery ? voltageToSoc(battery.voltageMv) : null;
 
   const learnedSoc = data && battery
-    ? Math.round(getRemaining(transitions, capacityMwh, data.calibrated, data.learnedCapacityMwh, battery.voltageMv) / capacityMwh * 100)
+    ? (() => { const mwh = getRemainingMwh(serialNumber, battery.voltageMv); return mwh != null ? Math.round(mwh / capacityMwh * 100) : null; })()
     : null;
 
   const allMv = transitions.flatMap((t) => [t.fromMv, t.toMv]);
