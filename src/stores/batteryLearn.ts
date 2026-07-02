@@ -23,7 +23,6 @@ export interface DeviceLearnData {
   _version: 2;
   configuredCapacityMwh: number;
   chargeEfficiency: number;
-  calibrated: boolean;
   cycleCount: number;
   state: 'idle' | 'tracking' | 'paused';
   /** 放电转移记录 */
@@ -58,7 +57,6 @@ function createDeviceData(capacityMwh: number): DeviceLearnData {
     _version: VERSION,
     configuredCapacityMwh: capacityMwh,
     chargeEfficiency: DEFAULT_EFFICIENCY,
-    calibrated: false,
     cycleCount: 0,
     state: 'idle',
     dischargeTransitions: [],
@@ -168,8 +166,6 @@ function interpolateSoc(mv: number): number {
 export function getRemaining(
   transitions: TransitionEntry[] | undefined | null,
   capacityMwh: number,
-  _calibrated: boolean,
-  _learnedCapacityMwh: number,
   voltageMv: number,
 ): number {
   const curve = buildCumulativeCurve(transitions, capacityMwh);
@@ -265,10 +261,8 @@ export const useBatteryLearnStore = create<BatteryLearnState>()(
               ...s.devices,
               [serial]: {
                 ...s.devices[serial]!,
-                calibrated: true,
                 cycleCount: d.cycleCount + 1,
                 chargeEfficiency: newEff,
-                learnedCapacityMwh: Math.round(totalDis) || d.learnedCapacityMwh,
                 chargeTransitions: [],
                 lastTickTs: now,
                 lastDeltaMwh: 0,
@@ -437,7 +431,6 @@ export const useBatteryLearnStore = create<BatteryLearnState>()(
               ...s.devices,
               [serial]: {
                 ...ext,
-                calibrated: ext.calibrated || imp.calibrated,
                 cycleCount: Math.max(ext.cycleCount, imp.cycleCount),
                 dischargeTransitions: [...ext.dischargeTransitions, ...imp.dischargeTransitions],
                 chargeEfficiency: (ext.chargeEfficiency + imp.chargeEfficiency) / 2,
@@ -468,7 +461,7 @@ export const useBatteryLearnStore = create<BatteryLearnState>()(
         if (!d) return null;
         const ts = d.dischargeTransitions;
         if (!ts || ts.length === 0) return null;
-        return getRemaining(ts, d.configuredCapacityMwh, d.calibrated, d.learnedCapacityMwh, voltageMv);
+        return getRemaining(ts, d.configuredCapacityMwh, voltageMv);
       },
     }),
     {

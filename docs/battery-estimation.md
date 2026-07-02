@@ -46,14 +46,12 @@ interface DeviceLearnData {
   _version: 2;
   configuredCapacityMwh: number;     // 用户配置的标称容量
   chargeEfficiency: number;          // 充电效率 (0.5–1.0)
-  calibrated: boolean;               // 是否经过至少一次满充
   cycleCount: number;                // 完成满充次数
   state: 'idle' | 'tracking' | 'paused';  // 学习状态
 
-  dischargeTransitions: TransitionEntry[];  // 放电转移记录
-  chargeTransitions: TransitionEntry[];     // 充电转移记录
+  dischargeTransitions: TransitionEntry[];  // 放电转移记录（不清空，持续累积）
+  chargeTransitions: TransitionEntry[];     // 充电转移记录（满充时清空）
 
-  learnedCapacityMwh: number;        // 学习到的实际容量
   lastTickTs: number;                // 上次 tick 时间戳 (ms)
   lastDeltaMwh: number;              // 上一帧 delta 能量（UI 显示用，带符号）
 
@@ -64,6 +62,8 @@ interface DeviceLearnData {
   pendingIsCharging: boolean;  // pending 段的充放电状态（用于检测状态切换）
 }
 ```
+
+注意：不再有 `calibrated` 字段（已废弃）和 `learnedCapacityMwh` 存储字段（已改为从曲线实时计算）。`learnedCapacityMwh` 仅在序列化数据中保留用于向后兼容。
 
 ---
 
@@ -161,20 +161,21 @@ if isCharging !== pendingIsCharging:
    rawEff = totalDischargeMwh / totalChargeMwh
    chargeEfficiency = chargeEfficiency × 0.75 + rawEff × 0.25
    ```
+   其中 `totalDischargeMwh` 从累积曲线最高点取值（而非裸转移累加），`totalChargeMwh` 为充电转移之和。
 
-2. **记录学习容量**：`learnedCapacityMwh = totalDischargeMwh`
+2. **清空充电转移**（重置 `chargeTransitions = []`，为下一周期准备）
 
-3. **清空充电转移**（重置 `chargeTransitions = []`，为下一周期准备）
+3. **重置 pending 状态**（pendingFromMv=0, pendingMwh=0, direction=0）
 
-4. **重置 pending 状态**（pendingFromMv=0, pendingMwh=0, direction=0）
-
-5. `calibrated = true`, `cycleCount += 1`
+4. `cycleCount += 1`
 
 **放电转移不清空**——数据持续累积，越用越准。
 
+**学习容量和健康度不再在满充时写入存储**——这两个值改为从累积曲线实时计算（见第 6 节和第 8 节）。
+
 ---
 
-## 6. 累积曲线构建
+## 6. 累积曲线构建与实时查询
 
 ### 6.1 重叠均分算法
 
@@ -216,19 +217,24 @@ interface CurvePoint {
 }
 ```
 
-### 6.4 电量查询
+### 6.4 实时电量查询
+
+每次渲染时调用 `buildCumulativeCurve(dischargeTransitions, capacityMwh)` 构建曲线，从中实时计算所有指标（不做存储快照）：
 
 ```
 curve = buildCumulativeCurve(dischargeTransitions, capacityMwh)
 
-// 曲线从最低电压累加到当前电压 = 剩余可用能量
-consumed = curve中 voltageMv ≤ currentMv 的最大 remainingMwh
-
-// 不做线性外推，直接用曲线查出的值
-remaining = consumed
+学习容量 = curve 最高点的 remainingMwh
+剩余容量 = curve 中 voltageMv ≤ currentMv 的最大 remainingMwh
+电量百分比 = 剩余容量 / 学习容量 × 100
+健康度 = 学习容量 / 标称容量 × 100
 ```
 
-`remainingMwh` 是从最低电压一路累加的能量——对放电来说电压越低累加越少，所以 `consumed` 就是当前电压以下还没放出来的能量，也就是剩余能量。不需要比例尺外推。`capacityMwh` 作为百分比分母在页面层 `/ capacityMwh × 100` 使用。
+对外通过 `useBatteryLearn()` hook 暴露，零参数自动绑定当前设备：
+
+```typescript
+const { socPct, remainingMwh, learnedCapacityMwh, healthPct, coverage, credibility } = useBatteryLearn();
+```
 
 ---
 
@@ -246,19 +252,15 @@ chargeEfficiency = 总放电能量 / 总充电能量
 
 ## 8. 健康度
 
-健康度以数据覆盖率（电压覆盖跨度 / 1200mV）为基准：
+健康度（SOH）实时计算，无需满充触发：
 
 ```
-coverage = (maxMv - minMv) / 1200 × 100%
-
-healthScore = coverage ≥ 80% ? learnedCapacityMwh / configuredCapacityMwh × 100
-                              : 100%（默认，数据不足时假设电池全新）
+健康度 = 学习容量(曲线最高点) / 标称容量 × 100%
 ```
 
-- **覆盖率 < 80%**：数据不足以计算真实容量，默认 100%
-- **覆盖率 ≥ 80%**：用学习到的实际容量 vs 标称容量
-- 随着电池老化逐步下降，反映真实衰减
-- 不再依赖单次"满充校准"事件，覆盖率自然过渡
+- 随着转移记录增多，学习容量逐步逼近真实值
+- 不需要覆盖率阈值，有数据就有值
+- 无数据时返回 null
 
 ---
 
@@ -274,7 +276,7 @@ freshness        = lastTickTs 在 60 天内 → 1.0，否则 → 0.6
 credibility = min(100, (baseScore + cycleBonus + densityBonus) × coverage × freshness)
 ```
 
-baseScore 不再是二元切换（已校准→55，未校准→12），而是随覆盖率连续增长：没有数据时 12 分，全电压覆盖时 55 分。
+baseScore 随覆盖率连续增长：没有数据时 12 分，全电压覆盖时 55 分。
 
 | 可信度 | 含义 |
 |---|---|
@@ -306,6 +308,6 @@ baseScore 不再是二元切换（已校准→55，未校准→12），而是随
 3. **自然纠错**：多个转移覆盖同一 mV 时自动取平均，异常值被稀释
 4. **方向处理**：电压抖动导致的方向反转自动丢弃 pending，防止错误累积
 5. **渐进学习**：从 VTC6 参考曲线开始，实测数据逐步替换，越用越准
-6. **真实健康度**：基于实际放电累计能量 vs 标称容量
+6. **实时健康度**：基于累积曲线实时计算，无需等待满充
 7. **浏览器友好**：后台节流、切标签页均不影响数据完整性
 8. **轻量存储**：转移记录而非每 mV 数组，数据量随使用时间而非电压范围增长

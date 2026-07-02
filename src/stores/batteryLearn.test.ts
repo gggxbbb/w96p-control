@@ -114,7 +114,6 @@ describe('battery learn (transitions)', () => {
     for (let mv = 3701; mv <= 4100; mv++) t(SERIAL, CAP, mv, 500, true, 50, 50000 + mv * 100);
     t(SERIAL, CAP, 4170, 100, true, 99, 120000);
     const d = useBatteryLearnStore.getState().devices[SERIAL]!;
-    expect(d.calibrated).toBe(true);
     expect(d.cycleCount).toBe(1);
   });
 
