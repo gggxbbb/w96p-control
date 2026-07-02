@@ -33,8 +33,10 @@ const DASHBOARD_LAYOUTS: ResponsiveLayouts = {
     { i: 'pow-core-temp', x: 3, y: 6, w: 3, h: 2 },
     { i: 'pow-level', x: 6, y: 6, w: 3, h: 2 },
     { i: 'batt-est-pct', x: 9, y: 6, w: 3, h: 2 },
-    { i: 'fan-control', x: 0, y: 8, w: 8, h: 6 },
-    { i: 'status', x: 8, y: 8, w: 4, h: 6 },
+    { i: 'batt-est-rem', x: 0, y: 8, w: 3, h: 2 },
+    { i: 'batt-est-eta', x: 3, y: 8, w: 3, h: 2 },
+    { i: 'fan-control', x: 0, y: 10, w: 8, h: 6 },
+    { i: 'status', x: 8, y: 10, w: 4, h: 6 },
   ],
   md: [
     { i: 'fan-gear', x: 0, y: 0, w: 3, h: 2 },
@@ -53,8 +55,10 @@ const DASHBOARD_LAYOUTS: ResponsiveLayouts = {
     { i: 'pow-core-temp', x: 0, y: 12, w: 5, h: 2 },
     { i: 'pow-level', x: 5, y: 12, w: 5, h: 2 },
     { i: 'batt-est-pct', x: 0, y: 14, w: 5, h: 2 },
-    { i: 'fan-control', x: 0, y: 16, w: 10, h: 6 },
-    { i: 'status', x: 0, y: 22, w: 10, h: 6 },
+    { i: 'batt-est-rem', x: 5, y: 14, w: 5, h: 2 },
+    { i: 'batt-est-eta', x: 0, y: 16, w: 5, h: 2 },
+    { i: 'fan-control', x: 0, y: 18, w: 10, h: 6 },
+    { i: 'status', x: 0, y: 24, w: 10, h: 6 },
   ],
   sm: [
     { i: 'fan-gear', x: 0, y: 0, w: 3, h: 2 },
@@ -73,8 +77,10 @@ const DASHBOARD_LAYOUTS: ResponsiveLayouts = {
     { i: 'pow-core-temp', x: 3, y: 12, w: 3, h: 2 },
     { i: 'pow-level', x: 0, y: 14, w: 3, h: 2 },
     { i: 'batt-est-pct', x: 3, y: 14, w: 3, h: 2 },
-    { i: 'fan-control', x: 0, y: 16, w: 6, h: 6 },
-    { i: 'status', x: 0, y: 22, w: 6, h: 6 },
+    { i: 'batt-est-rem', x: 0, y: 16, w: 3, h: 2 },
+    { i: 'batt-est-eta', x: 3, y: 16, w: 3, h: 2 },
+    { i: 'fan-control', x: 0, y: 18, w: 6, h: 6 },
+    { i: 'status', x: 0, y: 24, w: 6, h: 6 },
   ],
   xs: [
     { i: 'fan-gear', x: 0, y: 0, w: 2, h: 2 },
@@ -93,8 +99,10 @@ const DASHBOARD_LAYOUTS: ResponsiveLayouts = {
     { i: 'pow-core-temp', x: 0, y: 26, w: 2, h: 2 },
     { i: 'pow-level', x: 0, y: 28, w: 2, h: 2 },
     { i: 'batt-est-pct', x: 2, y: 28, w: 2, h: 2 },
-    { i: 'fan-control', x: 0, y: 30, w: 2, h: 6 },
-    { i: 'status', x: 0, y: 36, w: 2, h: 6 },
+    { i: 'batt-est-rem', x: 0, y: 30, w: 2, h: 2 },
+    { i: 'batt-est-eta', x: 2, y: 30, w: 2, h: 2 },
+    { i: 'fan-control', x: 0, y: 32, w: 2, h: 6 },
+    { i: 'status', x: 0, y: 38, w: 2, h: 6 },
   ],
 };
 
@@ -127,6 +135,9 @@ export default function Dashboard() {
         : 0
     : 0;
   const vbusPower = powerStatus ? (powerStatus.vbusVmV * powerStatus.vbusCurMa) / 1e6 : 0;
+  const estSoc = battery ? voltageToSoc(battery.voltageMv) : null;
+  const estRemainMwh = (estSoc != null && battery?.capacityMwh) ? Math.round(battery.capacityMwh * estSoc / 100) : null;
+  const estEtaMin = (estRemainMwh != null && batteryPower > 0) ? Math.round(estRemainMwh / (batteryPower * 1000) * 60) : null;
 
   const minSpeed = profile.minSpeed;
   const maxSpeed = profile.maxSpeed;
@@ -269,6 +280,16 @@ export default function Dashboard() {
             gaugeMin={0}
             gaugeMax={100}
           />
+        </DraggableCard>
+      )}
+      {dashboardCards['batt-est-rem'] && (
+        <DraggableCard key="batt-est-rem">
+          <MetricCard label="剩余容量(估算)" value={estRemainMwh ?? '--'} unit="mWh" />
+        </DraggableCard>
+      )}
+      {dashboardCards['batt-est-eta'] && (
+        <DraggableCard key="batt-est-eta">
+          <MetricCard label="预计续航(估算)" value={estEtaMin ?? '--'} unit="min" />
         </DraggableCard>
       )}
 

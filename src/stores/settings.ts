@@ -8,6 +8,8 @@ export const DASHBOARD_CARD_KEYS = [
   'vbus-power', 'vbus-cur', 'vbus-volt',
   'pow-level', 'pow-core-temp',
   'batt-est-pct',
+  'batt-est-rem',
+  'batt-est-eta',
 ] as const;
 
 export type DashboardCardKey = typeof DASHBOARD_CARD_KEYS[number];
@@ -28,6 +30,8 @@ export const DASHBOARD_CARD_LABELS: Record<DashboardCardKey, string> = {
   'pow-level': '电量',
   'pow-core-temp': '芯片温度',
   'batt-est-pct': '电量(电压估算)',
+  'batt-est-rem': '剩余容量(估算)',
+  'batt-est-eta': '预计续航(估算)',
 };
 
 export const DASHBOARD_CARD_DEFAULTS: DashboardCardKey[] = [

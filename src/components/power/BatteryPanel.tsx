@@ -4,6 +4,7 @@ import { useDeviceStore } from '../../stores/device';
 import { useToastStore } from '../../stores/toast';
 import { Card } from '../ui/Card';
 import { MetricCard } from '../ui/MetricCard';
+import { voltageToSoc } from '../../utils/battery';
 
 export function BatteryPanel() {
   const { readBatteryCapacity, setBatteryCapacity, writeBatteryClr } = useBle();
@@ -13,6 +14,9 @@ export function BatteryPanel() {
   const [voltage, setVoltage] = useState('3.6');
 
   const power = battery ? (battery.voltageMv * battery.currentMa) / 1e6 : 0;
+  const soc = battery ? voltageToSoc(battery.voltageMv) : null;
+  const remainingMwh = (soc != null && battery?.capacityMwh) ? Math.round(battery.capacityMwh * soc / 100) : null;
+  const etaMin = (remainingMwh != null && power > 0) ? Math.round(remainingMwh / (power * 1000) * 60) : null;
 
   const apply = () => {
     const m = parseInt(mah, 10);
@@ -32,11 +36,16 @@ export function BatteryPanel() {
 
   return (
     <Card title="电池信息">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px' }}>
+        <MetricCard label="电压" value={battery ? battery.voltageMv / 1000 : '--'} unit="V" decimals={2} noGauge />
+        <MetricCard label="电流" value={battery ? battery.currentMa : '--'} unit="mA" noGauge />
+        <MetricCard label="容量" value={battery ? battery.capacityMwh : '--'} unit="mWh" noGauge />
+        <MetricCard label="功率" value={power} unit="W" decimals={2} noGauge />
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px', marginBottom: '12px' }}>
-        <MetricCard label="电压" value={battery ? battery.voltageMv / 1000 : '--'} unit="V" decimals={2} />
-        <MetricCard label="电流" value={battery ? battery.currentMa : '--'} unit="mA" />
-        <MetricCard label="容量" value={battery ? battery.capacityMwh : '--'} unit="mWh" />
-        <MetricCard label="功率" value={power} unit="W" decimals={2} />
+        <MetricCard label="电量(电压估算)" value={soc ?? '--'} unit="%" gaugeMin={0} gaugeMax={100} noGauge />
+        <MetricCard label="剩余容量(估算)" value={remainingMwh ?? '--'} unit="mWh" noGauge />
+        <MetricCard label="预计续航(估算)" value={etaMin ?? '--'} unit="min" noGauge />
       </div>
       <div style={{ paddingTop: '10px', borderTop: '0.5px solid var(--color-border)' }}>
         <div style={{ fontSize: '10px', color: 'var(--color-text-dim)', marginBottom: '8px', lineHeight: '1.6' }}>

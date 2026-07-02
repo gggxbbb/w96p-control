@@ -17,6 +17,8 @@ interface MetricCardProps {
   gaugeMin?: number;
   /** gauge 模式的最大值，默认 100 */
   gaugeMax?: number;
+  /** 强制数字模式，禁用仪表切换（用于嵌套在面板内的 MetricCard） */
+  noGauge?: boolean;
   style?: React.CSSProperties;
   className?: string;
   children?: ReactNode;
@@ -74,12 +76,13 @@ export function MetricCard({
   accent: _accent,
   gaugeMin = 0,
   gaugeMax = 100,
+  noGauge = false,
   style,
   className,
   children,
 }: MetricCardProps) {
   const editable = useEditMode();
-  const variant: 'number' | 'gauge' = NO_GAUGE_LABELS.has(label) ? 'number' : useMetricStore((s) => s.configs[label]?.variant ?? 'number');
+  const variant: 'number' | 'gauge' = noGauge ? 'number' : NO_GAUGE_LABELS.has(label) ? 'number' : useMetricStore((s) => s.configs[label]?.variant ?? 'number');
   const storeMin = useMetricStore((s) => s.configs[label]?.min);
   const storeMax = useMetricStore((s) => s.configs[label]?.max);
   const setVariant = useMetricStore((s) => s.setVariant);
@@ -166,7 +169,7 @@ export function MetricCard({
         </span>
 
         {/* edit-mode buttons */}
-        {editable && !NO_GAUGE_LABELS.has(label) && (
+        {editable && !noGauge && !NO_GAUGE_LABELS.has(label) && (
           <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
             <button
               onClick={(e) => {
