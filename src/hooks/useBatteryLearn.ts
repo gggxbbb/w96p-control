@@ -3,12 +3,16 @@ import { useBatteryLearnStore, getRemaining } from '../stores/batteryLearn';
 import { useDeviceStore } from '../stores/device';
 
 interface BatteryLearnSnapshot {
-  /** 学习到的剩余容量 (mWh)，无数据时为 null */
-  remainingMwh: number | null;
-  /** 学习到的 SOC 百分比 (0-100)，无数据时为 null */
+  /** 学习到的当前电量百分比 (0-100)，由电压-能量曲线计算 */
   socPct: number | null;
+  /** 学习到的当前剩余容量 (mWh)，无数据时为 null */
+  remainingMwh: number | null;
   /** 学习到的总容量 (mWh) */
   learnedCapacityMwh: number | null;
+  /** 电池健康度 SOH (%) = 学习容量 / 标称容量 × 100 */
+  healthPct: number | null;
+  /** 标称容量 (mWh) */
+  configuredCapacityMwh: number | null;
   /** 电压覆盖率 (0-100) */
   coverage: number;
   /** 可信度 (0-100) */
@@ -20,10 +24,10 @@ interface BatteryLearnSnapshot {
 }
 
 /**
- * 电量学习便捷 Hook：自动绑定当前设备，无需传序列号。
+ * 电量学习便捷 Hook：自动绑定当前设备，所有值均从电池学习数据计算。
  *
  * 用法：
- *   const { socPct, remainingMwh, coverage } = useBatteryLearn();
+ *   const { socPct, remainingMwh, learnedCapacityMwh, healthPct } = useBatteryLearn();
  */
 export function useBatteryLearn(): BatteryLearnSnapshot {
   const serialNumber = useDeviceStore((s) => s.serialNumber);
@@ -33,30 +37,22 @@ export function useBatteryLearn(): BatteryLearnSnapshot {
   const credFn = useBatteryLearnStore((s) => s.getCredibility);
 
   return useMemo(() => {
-    if (!serialNumber) {
-      return {
-        remainingMwh: null,
-        socPct: null,
-        learnedCapacityMwh: null,
-        coverage: 0,
-        credibility: 0,
-        cycleCount: 0,
-        hasData: false,
-      };
-    }
+    const empty = {
+      socPct: null,
+      remainingMwh: null,
+      learnedCapacityMwh: null,
+      healthPct: null,
+      configuredCapacityMwh: null,
+      coverage: 0,
+      credibility: 0,
+      cycleCount: 0,
+      hasData: false,
+    };
+
+    if (!serialNumber) return empty;
 
     const data = devices[serialNumber];
-    if (!data) {
-      return {
-        remainingMwh: null,
-        socPct: null,
-        learnedCapacityMwh: null,
-        coverage: 0,
-        credibility: 0,
-        cycleCount: 0,
-        hasData: false,
-      };
-    }
+    if (!data) return empty;
 
     const ts = data.dischargeTransitions ?? [];
     const cap = data.configuredCapacityMwh;
@@ -74,10 +70,17 @@ export function useBatteryLearn(): BatteryLearnSnapshot {
       ? Math.round((Math.max(...allMv) - Math.min(...allMv)) / 12)
       : 0;
 
+    const learned = data.learnedCapacityMwh;
+    const healthPct = (learned != null && cap > 0)
+      ? Math.round(learned / cap * 100)
+      : null;
+
     return {
-      remainingMwh,
       socPct,
-      learnedCapacityMwh: data.learnedCapacityMwh,
+      remainingMwh,
+      learnedCapacityMwh: learned,
+      healthPct,
+      configuredCapacityMwh: cap,
       coverage,
       credibility: credFn(serialNumber),
       cycleCount: data.cycleCount,
