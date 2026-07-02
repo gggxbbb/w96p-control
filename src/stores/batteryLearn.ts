@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { SOC_TABLE } from '../utils/battery';
 
 /** 单次采样点 */
 export interface LearnSample {
@@ -143,6 +144,29 @@ export const useBatteryLearnStore = create<BatteryLearnState>()(
         const dtSec = prevTick > 0 ? (now - prevTick) / 1000 : 0;
         // 首次 tick 只记录时间不做积分
         if (dtSec <= 0 || dtSec > 60) {
+          // 大间隔重连 → 检查电压漂移，必要时用可信曲线重置
+          const prevVm = lastSampleVoltage(device);
+          if (prevVm > 0) {
+            const deltaV = Math.abs(voltageMv - prevVm);
+            if (deltaV >= 100) {
+              const credible = get().getCredibility(serial) >= 80;
+              const curve = credible
+                ? buildVoltageToRemaining(device)
+                : null;
+              const estimated = interpolateRemaining(curve, voltageMv, capacityMwh);
+              set((s) => ({
+                devices: {
+                  ...s.devices,
+                  [serial]: {
+                    ...s.devices[serial]!,
+                    trackedRemainingMwh: estimated,
+                    lastTickTs: now,
+                  },
+                },
+              }));
+              return;
+            }
+          }
           set((s) => ({
             devices: { ...s.devices, [serial]: { ...s.devices[serial]!, lastTickTs: now } },
           }));
@@ -431,4 +455,60 @@ function _mergeCycles(existing: CycleSamples[], imported: CycleSamples[]): Cycle
     result.push(c);
   }
   return result;
+}
+
+/** 获取设备最后一个采样点的电压（用于 deltaV 检测） */
+function lastSampleVoltage(device: DeviceLearnData): number {
+  const all = [
+    ...device.currentCharge,
+    ...device.currentDischarge,
+    ...device.completedCycles.flatMap((c) => [...c.charge, ...c.discharge]),
+  ];
+  if (all.length === 0) return 0;
+  return all.reduce((a, b) => (a.ts > b.ts ? a : b)).voltageMv;
+}
+
+/** 从放电采样构建电压→剩余容量的排序数组（放电采样按电压降序排列） */
+function buildVoltageToRemaining(device: DeviceLearnData): [number, number][] {
+  const samples = [
+    ...device.completedCycles.flatMap((c) => c.discharge),
+    ...device.currentDischarge,
+  ];
+  // 电压降序排列（高电压→低电压）
+  const sorted = [...samples].sort((a, b) => b.voltageMv - a.voltageMv);
+  return sorted.map((s) => [s.voltageMv, s.remainingMwh] as [number, number]);
+}
+
+/** 从电压→剩余容量曲线线性插值（无学习曲线时 fallback SOC_TABLE） */
+function interpolateRemaining(
+  curve: [number, number][] | null,
+  voltageMv: number,
+  capacityMwh: number,
+): number {
+  if (curve && curve.length >= 2) {
+    // 学习曲线：电压降序，找区间
+    for (let i = 0; i < curve.length - 1; i++) {
+      const [vHigh, rHigh] = curve[i]!;
+      const [vLow, rLow] = curve[i + 1]!;
+      if (voltageMv <= vHigh && voltageMv >= vLow) {
+        const t = (voltageMv - vLow) / (vHigh - vLow);
+        return Math.round(rLow + (rHigh - rLow) * t);
+      }
+    }
+    if (voltageMv > curve[0]![0]) return curve[0]![1];
+    return curve[curve.length - 1]![1];
+  }
+  // Fallback: SOC_TABLE（电压降序: 高→低）
+  const table = SOC_TABLE;
+  for (let i = 0; i < table.length - 1; i++) {
+    const [vHigh, sHigh] = table[i]!;
+    const [vLow, sLow] = table[i + 1]!;
+    if (voltageMv <= vHigh && voltageMv >= vLow) {
+      const t = (voltageMv - vLow) / (vHigh - vLow);
+      const soc = sLow + (sHigh - sLow) * t;
+      return Math.round(capacityMwh * soc / 100);
+    }
+  }
+  if (voltageMv > table[0]![0]) return Math.round(capacityMwh * table[0]![1] / 100);
+  return Math.round(capacityMwh * table[table.length - 1]![1] / 100);
 }
