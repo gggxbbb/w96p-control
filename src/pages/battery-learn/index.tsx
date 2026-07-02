@@ -30,6 +30,7 @@ export default function BatteryLearnPage() {
 
   const data: DeviceLearnData | undefined = devices[serialNumber];
   const transitions = data?.dischargeTransitions ?? [];
+  const chargeTransitions = data?.chargeTransitions ?? [];
   const voltSoc = battery ? voltageToSoc(battery.voltageMv) : null;
 
   const handleReset = () => { if (confirm('确定重置？')) resetDevice(serialNumber); };
@@ -88,6 +89,7 @@ export default function BatteryLearnPage() {
       <Section label="转移记录">
         <div style={row}>
           <KV label="放电转移" value={String(transitions.length)} />
+          <KV label="充电转移" value={data ? String(chargeTransitions.length) : '--'} />
           <KV label="满充次数" value={data ? String(data.cycleCount) : '--'} />
         </div>
       </Section>
@@ -102,10 +104,10 @@ export default function BatteryLearnPage() {
       )}
       {data && transitions.length > 0 && (
         <Section label="累积曲线 (电压 → 累计消耗)">
-          <CurveChart data={data} />
+          <CurveChart data={data} chargeTs={chargeTransitions} />
         </Section>
       )}
-      {data && transitions.length > 0 && <TransitionTable data={data} />}
+      {data && (transitions.length > 0 || chargeTransitions.length > 0) && <TransitionTable data={data} />}
       <div style={{ marginTop: 16, borderTop: '0.5px solid var(--color-border)', paddingTop: 12 }}>
         <div style={{ fontSize: 10, color: 'var(--color-text-dim)', marginBottom: 8 }}>数据管理</div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -129,9 +131,10 @@ function voltageToSoc(mv: number): number {
   return mv > SOC_TABLE[0]![0] ? SOC_TABLE[0]![1] : SOC_TABLE[SOC_TABLE.length - 1]![1]!;
 }
 
-function CurveChart({ data }: { data: DeviceLearnData }) {
+function CurveChart({ data, chargeTs }: { data: DeviceLearnData; chargeTs: import('../../stores/batteryLearn').TransitionEntry[] }) {
   const cap = data.configuredCapacityMwh;
   const curve = buildCumulativeCurve(data.dischargeTransitions, cap);
+  const chargeCurve = buildCumulativeCurve(chargeTs, cap);
   if (curve.length < 2) return null;
   const W = 560, H = 200, l = 55, r = 20, t = 10, b = 24;
   const vMin = curve[0]!.voltageMv, vMax = curve[curve.length - 1]!.voltageMv;
@@ -151,6 +154,9 @@ function CurveChart({ data }: { data: DeviceLearnData }) {
     }
   }
   const dp = curve.map((p) => `${tx(p.voltageMv)},${ty(p.remainingMwh)}`).join(' ');
+  const cp = chargeCurve.length >= 2
+    ? chargeCurve.map((p) => `${tx(p.voltageMv)},${ty(p.remainingMwh)}`).join(' ')
+    : null;
   const vTks = [vMin, Math.round((vMin + vMax) / 2), vMax];
   const cTks = [0, Math.round(cMax / 2), Math.round(cMax)];
 
@@ -165,6 +171,7 @@ function CurveChart({ data }: { data: DeviceLearnData }) {
         {cTks.map((c) => <text key={`tc${c}`} x={l - 4} y={ty(c) + 3} textAnchor="end" fill="var(--color-text-dim)" fontSize={8}>{c >= 1000 ? `${(c / 1000).toFixed(1)}k` : c}</text>)}
         <polyline points={refPts.join(' ')} fill="none" stroke="var(--color-text-dim)" strokeWidth={1} strokeDasharray="4,3" opacity={0.5} />
         <polyline points={dp} fill="none" stroke="var(--color-accent)" strokeWidth={1.5} opacity={0.8} />
+        {cp && <polyline points={cp} fill="none" stroke="#f59e0b" strokeWidth={1.2} opacity={0.6} strokeDasharray="6,3" />}
         {curve.filter((_, i) => i % 50 === 0).map((p, i) => (
           <circle key={i} cx={tx(p.voltageMv)} cy={ty(p.remainingMwh)} r={p.fromData ? 2 : 1} fill={p.fromData ? 'var(--color-accent)' : 'var(--color-text-dim)'} opacity={p.fromData ? 0.7 : 0.3} />
         ))}
@@ -175,13 +182,24 @@ function CurveChart({ data }: { data: DeviceLearnData }) {
 
 function TransitionTable({ data }: { data: DeviceLearnData }) {
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<'discharge' | 'charge'>('discharge');
   if (!open) return <div style={{ marginBottom: 12 }}><button onClick={() => setOpen(true)} style={tgl}>▶ 显示转移记录</button></div>;
-  const ts = data.dischargeTransitions ?? [];
+
+  const ts = tab === 'discharge' ? (data.dischargeTransitions ?? []) : (data.chargeTransitions ?? []);
+  const label = tab === 'discharge' ? '放电' : '充电';
   return (
     <div style={{ marginBottom: 12 }}>
       <button onClick={() => setOpen(false)} style={tgl}>▼ 隐藏转移记录</button>
+      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+        <button onClick={() => setTab('discharge')} style={{ ...tabBtn, color: tab === 'discharge' ? 'var(--color-accent)' : 'var(--color-text-muted)', borderColor: tab === 'discharge' ? 'var(--color-accent)' : 'var(--color-border)' }}>
+          放电 ({data.dischargeTransitions?.length ?? 0})
+        </button>
+        <button onClick={() => setTab('charge')} style={{ ...tabBtn, color: tab === 'charge' ? '#f59e0b' : 'var(--color-text-muted)', borderColor: tab === 'charge' ? '#f59e0b' : 'var(--color-border)' }}>
+          充电 ({data.chargeTransitions?.length ?? 0})
+        </button>
+      </div>
       <div style={{ marginTop: 8, maxHeight: 300, overflow: 'auto', background: 'var(--color-bg-inset)', borderRadius: 6, padding: 10, fontSize: 10, fontFamily: 'var(--font-mono, monospace)', fontVariantNumeric: 'tabular-nums', lineHeight: 1.7 }}>
-        <div style={{ color: 'var(--color-text-dim)', marginBottom: 6 }}>{ts.length} 条放电转移 · 学习容量: {Math.round(data.learnedCapacityMwh)}mWh · 效率: {data.chargeEfficiency}</div>
+        <div style={{ color: 'var(--color-text-dim)', marginBottom: 6 }}>{ts.length} 条{label}转移 · 学习容量: {Math.round(data.learnedCapacityMwh)}mWh · 效率: {data.chargeEfficiency}</div>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead><tr style={{ opacity: 0.5, textAlign: 'left' }}><th style={{ padding: '2px 6px' }}>from</th><th style={{ padding: '2px 6px' }}>to</th><th style={{ padding: '2px 6px' }}>ΔmV</th><th style={{ padding: '2px 6px' }}>mWh</th><th style={{ padding: '2px 6px' }}>mWh/mV</th></tr></thead>
           <tbody>{ts.map((e, i) => (
@@ -218,3 +236,4 @@ const inp: React.CSSProperties = { background: 'var(--color-bg-inset)', border: 
 const abtn: React.CSSProperties = { background: 'transparent', border: '0.5px solid var(--color-border-strong)', borderRadius: 4, color: 'var(--color-text-muted)', padding: '4px 10px', fontSize: 11, fontFamily: 'var(--font-sans)', cursor: 'pointer' };
 const dbtn: React.CSSProperties = { background: 'transparent', border: '0.5px solid var(--color-danger)', borderRadius: 4, color: 'var(--color-danger)', padding: '4px 10px', fontSize: 11, fontFamily: 'var(--font-sans)', cursor: 'pointer' };
 const tgl: React.CSSProperties = { background: 'none', border: 'none', color: 'var(--color-text-dim)', fontSize: 10, fontFamily: 'var(--font-sans)', cursor: 'pointer', padding: 0 };
+const tabBtn: React.CSSProperties = { background: 'transparent', border: '0.5px solid', borderRadius: 4, padding: '3px 10px', fontSize: 11, fontFamily: 'var(--font-sans)', cursor: 'pointer' };
