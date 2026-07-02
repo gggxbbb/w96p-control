@@ -2,7 +2,6 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { useConnectionStore } from '../../stores/connection';
 import { useSettingsStore } from '../../stores/settings';
 import { useBleMetrics } from '../../stores/bleMetrics';
-import { useDeviceStore } from '../../stores/device';
 
 const DebugBle = lazy(() => import('../../pages/debug-ble'));
 const BatteryLearn = lazy(() => import('../../pages/battery-learn'));
