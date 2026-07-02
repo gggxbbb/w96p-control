@@ -48,6 +48,15 @@ export interface DeviceLearnData {
 }
 
 const DEFAULT_EFFICIENCY = 0.92;
+const MIN_CURRENT_MA = 10;
+const MAX_DT_SEC = 60;
+const FULL_CHARGE_VOLTAGE_MV = 4100;
+const FULL_CHARGE_CURRENT_MA = 500;
+const VOLTAGE_DRIFT_THRESHOLD_MV = 100;
+const MAX_SAMPLES = 500;
+const CHARGE_EFFICIENCY_SMOOTHING = 0.25;
+const LOW_EVIDENCE_THRESHOLD = 0.35;
+const MIN_DISCHARGE_EVIDENCE = 3;
 
 function createDeviceData(capacityMwh: number): DeviceLearnData {
   return {
@@ -65,6 +74,10 @@ function createDeviceData(capacityMwh: number): DeviceLearnData {
     chargeRawAccumMwh: 0,
     lastDeltaMwh: 0,
   };
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
 
 interface BatteryLearnState {
@@ -119,7 +132,6 @@ export const useBatteryLearnStore = create<BatteryLearnState>()(
       ensureDevice: (serial, capacityMwh) => {
         const existing = get().devices[serial];
         if (existing) {
-          // 容量变了就重置
           if (existing.configuredCapacityMwh !== capacityMwh) {
             const next = createDeviceData(capacityMwh);
             set((s) => ({ devices: { ...s.devices, [serial]: next } }));
@@ -136,81 +148,88 @@ export const useBatteryLearnStore = create<BatteryLearnState>()(
         const device = get().ensureDevice(serial, capacityMwh);
         if (device.state === 'paused') return;
 
-        // 判断是否在充放电中
-        const hasCurrent = Math.abs(currentMa) > 10; // >10mA 才算有电流
-        if (!hasCurrent) return;
-
-        const prevTick = device.lastTickTs;
-        const dtSec = prevTick > 0 ? (now - prevTick) / 1000 : 0;
-        // 首次 tick 只记录时间不做积分
-        if (dtSec <= 0 || dtSec > 60) {
-          // 大间隔重连 → 检查电压漂移，必要时用可信曲线重置
-          const prevVm = lastSampleVoltage(device);
-          if (prevVm > 0) {
-            const deltaV = Math.abs(voltageMv - prevVm);
-            if (deltaV >= 100) {
-              const credible = get().getCredibility(serial) >= 80;
-              const curve = credible
-                ? buildVoltageToRemaining(device)
-                : null;
-              const estimated = interpolateRemaining(curve, voltageMv, capacityMwh);
-              set((s) => ({
-                devices: {
-                  ...s.devices,
-                  [serial]: {
-                    ...s.devices[serial]!,
-                    trackedRemainingMwh: estimated,
-                    lastTickTs: now,
-                  },
-                },
-              }));
-              return;
-            }
-          }
+        const hasCurrent = Math.abs(currentMa) > MIN_CURRENT_MA;
+        if (!hasCurrent) {
           set((s) => ({
-            devices: { ...s.devices, [serial]: { ...s.devices[serial]!, lastTickTs: now } },
+            devices: {
+              ...s.devices,
+              [serial]: { ...s.devices[serial]!, lastTickTs: now, lastDeltaMwh: 0 },
+            },
           }));
           return;
         }
 
+        const prevTick = device.lastTickTs;
+        const dtSec = prevTick > 0 ? (now - prevTick) / 1000 : 0;
+        if (dtSec <= 0 || dtSec > MAX_DT_SEC) {
+          const prevVm = lastSampleVoltage(device);
+          if (prevVm > 0 && Math.abs(voltageMv - prevVm) >= VOLTAGE_DRIFT_THRESHOLD_MV) {
+            const credible = get().getCredibility(serial) >= 80;
+            const curve = credible ? buildVoltageToRemaining(device) : null;
+            const estimated = interpolateRemaining(curve, voltageMv, capacityMwh);
+            set((s) => ({
+              devices: {
+                ...s.devices,
+                [serial]: {
+                  ...s.devices[serial]!,
+                  trackedRemainingMwh: clamp(estimated, 0, capacityMwh),
+                  lastTickTs: now,
+                  lastDeltaMwh: 0,
+                },
+              },
+            }));
+          } else {
+            set((s) => ({
+              devices: {
+                ...s.devices,
+                [serial]: { ...s.devices[serial]!, lastTickTs: now, lastDeltaMwh: 0 },
+              },
+            }));
+          }
+          return;
+        }
+
         const absCurrentMa = Math.abs(currentMa);
-        // 放电能量 mWh = mV × mA × sec / 3600
         const deltaMwh = (voltageMv * absCurrentMa * dtSec) / 3_600_000;
+        const previousDirection = device.lastDeltaMwh === 0 ? null : device.lastDeltaMwh > 0 ? 'charge' : 'discharge';
+        const currentDirection = isCharging ? 'charge' : 'discharge';
+        const directionChanged = previousDirection !== null && previousDirection !== currentDirection;
 
         let tracked = device.trackedRemainingMwh;
         let calibrated = device.calibrated;
-        let state = 'tracking' as const;
+        const state = 'tracking' as const;
+        const evidence = getEvidenceScore(device);
+        const shouldUseVoltageFallback = !calibrated && evidence < LOW_EVIDENCE_THRESHOLD;
 
-        // ── 满充检测 ──
-        if (isCharging && voltageMv >= 4100 && absCurrentMa < 500 && device.currentCharge.length > 0 && device.currentDischarge.length > 0) {
-          // 电压 ≥ 4.10V 且电流已降到 <500mA → 满充锚点
+        if (isCharging && voltageMv >= FULL_CHARGE_VOLTAGE_MV && absCurrentMa < FULL_CHARGE_CURRENT_MA) {
           tracked = capacityMwh;
           calibrated = true;
-          // 保存当前充放采样为一次完整循环
-          // 保存当前充放采样为一次完整循环
-          // 自动校准充电效率
+
           let newEff = device.chargeEfficiency;
           if (device.chargeRawAccumMwh > 0) {
-            const gained = capacityMwh - device.chargeStartRemainingMwh;
+            const gained = Math.max(0, capacityMwh - device.chargeStartRemainingMwh);
             if (gained > 0) {
-              const rawEff = gained / device.chargeRawAccumMwh;
-              // 指数平滑：新效率=旧效率×0.7 + 新计算×0.3
-              newEff = Math.round((device.chargeEfficiency * 0.7 + rawEff * 0.3) * 1000) / 1000;
-              newEff = Math.min(1.0, Math.max(0.5, newEff));
+              const derivedEff = gained / device.chargeRawAccumMwh;
+              newEff = clamp(
+                device.chargeEfficiency * (1 - CHARGE_EFFICIENCY_SMOOTHING) + derivedEff * CHARGE_EFFICIENCY_SMOOTHING,
+                0.5,
+                1,
+              );
             }
           }
+
           const completed: CycleSamples = {
             charge: [...device.currentCharge],
             discharge: [...device.currentDischarge],
           };
-          const cleaned = [...device.completedCycles, completed]
-            .filter((c) => c.charge.length > 0 || c.discharge.length > 0);
+          const cleaned = [...device.completedCycles, completed].filter((c) => c.charge.length > 0 || c.discharge.length > 0);
+
           set((s) => ({
             devices: {
               ...s.devices,
               [serial]: {
                 ...s.devices[serial]!,
-                trackedRemainingMwh: tracked,
+                trackedRemainingMwh: capacityMwh,
                 calibrated: true,
                 cycleCount: device.cycleCount + 1,
                 chargeEfficiency: newEff,
@@ -220,6 +239,7 @@ export const useBatteryLearnStore = create<BatteryLearnState>()(
                 currentDischarge: [],
                 completedCycles: cleaned,
                 lastTickTs: now,
+                lastDeltaMwh: 0,
                 state,
               },
             },
@@ -227,22 +247,22 @@ export const useBatteryLearnStore = create<BatteryLearnState>()(
           return;
         }
 
-        // ── 积分 ──
         if (isCharging) {
-          // 新充电段开始：记录起点
           let chargeStart = device.chargeStartRemainingMwh;
           let chargeRaw = device.chargeRawAccumMwh;
-          if (chargeRaw === 0) {
-            chargeStart = tracked;
+          if (directionChanged || chargeRaw === 0) {
+            chargeStart = Math.round(tracked);
+            chargeRaw = 0;
           }
           chargeRaw += deltaMwh;
 
-          // 充电：效率打折
           tracked += deltaMwh * device.chargeEfficiency;
           tracked = Math.min(tracked, capacityMwh);
-          // 记录充电采样
+
           const sample: LearnSample = { voltageMv, remainingMwh: Math.round(tracked), ts: now };
-          const newCharge = clampSamples([...device.currentCharge, sample]);
+          const newCharge = directionChanged
+            ? clampSamples([sample])
+            : clampSamples([...device.currentCharge, sample]);
 
           set((s) => ({
             devices: {
@@ -254,41 +274,48 @@ export const useBatteryLearnStore = create<BatteryLearnState>()(
                 chargeStartRemainingMwh: chargeStart,
                 chargeRawAccumMwh: chargeRaw,
                 currentCharge: newCharge,
+                currentDischarge: device.currentDischarge,
                 lastTickTs: now,
-                lastDeltaMwh: deltaMwh,  // 充电为正
+                lastDeltaMwh: deltaMwh,
                 state,
               },
             },
           }));
-        } else {
-          // 放电：直接减
-          tracked -= deltaMwh;
-          tracked = Math.max(tracked, 0);
-          const sample: LearnSample = { voltageMv, remainingMwh: Math.round(tracked), ts: now };
-          const newDischarge = clampSamples([...device.currentDischarge, sample]);
-
-          // ── 弱校准：如果还没满充校准过，用电压估算做弱修正 ──
-          if (!calibrated) {
-            const voltEstimate = (capacityMwh * socEstimate) / 100;
-            // 弱校准：每次往电压估算方向拉 10%
-            tracked = tracked + (voltEstimate - tracked) * 0.10;
-          }
-
-          set((s) => ({
-            devices: {
-              ...s.devices,
-              [serial]: {
-                ...s.devices[serial]!,
-                trackedRemainingMwh: Math.round(tracked),
-                calibrated,
-                currentDischarge: newDischarge,
-                lastTickTs: now,
-                lastDeltaMwh: -deltaMwh,  // 放电为负
-                state,
-              },
-            },
-          }));
+          return;
         }
+
+        tracked -= deltaMwh;
+        tracked = Math.max(tracked, 0);
+
+        const sample: LearnSample = { voltageMv, remainingMwh: Math.round(tracked), ts: now };
+        const newDischarge = directionChanged
+          ? clampSamples([sample])
+          : clampSamples([...device.currentDischarge, sample]);
+
+        if (shouldUseVoltageFallback) {
+          const voltEstimate = (capacityMwh * socEstimate) / 100;
+          const target = clamp(voltEstimate, 0, capacityMwh);
+          const fallbackStrength = evidence < LOW_EVIDENCE_THRESHOLD / 2 ? 0.08 : 0.12;
+          tracked = tracked + (target - tracked) * fallbackStrength;
+        }
+
+        set((s) => ({
+          devices: {
+            ...s.devices,
+            [serial]: {
+              ...s.devices[serial]!,
+              trackedRemainingMwh: Math.round(tracked),
+              calibrated,
+              chargeStartRemainingMwh: directionChanged ? Math.round(tracked) : device.chargeStartRemainingMwh,
+              chargeRawAccumMwh: directionChanged ? 0 : device.chargeRawAccumMwh,
+              currentCharge: device.currentCharge,
+              currentDischarge: newDischarge,
+              lastTickTs: now,
+              lastDeltaMwh: -deltaMwh,
+              state,
+            },
+          },
+        }));
       },
 
       resetDevice: (serial) => {
@@ -343,21 +370,14 @@ export const useBatteryLearnStore = create<BatteryLearnState>()(
             set((s) => ({ devices: { ...s.devices, [serial]: imported } }));
             return { ok: true };
           }
-          // 合并：保留更多循环次数的数据 + 合并采样
           const merged: DeviceLearnData = {
             ...existing,
-            // 取更准的（已校准优先）
             calibrated: existing.calibrated || imported.calibrated,
-            // 取更大循环次数
             cycleCount: Math.max(existing.cycleCount, imported.cycleCount),
-            // 合并已完成循环（去重：按首个采样点时间戳判断）
             completedCycles: _mergeCycles(existing.completedCycles, imported.completedCycles),
-            // 保留当前采样
             currentCharge: existing.currentCharge.length > 0 ? existing.currentCharge : imported.currentCharge,
             currentDischarge: existing.currentDischarge.length > 0 ? existing.currentDischarge : imported.currentDischarge,
-            // 充电效率取平均
             chargeEfficiency: (existing.chargeEfficiency + imported.chargeEfficiency) / 2,
-            // 容量以现有为准
           };
           set((s) => ({ devices: { ...s.devices, [serial]: merged } }));
           return { ok: true };
@@ -379,24 +399,20 @@ export const useBatteryLearnStore = create<BatteryLearnState>()(
           ...device.currentCharge,
         ];
 
-        // 1. 校准基础分
-        const base = device.calibrated ? 50 : 10;
+        const base = device.calibrated ? 55 : 12;
+        const cycleBonus = Math.min(device.cycleCount, 4) * 8;
+        const sampleCount = allDischarge.length + allCharge.length;
+        const densityBonus = Math.min(12, Math.round(sampleCount / 10));
+        const dischargeEvidence = allDischarge.length >= MIN_DISCHARGE_EVIDENCE ? 1 : 0;
+        const evidenceScore = Math.min(1, (base + cycleBonus + densityBonus) / 100) * (0.6 + dischargeEvidence * 0.4);
 
-        // 2. 循环加分：每轮 +10，最多 3 轮
-        const cycleBonus = Math.min(device.cycleCount, 3) * 10;
-
-        // 3. 电压覆盖度
         const allVoltages = [...allDischarge, ...allCharge].map((s) => s.voltageMv);
         const vMin = allVoltages.length > 0 ? Math.min(...allVoltages) : 0;
         const vMax = allVoltages.length > 0 ? Math.max(...allVoltages) : 0;
         const coverage = allVoltages.length > 0
-          ? Math.min(1, (vMax - vMin) / 1200)  // 3.0~4.2V = 1200mV
+          ? Math.min(1, (vMax - vMin) / 1200)
           : 0;
 
-        // 4. 采样密度加分
-        const densityBonus = Math.min(10, Math.round(allDischarge.length / 10));
-
-        // 5. 新鲜度
         const latestCycle = device.completedCycles[device.completedCycles.length - 1];
         const latestTs = latestCycle
           ? Math.max(
@@ -405,18 +421,17 @@ export const useBatteryLearnStore = create<BatteryLearnState>()(
             )
           : 0;
         const daysSince = latestTs > 0 ? (Date.now() - latestTs) / 86400000 : 999;
-        const freshness = daysSince > 30 ? 0.5 : 1.0;
+        const freshness = daysSince > 60 ? 0.6 : 1.0;
 
-        // 综合
-        const raw = (base + cycleBonus + densityBonus) * coverage * freshness;
+        const raw = (base + cycleBonus + densityBonus) * coverage * freshness * (0.7 + evidenceScore * 0.3);
         return Math.min(100, Math.round(raw));
       },
     }),
-    { name: 'w96p-battery-learn',
+    {
+      name: 'w96p-battery-learn',
       merge: (persisted: unknown, current: BatteryLearnState) => {
         const parsed = persisted as { devices?: Record<string, DeviceLearnData> } | undefined;
         if (!parsed?.devices) return current;
-        // 清理空循环
         for (const [key, device] of Object.entries(parsed.devices)) {
           parsed.devices[key] = {
             ...device,
@@ -432,7 +447,7 @@ export const useBatteryLearnStore = create<BatteryLearnState>()(
 );
 
 /** 限制采样点数，每隔 N 个保留一个 */
-function clampSamples(samples: LearnSample[], maxSamples = 500): LearnSample[] {
+function clampSamples(samples: LearnSample[], maxSamples = MAX_SAMPLES): LearnSample[] {
   if (samples.length <= maxSamples) return samples;
   const step = Math.ceil(samples.length / maxSamples);
   return samples.filter((_, i) => i % step === 0);
@@ -441,7 +456,6 @@ function clampSamples(samples: LearnSample[], maxSamples = 500): LearnSample[] {
 /** 校验导入数据的格式 */
 function _validateImport(data: unknown) {
   if (!data || typeof data !== 'object') throw new Error('数据格式错误');
-  // 宽松校验，只确保关键字段存在类型
 }
 
 /** 合并循环采样：按首个采样点时间戳去重 */
@@ -474,19 +488,33 @@ function buildVoltageToRemaining(device: DeviceLearnData): [number, number][] {
     ...device.completedCycles.flatMap((c) => c.discharge),
     ...device.currentDischarge,
   ];
-  // 电压降序排列（高电压→低电压）
   const sorted = [...samples].sort((a, b) => b.voltageMv - a.voltageMv);
   return sorted.map((s) => [s.voltageMv, s.remainingMwh] as [number, number]);
 }
 
 /** 从电压→剩余容量曲线线性插值（无学习曲线时 fallback SOC_TABLE） */
+function getEvidenceScore(device: DeviceLearnData): number {
+  const allDischarge = [
+    ...device.completedCycles.flatMap((c) => c.discharge),
+    ...device.currentDischarge,
+  ];
+  const allCharge = [
+    ...device.completedCycles.flatMap((c) => c.charge),
+    ...device.currentCharge,
+  ];
+  const sampleCount = allDischarge.length + allCharge.length;
+  const dischargeEvidence = allDischarge.length >= MIN_DISCHARGE_EVIDENCE ? 1 : 0;
+  const cycleEvidence = Math.min(device.cycleCount, 3) / 3;
+  const sampleEvidence = Math.min(sampleCount, 20) / 20;
+  return (dischargeEvidence * 0.45 + cycleEvidence * 0.3 + sampleEvidence * 0.25);
+}
+
 function interpolateRemaining(
   curve: [number, number][] | null,
   voltageMv: number,
   capacityMwh: number,
 ): number {
   if (curve && curve.length >= 2) {
-    // 学习曲线：电压降序，找区间
     for (let i = 0; i < curve.length - 1; i++) {
       const [vHigh, rHigh] = curve[i]!;
       const [vLow, rLow] = curve[i + 1]!;
@@ -498,7 +526,6 @@ function interpolateRemaining(
     if (voltageMv > curve[0]![0]) return curve[0]![1];
     return curve[curve.length - 1]![1];
   }
-  // Fallback: SOC_TABLE（电压降序: 高→低）
   const table = SOC_TABLE;
   for (let i = 0; i < table.length - 1; i++) {
     const [vHigh, sHigh] = table[i]!;
