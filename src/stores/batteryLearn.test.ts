@@ -4,59 +4,114 @@ const storage = new Map<string, string>();
 Object.defineProperty(globalThis, 'localStorage', {
   configurable: true,
   value: {
-    getItem: (key: string) => storage.get(key) ?? null,
-    setItem: (key: string, value: string) => storage.set(key, value),
-    removeItem: (key: string) => storage.delete(key),
+    getItem: (k: string) => storage.get(k) ?? null,
+    setItem: (k: string, v: string) => storage.set(k, v),
+    removeItem: (k: string) => storage.delete(k),
     clear: () => storage.clear(),
-    key: (index: number) => Array.from(storage.keys())[index] ?? null,
-    get length() {
-      return storage.size;
-    },
+    key: (i: number) => [...storage.keys()][i] ?? null,
+    get length() { return storage.size; },
   },
 });
 
-const { useBatteryLearnStore } = await import('./batteryLearn');
+const { useBatteryLearnStore, buildCumulativeCurve } = await import('./batteryLearn');
+const SERIAL = 'abc', CAP = 18000;
 
-describe('battery learn store', () => {
-  beforeEach(() => {
-    storage.clear();
-    useBatteryLearnStore.setState({ devices: {}, dialogOpen: false });
+describe('battery learn (transitions)', () => {
+  beforeEach(() => { storage.clear(); useBatteryLearnStore.setState({ devices: {}, dialogOpen: false }); });
+
+  it('首次进入初始化方向，不产生转移', () => {
+    useBatteryLearnStore.getState().tick(SERIAL, CAP, 3700, 1000, false, 60, 1000);
+    const d = useBatteryLearnStore.getState().devices[SERIAL]!;
+    expect(d.pendingFromMv).toBe(3700);
+    expect(d.dischargeTransitions).toHaveLength(0);
   });
 
-  it('在充放电切换时重置当前充电段累计', () => {
-    const serial = 'abc';
-    const capacity = 18000;
-
-    useBatteryLearnStore.getState().tick(serial, capacity, 3800, 1000, true, 80, 1000);
-    useBatteryLearnStore.getState().tick(serial, capacity, 3800, 1000, true, 80, 2000);
-    useBatteryLearnStore.getState().tick(serial, capacity, 3800, -1000, false, 70, 3000);
-
-    const device = useBatteryLearnStore.getState().devices[serial];
-    expect(device).toBeDefined();
-    expect(device?.chargeRawAccumMwh).toBe(0);
-    expect(device?.chargeStartRemainingMwh).toBe(device?.trackedRemainingMwh);
+  it('同 mV 累积不产生转移', () => {
+    const t = useBatteryLearnStore.getState().tick;
+    t(SERIAL, CAP, 3700, 1000, false, 60, 1000);
+    t(SERIAL, CAP, 3700, 1000, false, 60, 2000);
+    const d = useBatteryLearnStore.getState().devices[SERIAL]!;
+    expect(d.dischargeTransitions).toHaveLength(0);
+    expect(d.pendingMwh).toBeGreaterThan(0);
   });
 
-  it('在无电流时刷新上次 tick 时间，避免旧窗口继续积分', () => {
-    const serial = 'abc';
-    const capacity = 18000;
+  it('mV 变化产生转移 (from→to)', () => {
+    const t = useBatteryLearnStore.getState().tick;
+    t(SERIAL, CAP, 3700, 1000, false, 60, 1000);  // init 3700
+    t(SERIAL, CAP, 3699, 1000, false, 60, 2000);  // → 3699
 
-    useBatteryLearnStore.getState().tick(serial, capacity, 3800, 1000, true, 80, 1000);
-    useBatteryLearnStore.getState().tick(serial, capacity, 3800, 0, true, 80, 2000);
-
-    const device = useBatteryLearnStore.getState().devices[serial];
-    expect(device?.lastTickTs).toBe(2000);
+    const d = useBatteryLearnStore.getState().devices[SERIAL]!;
+    expect(d.dischargeTransitions).toHaveLength(1);
+    expect(d.dischargeTransitions[0]!.fromMv).toBe(3700);
+    expect(d.dischargeTransitions[0]!.toMv).toBe(3699);
+    expect(d.dischargeTransitions[0]!.mwh).toBeGreaterThan(0);
   });
 
-  it('弱证据下放电回退应更保守，避免过度相信单次估计', () => {
-    const serial = 'abc';
-    const capacity = 18000;
+  it('电压跳变 (jitter 跳过中间 mV) 直接记录 from→to', () => {
+    const t = useBatteryLearnStore.getState().tick;
+    t(SERIAL, CAP, 3703, 1000, false, 60, 1000);
+    t(SERIAL, CAP, 3700, 1000, false, 60, 2000);  // 跳过 3702, 3701
 
-    useBatteryLearnStore.getState().tick(serial, capacity, 3800, 1000, true, 80, 1000);
-    useBatteryLearnStore.getState().tick(serial, capacity, 3700, -1000, false, 60, 3000);
+    const d = useBatteryLearnStore.getState().devices[SERIAL]!;
+    expect(d.dischargeTransitions).toHaveLength(1);
+    const tr = d.dischargeTransitions[0]!;
+    expect(tr.fromMv).toBe(3703);
+    expect(tr.toMv).toBe(3700);
+    expect(tr.mwh).toBeGreaterThan(0);
+  });
 
-    const device = useBatteryLearnStore.getState().devices[serial];
-    expect(device?.trackedRemainingMwh).toBeGreaterThan(16000);
-    expect(device?.trackedRemainingMwh).toBeLessThan(18000);
+  it('方向反转丢弃 pending', () => {
+    const t = useBatteryLearnStore.getState().tick;
+    t(SERIAL, CAP, 3700, 1000, false, 60, 1000);   // → 3700
+    t(SERIAL, CAP, 3699, 1000, false, 60, 2000);   // → 转 (3700→3699)
+    t(SERIAL, CAP, 3701, 1000, false, 60, 3000);   // 反转 → 丢弃 3699→3701 pending
+    t(SERIAL, CAP, 3702, 1000, false, 60, 4000);   // → 转 (3701→3702)
+
+    const d = useBatteryLearnStore.getState().devices[SERIAL]!;
+    expect(d.dischargeTransitions).toHaveLength(2);
+    expect(d.dischargeTransitions[0]!.fromMv).toBe(3700);
+    expect(d.dischargeTransitions[0]!.toMv).toBe(3699);
+    expect(d.dischargeTransitions[1]!.fromMv).toBe(3701);
+    expect(d.dischargeTransitions[1]!.toMv).toBe(3702);
+  });
+
+  it('充电写入 chargeTransitions', () => {
+    const t = useBatteryLearnStore.getState().tick;
+    t(SERIAL, CAP, 3800, 500, true, 40, 1000);
+    t(SERIAL, CAP, 3801, 500, true, 40, 2000);
+    const d = useBatteryLearnStore.getState().devices[SERIAL]!;
+    expect(d.chargeTransitions).toHaveLength(1);
+    expect(d.dischargeTransitions).toHaveLength(0);
+  });
+
+  it('满充检测', () => {
+    const t = useBatteryLearnStore.getState().tick;
+    for (let mv = 4000; mv >= 3700; mv--) t(SERIAL, CAP, mv, 2000, false, 60, (4000 - mv) * 100);
+    for (let mv = 3701; mv <= 4100; mv++) t(SERIAL, CAP, mv, 500, true, 50, 50000 + mv * 100);
+    t(SERIAL, CAP, 4170, 100, true, 99, 120000);
+    const d = useBatteryLearnStore.getState().devices[SERIAL]!;
+    expect(d.calibrated).toBe(true);
+    expect(d.cycleCount).toBe(1);
+  });
+
+  it('累积曲线可构建', () => {
+    const t = useBatteryLearnStore.getState().tick;
+    for (let mv = 4000; mv >= 3700; mv--) t(SERIAL, CAP, mv, 2000, false, 60, (4000 - mv) * 100);
+    const d = useBatteryLearnStore.getState().devices[SERIAL]!;
+    expect(d.dischargeTransitions.length).toBeGreaterThan(0);
+    const curve = buildCumulativeCurve(d.dischargeTransitions, CAP);
+    expect(curve.length).toBeGreaterThan(0);
+  });
+
+  it('reset / 导出 / 导入', () => {
+    const t = useBatteryLearnStore.getState().tick;
+    t(SERIAL, CAP, 3700, 1000, false, 60, 1000);
+    t(SERIAL, CAP, 3699, 1000, false, 60, 2000);
+    const j = useBatteryLearnStore.getState().exportData(SERIAL);
+    expect(j).toBeTruthy();
+    const r = useBatteryLearnStore.getState().importData('xyz', j!);
+    expect(r.ok).toBe(true);
+    useBatteryLearnStore.getState().resetDevice(SERIAL);
+    expect(useBatteryLearnStore.getState().devices[SERIAL]).toBeUndefined();
   });
 });
