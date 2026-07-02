@@ -201,14 +201,15 @@ interface CurvePoint {
 
 ```
 curve = buildCumulativeCurve(dischargeTransitions, capacityMwh)
-totalCapacity = calibrated ? learnedCapacityMwh : capacityMwh
-maxConsumed = curve[last].remainingMwh
 
-// 查找当前电压对应的累计消耗
+// 曲线从最低电压累加到当前电压 = 剩余可用能量
 consumed = curve中 voltageMv ≤ currentMv 的最大 remainingMwh
 
-remaining = totalCapacity - consumed × (totalCapacity / maxConsumed)
+// 不做线性外推，直接用曲线查出的值
+remaining = consumed
 ```
+
+`remainingMwh` 是从最低电压一路累加的能量——对放电来说电压越低累加越少，所以 `consumed` 就是当前电压以下还没放出来的能量，也就是剩余能量。不需要比例尺外推。`capacityMwh` 作为百分比分母在页面层 `/ capacityMwh × 100` 使用。
 
 ---
 
@@ -226,27 +227,35 @@ chargeEfficiency = 总放电能量 / 总充电能量
 
 ## 8. 健康度
 
+健康度以数据覆盖率（电压覆盖跨度 / 1200mV）为基准：
+
 ```
-healthScore = learnedCapacityMwh / configuredCapacityMwh × 100
+coverage = (maxMv - minMv) / 1200 × 100%
+
+healthScore = coverage ≥ 80% ? learnedCapacityMwh / configuredCapacityMwh × 100
+                              : 100%（默认，数据不足时假设电池全新）
 ```
 
-- **未校准**：默认 100%（假设电池全新）
-- **已校准**：每次满充更新 `learnedCapacityMwh`
+- **覆盖率 < 80%**：数据不足以计算真实容量，默认 100%
+- **覆盖率 ≥ 80%**：用学习到的实际容量 vs 标称容量
 - 随着电池老化逐步下降，反映真实衰减
+- 不再依赖单次"满充校准"事件，覆盖率自然过渡
 
 ---
 
 ## 9. 可信度评估
 
 ```
-baseScore        = calibrated ? 55 : 12
+baseScore        = 12 + coverage × 43          // 覆盖率 0%→12, 100%→55
 cycleBonus       = min(cycleCount, 4) × 8
 densityBonus     = min(12, transitionsLength / 5)
-coverage         = (maxMv - minMv) / 1200
+coverage         = min(1.0, (maxMv - minMv) / 1200)
 freshness        = lastTickTs 在 60 天内 → 1.0，否则 → 0.6
 
 credibility = min(100, (baseScore + cycleBonus + densityBonus) × coverage × freshness)
 ```
+
+baseScore 不再是二元切换（已校准→55，未校准→12），而是随覆盖率连续增长：没有数据时 12 分，全电压覆盖时 55 分。
 
 | 可信度 | 含义 |
 |---|---|
