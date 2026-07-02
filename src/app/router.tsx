@@ -12,6 +12,7 @@ const History = lazy(() => import('../pages/history'));
 const Settings = lazy(() => import('../pages/settings'));
 const Ota = lazy(() => import('../pages/ota'));
 const DebugBle = lazy(() => import('../pages/debug-ble'));
+const BatteryLearn = lazy(() => import('../pages/battery-learn'));
 
 function Loading() {
   return (
@@ -36,6 +37,7 @@ export const router = createBrowserRouter([
       { path: 'history', element: <Suspense fallback={<Loading />}><ConnGuard><History /></ConnGuard></Suspense> },
       { path: 'settings', element: <Suspense fallback={<Loading />}><Settings /></Suspense> },
       { path: 'debug/ble', element: <Suspense fallback={<Loading />}><DebugBle /></Suspense> },
+      { path: 'battery-learn', element: <Suspense fallback={<Loading />}><BatteryLearn /></Suspense> },
     ],
   },
 ]);

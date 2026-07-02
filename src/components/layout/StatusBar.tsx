@@ -2,8 +2,10 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { useConnectionStore } from '../../stores/connection';
 import { useSettingsStore } from '../../stores/settings';
 import { useBleMetrics } from '../../stores/bleMetrics';
+import { useDeviceStore } from '../../stores/device';
 
 const DebugBle = lazy(() => import('../../pages/debug-ble'));
+const BatteryLearn = lazy(() => import('../../pages/battery-learn'));
 
 function sep() {
   return <span style={{ color: 'var(--color-text-dim)', flexShrink: 0, opacity: 0.4 }}>|</span>;
@@ -16,6 +18,7 @@ export function StatusBar() {
   const schedState = metrics.schedulerState;
   const [now, setNow] = useState(() => new Date());
   const [debugOpen, setDebugOpen] = useState(false);
+  const [learnOpen, setLearnOpen] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -47,7 +50,7 @@ export function StatusBar() {
   const avgW = wOps.length > 0 ? Math.round(wOps.reduce((a, b) => a + b.duration, 0) / wOps.length) : 0;
   const avgR = rOps.length > 0 ? Math.round(rOps.reduce((a, b) => a + b.duration, 0) / rOps.length) : 0;
 
-  const Item = ({ children, className = 'status-label', onClick }: { children: React.ReactNode; className?: string; onClick?: () => void }) => (
+  const Item = ({ children, className = 'status-label', onClick, style: itemStyle }: { children: React.ReactNode; className?: string; onClick?: () => void; style?: React.CSSProperties }) => (
     <span
       className={className}
       onClick={onClick}
@@ -58,6 +61,7 @@ export function StatusBar() {
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
         cursor: onClick ? 'pointer' : undefined,
+        ...itemStyle,
       }}
     >
       {children}
@@ -98,7 +102,7 @@ export function StatusBar() {
         {profile && (
           <>
             {sep()}
-            <Item>{profile.name}</Item>
+            <Item onClick={() => setLearnOpen(true)}>{profile.name}</Item>
           </>
         )}
         {state === 'connected' && (avgW > 0 || avgR > 0) && (
@@ -169,6 +173,66 @@ export function StatusBar() {
             <div style={{ flex: 1, overflow: 'auto', padding: '0 16px 16px' }}>
               <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', opacity: 0.4 }}>加载中...</div>}>
                 <DebugBle />
+              </Suspense>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {learnOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => setLearnOpen(false)}
+        >
+          <div
+            style={{
+              background: 'var(--color-bg-surface)',
+              borderRadius: 12,
+              width: 'min(720px, 95vw)',
+              height: 'min(85vh, 700px)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 16px',
+                borderBottom: '0.5px solid var(--color-border)',
+                flexShrink: 0,
+              }}
+            >
+              <span style={{ fontWeight: 600, fontSize: 14 }}>电池学习</span>
+              <button
+                onClick={() => setLearnOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: 18,
+                  cursor: 'pointer',
+                  color: 'var(--color-text)',
+                  padding: '0 4px',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ flex: 1, overflow: 'auto', padding: '0 16px 16px' }}>
+              <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', opacity: 0.4 }}>加载中...</div>}>
+                <BatteryLearn />
               </Suspense>
             </div>
           </div>

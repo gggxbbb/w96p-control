@@ -15,7 +15,7 @@
  *   20% → 3.414V   45% → 3.706V   70% → 3.923V   95% → 4.112V
  *  100% → 4.175V
  */
-const SOC_TABLE: [number, number][] = [
+export const SOC_TABLE: [number, number][] = [
   [4175, 100],
   [4112,  95],
   [4091,  90],
