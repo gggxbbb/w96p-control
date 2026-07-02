@@ -168,8 +168,8 @@ function interpolateSoc(mv: number): number {
 export function getRemaining(
   transitions: TransitionEntry[] | undefined | null,
   capacityMwh: number,
-  calibrated: boolean,
-  learnedCapacityMwh: number,
+  _calibrated: boolean,
+  _learnedCapacityMwh: number,
   voltageMv: number,
 ): number {
   const curve = buildCumulativeCurve(transitions, capacityMwh);

@@ -35,7 +35,6 @@ export default function BatteryLearnPage() {
   const learnedSoc = data && battery
     ? Math.round(getRemaining(transitions, capacityMwh, data.calibrated, data.learnedCapacityMwh, battery.voltageMv) / capacityMwh * 100)
     : null;
-  const deviation = (voltSoc != null && learnedSoc != null) ? learnedSoc - voltSoc : null;
 
   const allMv = transitions.flatMap((t) => [t.fromMv, t.toMv]);
   const coverage = allMv.length > 0
