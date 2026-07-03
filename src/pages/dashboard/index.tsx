@@ -289,7 +289,7 @@ export default function Dashboard() {
       )}
       {dashboardCards['batt-est-rem'] && (
         <DraggableCard key="batt-est-rem">
-          <MetricCard label="剩余容量(估算)" value={estRemainMwh ?? '--'} unit="mWh" />
+          <MetricCard label="剩余容量(估算)" value={estRemainMwh ?? '--'} unit="mWh" range={{ min: 0, max: 20000, dangerLow: true }} persistKey="dashboard-剩余容量" />
         </DraggableCard>
       )}
       {dashboardCards['batt-est-eta'] && (
