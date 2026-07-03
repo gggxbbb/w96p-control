@@ -281,6 +281,13 @@ async writeTimer(sec: number): Promise<void> {
 | `writeShutdownDelay(sec)` | SHUTDOWN_DELAY (FFF5) | 2B uint16 BE | 1~9s 自动修正为 10s |
 | `writeGearDownMode(mode)` | GEAR_DOWN_MODE (FFF6) | 1B `[mode]` | — |
 | `writeSpeedCalib(speeds)` | SPEED_CALIB (FFF7) | 4B `[s1,s2,s3,s4]` | — |
+| `writeTurbo(on)` | TURBO_MODE (FFF9) | 1B `[0/1]` | v1.3+，关机自动开 1 档 |
+| `writeTurboTime(sec)` | TURBO_TIME (FFF8) | 1B or 2B uint16 BE | v1.3=1B(1-199), v1.5+=2B(1-600) |
+| `writeLightOff()` | LIGHT (FFFA) | 1B `[0x00]` | v1.3+ 临时关灯 |
+| `writeBleName(name)` | BLE_NAME (FFC1) | UTF-8 string, ≤17B | v1.3+，v1.5 废弃 |
+| `readTurbo()` | TURBO_MODE (FFF9) | 1B | v1.3+ 读取 Turbo 状态 |
+| `readTurboCountdown()` | TURBO_COUNTDOWN (FFFB) | 2B uint16 BE | v1.5+ 读取剩余秒数 |
+| `readTurboTime()` | TURBO_TIME (FFF8) | 1B or 2B | 读取已设置的 Turbo 时间 |
 | `writeNatureCurve(128pts)` | NATURE_CURVE (FFE3) | 128B | 校验长度必须为 128 |
 | `writeBatteryCapacity(mah, v)` | BATTERY_INFO (FFD1) | ASCII `BAT_CAP=mwh,` | mwh=mah×v |
 | `writePowCOut(enable)` | POWER_STATUS (FFD2) | ASCII `POW_C_OUT=0/1,` | 0=使能 |

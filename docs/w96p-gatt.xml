@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- W96P 风扇 BLE 服务定义 — 导入 nRF Connect 使用 -->
+<!-- nRF Connect → 右上角 ... → Import → 选择此文件 -->
+<services>
+  <!-- ===== 主控制服务 FFF0 ===== -->
+  <service uuid="0000fff0-0000-1000-8000-00805f9b34fb" name="W96P 主控制">
+    <characteristic uuid="0000fff1-0000-1000-8000-00805f9b34fb" name="电源开关">
+      <properties>read,write,notify</properties>
+      <value>00</value>
+    </characteristic>
+    <characteristic uuid="0000fff2-0000-1000-8000-00805f9b34fb" name="定时(秒)">
+      <properties>read,write,notify</properties>
+      <value>0000</value>
+    </characteristic>
+    <characteristic uuid="0000fff3-0000-1000-8000-00805f9b34fb" name="风速(0-100)">
+      <properties>read,write,notify</properties>
+      <value>00</value>
+    </characteristic>
+    <characteristic uuid="0000fff4-0000-1000-8000-00805f9b34fb" name="自然风开关">
+      <properties>read,write,notify</properties>
+      <value>00</value>
+    </characteristic>
+    <characteristic uuid="0000fff5-0000-1000-8000-00805f9b34fb" name="关机延迟">
+      <properties>read,write</properties>
+      <value>00</value>
+    </characteristic>
+    <characteristic uuid="0000fff6-0000-1000-8000-00805f9b34fb" name="减档模式(0逐级/1直回)">
+      <properties>read,write</properties>
+      <value>00</value>
+    </characteristic>
+    <characteristic uuid="0000fff7-0000-1000-8000-00805f9b34fb" name="档位校准(4档)">
+      <properties>read,write</properties>
+      <value>142D4664</value>
+    </characteristic>
+    <characteristic uuid="0000fff8-0000-1000-8000-00805f9b34fb" name="Turbo时间(秒)">
+      <properties>read,write</properties>
+      <value>00C7</value>
+    </characteristic>
+    <characteristic uuid="0000fff9-0000-1000-8000-00805f9b34fb" name="Turbo开关(0关/1开)">
+      <properties>read,write</properties>
+      <value>00</value>
+    </characteristic>
+    <characteristic uuid="0000fffa-0000-1000-8000-00805f9b34fb" name="灯光(0x00临时关灯)">
+      <properties>write</properties>
+      <value>00</value>
+    </characteristic>
+    <characteristic uuid="0000fffb-0000-1000-8000-00805f9b34fb" name="Turbo倒计时(只读)">
+      <properties>read,notify</properties>
+      <value>0000</value>
+    </characteristic>
+  </service>
+
+  <!-- ===== 电源信息服务 FFD0 ===== -->
+  <service uuid="0000ffd0-0000-1000-8000-00805f9b34fb" name="W96P 电源信息">
+    <characteristic uuid="0000ffd1-0000-1000-8000-00805f9b34fb" name="电池(电压+电流+容量)">
+      <properties>read,notify</properties>
+      <value></value>
+    </characteristic>
+    <characteristic uuid="0000ffd2-0000-1000-8000-00805f9b34fb" name="电源状态(VBUS+充电)">
+      <properties>read,notify</properties>
+      <value></value>
+    </characteristic>
+    <characteristic uuid="0000ffd3-0000-1000-8000-00805f9b34fb" name="电机(电流+堵转+电压)">
+      <properties>read,notify</properties>
+      <value></value>
+    </characteristic>
+    <characteristic uuid="0000ffd4-0000-1000-8000-00805f9b34fb" name="电源配置(温度+电量)">
+      <properties>read</properties>
+      <value></value>
+    </characteristic>
+  </service>
+
+  <!-- ===== 自然风曲线服务 FFE0 ===== -->
+  <service uuid="0000ffe0-0000-1000-8000-00805f9b34fb" name="W96P 自然风曲线">
+    <characteristic uuid="0000ffe1-0000-1000-8000-00805f9b34fb" name="曲线校验和">
+      <properties>read</properties>
+      <value></value>
+    </characteristic>
+    <characteristic uuid="0000ffe2-0000-1000-8000-00805f9b34fb" name="每点持续时间">
+      <properties>read,write</properties>
+      <value></value>
+    </characteristic>
+    <characteristic uuid="0000ffe3-0000-1000-8000-00805f9b34fb" name="128点风速曲线">
+      <properties>read,write</properties>
+      <value></value>
+    </characteristic>
+    <characteristic uuid="0000ffe4-0000-1000-8000-00805f9b34fb" name="自然风控制">
+      <properties>read,write</properties>
+      <value></value>
+    </characteristic>
+  </service>
+
+  <!-- ===== 蓝牙名称服务 FFC0 (v1.3+, v1.5已废弃) ===== -->
+  <service uuid="0000ffc0-0000-1000-8000-00805f9b34fb" name="W96P 蓝牙名称(v1.3+,v1.5废弃)">
+    <characteristic uuid="0000ffc1-0000-1000-8000-00805f9b34fb" name="蓝牙名称(最长17字节)">
+      <properties>read,write</properties>
+      <value>57393650</value>
+    </characteristic>
+  </service>
+</services>
