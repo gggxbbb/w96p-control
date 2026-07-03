@@ -283,7 +283,7 @@ async writeTimer(sec: number): Promise<void> {
 | `writeSpeedCalib(speeds)` | SPEED_CALIB (FFF7) | 4B `[s1,s2,s3,s4]` | — |
 | `writeTurbo(on)` | TURBO_MODE (FFF9) | 1B `[0/1]` | v1.3+，关机自动开 1 档 |
 | `writeTurboTime(sec)` | TURBO_TIME (FFF8) | 1B or 2B uint16 BE | v1.3=1B(1-199), v1.5+=2B(1-600) |
-| `writeLightOff()` | LIGHT (FFFA) | 1B `[0x00]` | v1.3+ 临时关灯 |
+| `writeLight(v)` | LIGHT (FFFA) | 1B `[v]` | v1.3+ 灯光亮度 (0=关, 1~4=低~最高) |
 | `writeBleName(name)` | BLE_NAME (FFC1) | UTF-8 string, ≤17B | v1.3+，v1.5 废弃 |
 | `readTurbo()` | TURBO_MODE (FFF9) | 1B | v1.3+ 读取 Turbo 状态 |
 | `readTurboCountdown()` | TURBO_COUNTDOWN (FFFB) | 2B uint16 BE | v1.5+ 读取剩余秒数 |

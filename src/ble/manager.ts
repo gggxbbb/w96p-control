@@ -759,17 +759,18 @@ export class BleManager implements IBleManager {
     }
   }
 
-  /** v1.3+ 临时关灯 (FFFA, 0x00=关灯) */
-  async writeLightOff(): Promise<void> {
+  /** v1.3+ 灯光亮度控制 (FFFA, 0=关灯, 1=低亮度, 2=中低, 3=中高, 4=最高) */
+  async writeLight(value: number): Promise<void> {
     this.lastWriteMs = Date.now();
     const char = this.chars.get(CHARS.LIGHT_OFF);
-    if (!char) throw new Error('固件不支持关灯功能');
+    if (!char) throw new Error('固件不支持灯光控制');
+    const clamped = Math.max(0, Math.min(4, Math.round(value)));
     try {
       await this.writer.enqueue(async () => {
-        await this.writer.rawWrite(char, new Uint8Array([0]));
+        await this.writer.rawWrite(char, new Uint8Array([clamped]));
       });
     } catch (e) {
-      console.log('[BLE] writeLightOff 失败:', e);
+      console.log('[BLE] writeLight 失败:', e);
     }
   }
 

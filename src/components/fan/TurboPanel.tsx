@@ -8,10 +8,9 @@ import { getFeatures } from '../../ble/features';
 
 export function TurboPanel() {
   const { setTurbo, setTurboTime, readTurboCountdown, readTurboTime } = useBle();
-  const firmwareVersion = useDeviceStore((s) => s.firmwareVersion);
   const show = useToastStore((s) => s.show);
 
-  const features = getFeatures(firmwareVersion);
+  const features = getFeatures(useDeviceStore((s) => s.firmwareVersion));
   const has2Byte = features.has('turbo2Byte');
   const hasCountdown = features.has('turboCountdown');
 
@@ -84,7 +83,7 @@ export function TurboPanel() {
   };
 
   return (
-    <Card title="Turbo 模式" subtitle={firmwareVersion ? `v${firmwareVersion}` : undefined}>
+    <Card title="Turbo 模式">
       <Toggle
         checked={turboOn}
         onChange={handleTurboToggle}

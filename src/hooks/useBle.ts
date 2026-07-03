@@ -130,8 +130,8 @@ export function useBle() {
     setTurbo: (on: boolean) => m.writeTurbo?.(on) ?? Promise.resolve(),
     /** v1.3+ Turbo 时间设置 (1-199 秒) */
     setTurboTime: (sec: number) => m.writeTurboTime?.(sec) ?? Promise.resolve(),
-    /** v1.3+ 临时关灯 */
-    lightOff: () => m.writeLightOff?.() ?? Promise.resolve(),
+    /** v1.3+ 灯光亮度 (0=关灯, 1~4=低/中低/中高/最高) */
+    setLight: (v: number) => m.writeLight?.(v) ?? Promise.resolve(),
     /** v1.3+ 蓝牙名称修改 */
     setBleName: (name: string) => m.writeBleName?.(name) ?? Promise.resolve(),
     /** v1.4+ 读取 Turbo 剩余倒计时 */

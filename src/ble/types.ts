@@ -62,8 +62,8 @@ export interface IBleManager {
   writeTurbo?(on: boolean): Promise<void>;
   /** v1.3+ Turbo 时间设置 (1-199 秒，0=恢复默认) */
   writeTurboTime?(sec: number): Promise<void>;
-  /** v1.3+ 临时关灯 */
-  writeLightOff?(): Promise<void>;
+  /** v1.3+ 灯光亮度 (0=关灯, 1~4=低/中低/中高/最高) */
+  writeLight?(value: number): Promise<void>;
   /** v1.3+ 蓝牙名称修改 */
   writeBleName?(name: string): Promise<void>;
   /** v1.4+ 读取 Turbo 剩余倒计时 */
