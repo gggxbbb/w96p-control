@@ -203,7 +203,7 @@ export default function Dashboard() {
     <PageGrid pageKey="dashboard" pageName="总览" defaultLayouts={DASHBOARD_LAYOUTS} renderToolbar={renderToolbar} onReset={resetCards}>
       {dashboardCards['fan-gear'] && (
         <DraggableCard key="fan-gear">
-          <MetricCard label="档位" value={gearNum} unit="档" gauge={{ min: 0, max: 4 }} />
+          <MetricCard label="档位" value={gearNum} unit="档" range={{ min: 0, max: 4 }} persistKey="dashboard-档位" />
         </DraggableCard>
       )}
       {dashboardCards['fan-speed'] && (
@@ -273,7 +273,7 @@ export default function Dashboard() {
       )}
       {dashboardCards['pow-level'] && (
         <DraggableCard key="pow-level">
-          <MetricCard label="电量 (powLevel)" value={powerConfig ? powerConfig.powLevel : '--'} unit="%" gauge={{ min: 0, max: 100 }} />
+          <MetricCard label="电量 (powLevel)" value={powerConfig ? powerConfig.powLevel : '--'} unit="%" range={{ min: 0, max: 100 }} persistKey="dashboard-电量" />
         </DraggableCard>
       )}
       {dashboardCards['batt-est-pct'] && (
@@ -282,7 +282,8 @@ export default function Dashboard() {
             label="电量(电压估算)"
             value={battery ? voltageToSoc(battery.voltageMv) : '--'}
             unit="%"
-            gauge={{ min: 0, max: 100, dangerLow: true }}
+            range={{ min: 0, max: 100, dangerLow: true }}
+            persistKey="dashboard-电量估算"
           />
         </DraggableCard>
       )}
