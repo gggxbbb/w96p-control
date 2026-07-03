@@ -19,6 +19,8 @@ export const CHARS = {
   TURBO_TIME: '0000fff8-0000-1000-8000-00805f9b34fb',
   /** v1.3+ Turbo 模式开关 (FFF0 服务, v1.4+ 可读) */
   TURBO_MODE: '0000fff9-0000-1000-8000-00805f9b34fb',
+  //0000fff9-0000-1000-8000-00805f9b34fb is blocked by Chromium
+  //see https://github.com/WebBluetoothCG/registries/blob/master/gatt_blocklist.txt
   /** v1.3+ 临时关灯 (FFF0 服务) */
   LIGHT_OFF: '0000fffa-0000-1000-8000-00805f9b34fb',
   /** v1.5+ Turbo 剩余倒计时 (FFF0 服务, 只读 2字节) */

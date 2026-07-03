@@ -100,8 +100,8 @@ export class BleManager implements IBleManager {
         if (uuid.startsWith('0000ffd')) svc = power;
         else if (uuid.startsWith('0000ffe')) svc = nature;
         if ((OPTIONAL_CHARS as readonly string[]).includes(uuid)) {
-          try { this.chars.set(uuid, await svc.getCharacteristic(uuid)); } catch {
-            console.log('[BLE] 可选特征不可用:', uuid.slice(4, 8), '/', svc.uuid.slice(4, 8));
+          try { this.chars.set(uuid, await svc.getCharacteristic(uuid)); } catch (e) {
+            console.log('[BLE] 可选特征不可用:', uuid.slice(4, 8), '/', svc.uuid.slice(4, 8), e);
           }
           continue;
         }
