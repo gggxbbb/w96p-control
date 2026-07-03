@@ -253,7 +253,7 @@ export default function Dashboard() {
       )}
       {dashboardCards['batt-cap'] && (
         <DraggableCard key="batt-cap">
-          <MetricCard label="电池容量" value={battery ? battery.capacityMwh : '--'} unit="mWh" range={{ min: 10000, max: 20000, dangerLow: true }} persistKey="dashboard-电池容量" />
+          <MetricCard label="电池容量" value={battery ? battery.capacityMwh : '--'} unit="mWh" />
         </DraggableCard>
       )}
       {dashboardCards['vbus-cur'] && (
@@ -268,7 +268,7 @@ export default function Dashboard() {
       )}
       {dashboardCards['pow-core-temp'] && (
         <DraggableCard key="pow-core-temp">
-          <MetricCard label="芯片温度 (powCoreTemp)" value={powerConfig ? powerConfig.powCoreTemp : '--'} unit="℃" />
+          <MetricCard label="芯片温度 (powCoreTemp)" value={powerConfig ? powerConfig.powCoreTemp : '--'} unit="℃" range={{ min: 0, max: 120 }} persistKey="dashboard-芯片温度" />
         </DraggableCard>
       )}
       {dashboardCards['pow-level'] && (
@@ -289,7 +289,7 @@ export default function Dashboard() {
       )}
       {dashboardCards['batt-est-rem'] && (
         <DraggableCard key="batt-est-rem">
-          <MetricCard label="剩余容量(估算)" value={estRemainMwh ?? '--'} unit="mWh" range={{ min: 0, max: 20000, dangerLow: true }} persistKey="dashboard-剩余容量" />
+          <MetricCard label="剩余容量(估算)" value={estRemainMwh ?? '--'} unit="mWh" range={{ min: 0, max: battery?.capacityMwh ?? 20000, dangerLow: true }} persistKey="dashboard-剩余容量" />
         </DraggableCard>
       )}
       {dashboardCards['batt-est-eta'] && (
