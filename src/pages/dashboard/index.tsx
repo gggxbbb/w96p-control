@@ -203,22 +203,22 @@ export default function Dashboard() {
     <PageGrid pageKey="dashboard" pageName="总览" defaultLayouts={DASHBOARD_LAYOUTS} renderToolbar={renderToolbar} onReset={resetCards}>
       {dashboardCards['fan-gear'] && (
         <DraggableCard key="fan-gear">
-          <MetricCard label="档位" value={gearNum} unit="档" gaugeMin={0} gaugeMax={4} />
+          <MetricCard label="档位" value={gearNum} unit="档" gauge={{ min: 0, max: 4 }} />
         </DraggableCard>
       )}
       {dashboardCards['fan-speed'] && (
         <DraggableCard key="fan-speed">
-          <MetricCard label="转速" value={fanSpeed} unit="%" accent={fanSpeed > 0 ? 'success' : 'default'} />
+          <MetricCard label="转速" value={fanSpeed} unit="%" />
         </DraggableCard>
       )}
       {dashboardCards['fan-timer'] && (
         <DraggableCard key="fan-timer">
-          <MetricCard label="定时" value={timerDisplay} rawValue={timerRemainingSec} gaugeMin={0} gaugeMax={65535} />
+          <MetricCard label="定时" value={timerDisplay} rawValue={timerRemainingSec} />
         </DraggableCard>
       )}
       {dashboardCards['batt-power'] && (
         <DraggableCard key="batt-power">
-          <MetricCard label="电池功率" value={batteryPower} unit="W" decimals={2} accent={batteryPower > 0 ? 'success' : 'default'} />
+          <MetricCard label="电池功率" value={batteryPower} unit="W" decimals={2} />
         </DraggableCard>
       )}
       {dashboardCards['motor-power'] && (
@@ -273,7 +273,7 @@ export default function Dashboard() {
       )}
       {dashboardCards['pow-level'] && (
         <DraggableCard key="pow-level">
-          <MetricCard label="电量 (powLevel)" value={powerConfig ? powerConfig.powLevel : '--'} unit="%" gaugeMin={0} gaugeMax={100} />
+          <MetricCard label="电量 (powLevel)" value={powerConfig ? powerConfig.powLevel : '--'} unit="%" gauge={{ min: 0, max: 100 }} />
         </DraggableCard>
       )}
       {dashboardCards['batt-est-pct'] && (
@@ -282,8 +282,7 @@ export default function Dashboard() {
             label="电量(电压估算)"
             value={battery ? voltageToSoc(battery.voltageMv) : '--'}
             unit="%"
-            gaugeMin={0}
-            gaugeMax={100}
+            gauge={{ min: 0, max: 100, dangerLow: true }}
           />
         </DraggableCard>
       )}

@@ -20,15 +20,15 @@ export function MotorPanel() {
   return (
     <Card title="电机信息">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px', marginBottom: '12px' }}>
-        <MetricCard label="电机电流" value={motor ? motor.currentMa : '--'} unit="mA" noGauge />
+        <MetricCard label="电机电流" value={motor ? motor.currentMa : '--'} unit="mA" />
         {!isCompatMode && (
           <>
-            <MetricCard label="电机电压" value={motor && motor.voltageMv > 0 ? motor.voltageMv / 1000 : '--'} unit="V" decimals={2} noGauge />
-            <MetricCard label="电机功率" value={motorPower} unit="W" decimals={2} noGauge />
+            <MetricCard label="电机电压" value={motor && motor.voltageMv > 0 ? motor.voltageMv / 1000 : '--'} unit="V" decimals={2} />
+            <MetricCard label="电机功率" value={motorPower} unit="W" decimals={2} />
           </>
         )}
         {isCompatMode && (
-          <MetricCard label="电机功率（近似）" value={motorPower} unit="W" decimals={2} noGauge />
+          <MetricCard label="电机功率（近似）" value={motorPower} unit="W" decimals={2} />
         )}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {motor?.block ? <StatusPill status="danger" label="堵转" /> : <StatusPill status="default" label="正常" />}

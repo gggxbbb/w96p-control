@@ -21,9 +21,9 @@ export function VbusPanel() {
   return (
     <Card title="VBUS / 电源状态">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px', marginBottom: '12px' }}>
-        <MetricCard label="VBUS 电压" value={powerStatus ? powerStatus.vbusVmV / 1000 : '--'} unit="V" decimals={2} noGauge />
-        <MetricCard label="VBUS 电流" value={powerStatus ? powerStatus.vbusCurMa : '--'} unit="mA" noGauge />
-        <MetricCard label="VBUS 功率" value={vbusPower} unit="W" decimals={2} noGauge />
+        <MetricCard label="VBUS 电压" value={powerStatus ? powerStatus.vbusVmV / 1000 : '--'} unit="V" decimals={2} />
+        <MetricCard label="VBUS 电流" value={powerStatus ? powerStatus.vbusCurMa : '--'} unit="mA" />
+        <MetricCard label="VBUS 功率" value={vbusPower} unit="W" decimals={2} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {vbusConnected
             ? (isCharging ? <StatusPill status="success" label="充电中" /> : <StatusPill status="default" label="放电中" />)
