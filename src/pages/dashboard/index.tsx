@@ -203,67 +203,67 @@ export default function Dashboard() {
     <PageGrid pageKey="dashboard" pageName="总览" defaultLayouts={DASHBOARD_LAYOUTS} renderToolbar={renderToolbar} onReset={resetCards}>
       {dashboardCards['fan-gear'] && (
         <DraggableCard key="fan-gear">
-          <MetricCard label="档位" value={gearNum} unit="档" range={{ min: 0, max: 4 }} persistKey="dashboard-档位" />
+          <MetricCard label="档位" value={gearNum} unit="档" />
         </DraggableCard>
       )}
       {dashboardCards['fan-speed'] && (
         <DraggableCard key="fan-speed">
-          <MetricCard label="转速" value={fanSpeed} unit="%" />
+          <MetricCard label="转速" value={fanSpeed} unit="%" range={{ min: 0, max: 100 }} persistKey="dashboard-转速" />
         </DraggableCard>
       )}
       {dashboardCards['fan-timer'] && (
         <DraggableCard key="fan-timer">
-          <MetricCard label="定时" value={timerDisplay} rawValue={timerRemainingSec} />
+          <MetricCard label="定时" value={timerDisplay} rawValue={timerRemainingSec}  />
         </DraggableCard>
       )}
       {dashboardCards['batt-power'] && (
         <DraggableCard key="batt-power">
-          <MetricCard label="电池功率" value={batteryPower} unit="W" decimals={2} />
+          <MetricCard label="电池功率" value={batteryPower} unit="W" decimals={2} range={{ min: -20, max: 20 }} persistKey="dashboard-电池功率" />
         </DraggableCard>
       )}
       {dashboardCards['motor-power'] && (
         <DraggableCard key="motor-power">
-          <MetricCard label="电机功率" value={motorPower} unit="W" decimals={2} />
+          <MetricCard label="电机功率" value={motorPower} unit="W" decimals={2} range={{ min: 0, max: 20 }} persistKey="dashboard-电机功率" />
         </DraggableCard>
       )}
       {dashboardCards['motor-cur'] && (
         <DraggableCard key="motor-cur">
-          <MetricCard label="电机电流" value={motor ? motor.currentMa : '--'} unit="mA" />
+          <MetricCard label="电机电流" value={motor ? motor.currentMa : '--'} unit="mA" range={{ min: 0, max: 5000 }} persistKey="dashboard-电机电流" />
         </DraggableCard>
       )}
       {dashboardCards['batt-volt'] && (
         <DraggableCard key="batt-volt">
-          <MetricCard label="电池电压" value={battery ? battery.voltageMv / 1000 : '--'} unit="V" decimals={2} />
+          <MetricCard label="电池电压" value={battery ? battery.voltageMv / 1000 : '--'} unit="V" decimals={2} range={{ min: 3.0, max: 4.2, dangerLow: true }} persistKey="dashboard-电池电压" />
         </DraggableCard>
       )}
       {dashboardCards['vbus-volt'] && (
         <DraggableCard key="vbus-volt">
-          <MetricCard label="VBUS 电压" value={powerStatus ? powerStatus.vbusVmV / 1000 : '--'} unit="V" decimals={2} />
+          <MetricCard label="VBUS 电压" value={powerStatus ? powerStatus.vbusVmV / 1000 : '--'} unit="V" decimals={2} range={{ min: 0, max: 12 }} persistKey="dashboard-VBUS电压" />
         </DraggableCard>
       )}
       {dashboardCards['motor-volt'] && (
         <DraggableCard key="motor-volt">
-          <MetricCard label="电机电压" value={motor && motor.voltageMv > 0 ? motor.voltageMv / 1000 : '--'} unit="V" decimals={2} />
+          <MetricCard label="电机电压" value={motor && motor.voltageMv > 0 ? motor.voltageMv / 1000 : '--'} unit="V" decimals={2} range={{ min: 0, max: 12 }} persistKey="dashboard-电机电压" />
         </DraggableCard>
       )}
       {dashboardCards['batt-cur'] && (
         <DraggableCard key="batt-cur">
-          <MetricCard label="电池电流" value={battery ? battery.currentMa : '--'} unit="mA" />
+          <MetricCard label="电池电流" value={battery ? battery.currentMa : '--'} unit="mA" range={{ min: -5000, max: 5000 }} persistKey="dashboard-电池电流" />
         </DraggableCard>
       )}
       {dashboardCards['batt-cap'] && (
         <DraggableCard key="batt-cap">
-          <MetricCard label="电池容量" value={battery ? battery.capacityMwh : '--'} unit="mWh" />
+          <MetricCard label="电池容量" value={battery ? battery.capacityMwh : '--'} unit="mWh" range={{ min: 10000, max: 20000, dangerLow: true }} persistKey="dashboard-电池容量" />
         </DraggableCard>
       )}
       {dashboardCards['vbus-cur'] && (
         <DraggableCard key="vbus-cur">
-          <MetricCard label="VBUS 电流" value={powerStatus ? powerStatus.vbusCurMa : '--'} unit="mA" />
+          <MetricCard label="VBUS 电流" value={powerStatus ? powerStatus.vbusCurMa : '--'} unit="mA" range={{ min: -5000, max: 5000 }} persistKey="dashboard-VBUS电流" />
         </DraggableCard>
       )}
       {dashboardCards['vbus-power'] && (
         <DraggableCard key="vbus-power">
-          <MetricCard label="VBUS 功率" value={vbusPower} unit="W" decimals={2} />
+          <MetricCard label="VBUS 功率" value={vbusPower} unit="W" decimals={2} range={{ min: -20, max: 20 }} persistKey="dashboard-VBUS功率" />
         </DraggableCard>
       )}
       {dashboardCards['pow-core-temp'] && (
@@ -273,7 +273,7 @@ export default function Dashboard() {
       )}
       {dashboardCards['pow-level'] && (
         <DraggableCard key="pow-level">
-          <MetricCard label="电量 (powLevel)" value={powerConfig ? powerConfig.powLevel : '--'} unit="%" range={{ min: 0, max: 100 }} persistKey="dashboard-电量" />
+          <MetricCard label="电量 (powLevel)" value={powerConfig ? powerConfig.powLevel : '--'} unit="%" range={{ min: 0, max: 100, dangerLow: true }} persistKey="dashboard-电量" />
         </DraggableCard>
       )}
       {dashboardCards['batt-est-pct'] && (

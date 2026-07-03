@@ -43,7 +43,7 @@ export function BatteryPanel() {
         <MetricCard label="功率" value={power} unit="W" decimals={2} />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px', marginBottom: '12px' }}>
-        <MetricCard label="电量(电压估算)" value={soc ?? '--'} unit="%" />
+        <MetricCard label="电量(电压估算)" value={soc ?? '--'} unit="%" range={{ min: 0, max: 100, dangerLow: true }} persistKey="dashboard-电量" noGauge />
         <MetricCard label="剩余容量(估算)" value={remainingMwh ?? '--'} unit="mWh" />
         <MetricCard label="预计续航(估算)" value={etaMin ?? '--'} unit="min" />
       </div>
