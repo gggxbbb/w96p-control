@@ -70,4 +70,6 @@ export interface IBleManager {
   readTurboCountdown?(): Promise<number>;
   /** v1.4+ 读取 Turbo 当前状态 */
   readTurbo?(): Promise<number>;
+  /** 读取 Turbo 时间 (FFF8) */
+  readTurboTime?(): Promise<number>;
 }

@@ -806,6 +806,15 @@ export class BleManager implements IBleManager {
     });
   }
 
+  /** 读取 Turbo 时间 (FFF8) */
+  async readTurboTime(): Promise<number> {
+    const features = getFeatures(useDeviceStore.getState().firmwareVersion);
+    return this.scheduler.enqueueRead(async () => {
+      const v = await this.timedRead(CHARS.TURBO_TIME);
+      return features.has('turbo2Byte') ? u16be(v) : u8(v);
+    });
+  }
+
   disconnect(): void {
     this.scheduler.destroy();
     this.stopPolling();

@@ -1,27 +1,15 @@
 import { useState } from 'react';
 import { useBle } from '../../hooks/useBle';
-import { useDeviceStore } from '../../stores/device';
 import { useToastStore } from '../../stores/toast';
 import { Card } from '../ui/Card';
-import { getFeatures } from '../../ble/features';
 
 export function BleNamePanel() {
   const { deviceName, setBleName } = useBle();
-  const firmwareVersion = useDeviceStore((s) => s.firmwareVersion);
   const show = useToastStore((s) => s.show);
-
-  const features = getFeatures(firmwareVersion);
-  const hasBleName = features.has('bleName');
-
-  if (!hasBleName) return null;
 
   const [name, setName] = useState('');
 
   const handleSetName = () => {
-    if (!hasBleName) {
-      show('需要固件 v1.3+，请升级');
-      return;
-    }
     const trimmed = name.trim();
     if (!trimmed) {
       show('请输入蓝牙名称');
@@ -36,7 +24,7 @@ export function BleNamePanel() {
   };
 
   return (
-    <Card title="蓝牙名称" subtitle="v1.3+">
+    <Card title="蓝牙名称">
       <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
         当前：<span style={{ color: 'var(--color-text)' }}>{deviceName ?? '未知'}</span>
       </div>

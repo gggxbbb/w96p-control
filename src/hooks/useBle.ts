@@ -136,6 +136,7 @@ export function useBle() {
     setBleName: (name: string) => m.writeBleName?.(name) ?? Promise.resolve(),
     /** v1.4+ 读取 Turbo 剩余倒计时 */
     readTurboCountdown: () => m.readTurboCountdown?.() ?? Promise.resolve(0),
+    readTurboTime: () => m.readTurboTime?.() ?? Promise.resolve(0),
     manager: m,
   };
 }

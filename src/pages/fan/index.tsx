@@ -1,5 +1,7 @@
 import { useBle } from '../../hooks/useBle';
 import { useDeviceStore } from '../../stores/device';
+import { useConnectionStore } from '../../stores/connection';
+import { getFeatures } from '../../ble/features';
 import { Card } from '../../components/ui/Card';
 import { PageGrid } from '../../components/ui/PageGrid';
 import { DraggableCard } from '../../components/ui/DraggableCard';
@@ -59,6 +61,9 @@ const FAN_LAYOUTS: ResponsiveLayouts = {
 export default function Fan() {
   const { setGearDownMode } = useBle();
   const gearDownMode = useDeviceStore((s) => s.gearDownMode);
+  const firmwareVersion = useDeviceStore((s) => s.firmwareVersion);
+  const isCompatMode = useConnectionStore((s) => s.isCompatMode);
+  const features = getFeatures(firmwareVersion, isCompatMode);
 
   return (
     <PageGrid pageKey="fan" pageName="风扇" defaultLayouts={FAN_LAYOUTS}>
@@ -86,15 +91,21 @@ export default function Fan() {
       <DraggableCard key="speed-calib">
         <SpeedCalibPanel />
       </DraggableCard>
-      <DraggableCard key="turbo">
-        <TurboPanel />
-      </DraggableCard>
-      <DraggableCard key="light">
-        <LightPanel />
-      </DraggableCard>
-      <DraggableCard key="ble-name">
-        <BleNamePanel />
-      </DraggableCard>
+      {features.has('turbo') && (
+        <DraggableCard key="turbo">
+          <TurboPanel />
+        </DraggableCard>
+      )}
+      {features.has('lightOff') && (
+        <DraggableCard key="light">
+          <LightPanel />
+        </DraggableCard>
+      )}
+      {features.has('bleName') && (
+        <DraggableCard key="ble-name">
+          <BleNamePanel />
+        </DraggableCard>
+      )}
     </PageGrid>
   );
 }

@@ -7,22 +7,27 @@ import { Toggle } from '../ui/Toggle';
 import { getFeatures } from '../../ble/features';
 
 export function TurboPanel() {
-  const { setTurbo, setTurboTime, readTurboCountdown } = useBle();
+  const { setTurbo, setTurboTime, readTurboCountdown, readTurboTime } = useBle();
   const firmwareVersion = useDeviceStore((s) => s.firmwareVersion);
   const show = useToastStore((s) => s.show);
 
   const features = getFeatures(firmwareVersion);
-  const hasTurbo = features.has('turbo');
   const has2Byte = features.has('turbo2Byte');
   const hasCountdown = features.has('turboCountdown');
-
-  if (!hasTurbo) return null;
 
   const maxSec = has2Byte ? 600 : 199;
 
   const [turboOn, setTurboOn] = useState(false);
   const [turboSec, setTurboSec] = useState(String(maxSec));
   const [countdown, setCountdown] = useState<number | null>(null);
+
+  // 挂载时读取一次当前 Turbo 时间
+  useEffect(() => {
+    readTurboTime().then((v: number) => {
+      if (v > 0) setTurboSec(String(v));
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const pollCountdown = useCallback(() => {
     if (!hasCountdown) return;
@@ -44,14 +49,32 @@ export function TurboPanel() {
     setTurboOn(on);
   };
 
-  const handleSetTurboTime = () => {
+  const handleDefault = async () => {
+    await setTurboTime(0);
+    try {
+      const v = await readTurboTime();
+      setTurboSec(String(v));
+      show(`已恢复默认 Turbo 时间 (${v} 秒)`);
+    } catch {
+      show('已恢复默认 Turbo 时间');
+    }
+  };
+
+  const handleSetTurboTime = async () => {
     const v = parseInt(turboSec, 10);
     if (isNaN(v) || v < 0 || v > maxSec) {
       show(`Turbo 时间范围为 1-${maxSec} 秒（0=恢复默认）`);
       return;
     }
-    setTurboTime(v);
-    show(v === 0 ? `已恢复默认 Turbo 时间 (${maxSec}秒)` : `Turbo 时间已设置：${v} 秒`);
+    await setTurboTime(v);
+    try {
+      const actual = await readTurboTime();
+      setTurboSec(String(actual));
+      show(`Turbo 时间已设置：${actual} 秒`);
+    } catch {
+      setTurboSec(String(v));
+      show(`Turbo 时间已设置：${v} 秒`);
+    }
   };
 
   const fmtTime = (s: number) => {
@@ -75,7 +98,7 @@ export function TurboPanel() {
 
       <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '0.5px solid var(--color-border)' }}>
         <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '6px' }}>
-          Turbo 时间（1-{maxSec} 秒，0=恢复默认 {maxSec} 秒）
+          Turbo 时间（1-{maxSec} 秒，0=恢复默认 199 秒）
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <input
@@ -89,10 +112,7 @@ export function TurboPanel() {
           <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>秒</span>
           <div style={{ flex: 1 }} />
           <button onClick={handleSetTurboTime} style={presetBtnStyle}>应用</button>
-          <button
-            onClick={() => { setTurboSec('0'); setTurboTime(0); show('已恢复默认 Turbo 时间'); }}
-            style={presetBtnStyle}
-          >
+          <button onClick={handleDefault} style={presetBtnStyle}>
             默认
           </button>
         </div>

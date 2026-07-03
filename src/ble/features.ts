@@ -37,8 +37,17 @@ export const FEATURE_DELTAS: [string, FeatureDelta][] = [
   }],
 ];
 
-/** 根据固件版本获取启用的功能集合 */
-export function getFeatures(version: string | null): Set<string> {
+/** 根据固件版本获取启用的功能集合。兼容模式下默认启用所有功能。 */
+export function getFeatures(version: string | null, isCompatMode = false): Set<string> {
+  // 未获取版本信息时与兼容模式一样，默认启用所有功能
+  const unknown = isCompatMode || !version || version === 'unknown';
+  if (unknown) {
+    const all = new Set(FEATURE_BASE);
+    for (const [, delta] of FEATURE_DELTAS) {
+      if (delta.add) for (const f of delta.add) all.add(f);
+    }
+    return all;
+  }
   const enabled = new Set(FEATURE_BASE);
   const sorted = [...FEATURE_DELTAS].sort((a, b) => compareVersion(a[0], b[0]));
   for (const [ver, delta] of sorted) {
