@@ -10,6 +10,7 @@ export const DASHBOARD_CARD_KEYS = [
   'batt-est-pct',
   'batt-est-rem',
   'batt-est-eta',
+  'turbo-countdown',
 ] as const;
 
 export type DashboardCardKey = typeof DASHBOARD_CARD_KEYS[number];
@@ -32,6 +33,7 @@ export const DASHBOARD_CARD_LABELS: Record<DashboardCardKey, string> = {
   'batt-est-pct': '电量(电压估算)',
   'batt-est-rem': '剩余容量(估算)',
   'batt-est-eta': '预计续航(估算)',
+  'turbo-countdown': 'Turbo 倒计时',
 };
 
 export const DASHBOARD_CARD_DEFAULTS: DashboardCardKey[] = [

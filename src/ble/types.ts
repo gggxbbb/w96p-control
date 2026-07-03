@@ -1,4 +1,3 @@
-import type { Profile } from './profiles';
 import type { BatteryInfo, PowerStatus, MotorInfo, PowerConfigRegs } from './parsers';
 import type { PowReg } from './commands';
 
@@ -22,11 +21,15 @@ export interface BleSnapshot {
   serialNumber?: string;
   /** 固件版本（FEE0 DFU 服务查询） */
   firmwareVersion?: string;
+  /** 兼容模式（FEE0 DFU 服务查询） */
+  isCompatMode?: boolean;
+  /** v1.5+ Turbo 剩余倒计时（秒） */
+  turboCountdownSec?: number;
 }
 
 export interface IBleManager {
-  profile: Profile | null;
-  onState?: (s: BleState, deviceName?: string, profile?: Profile) => void;
+  isCompatMode: boolean;
+  onState?: (s: BleState, deviceName?: string, _isCompat?: boolean) => void;
   onSnapshot?: (snap: BleSnapshot) => void;
   onError?: (msg: string) => void;
   connect(): Promise<void>;
@@ -55,4 +58,16 @@ export interface IBleManager {
   writePowerClr(): Promise<void>;
   writePowSwitch(reg: PowReg, bit: number, enable: boolean, inverted: boolean): Promise<void>;
   writePowRegister(reg: PowReg, byte: number): Promise<void>;
+  /** v1.3+ Turbo 模式开关 */
+  writeTurbo?(on: boolean): Promise<void>;
+  /** v1.3+ Turbo 时间设置 (1-199 秒，0=恢复默认) */
+  writeTurboTime?(sec: number): Promise<void>;
+  /** v1.3+ 临时关灯 */
+  writeLightOff?(): Promise<void>;
+  /** v1.3+ 蓝牙名称修改 */
+  writeBleName?(name: string): Promise<void>;
+  /** v1.4+ 读取 Turbo 剩余倒计时 */
+  readTurboCountdown?(): Promise<number>;
+  /** v1.4+ 读取 Turbo 当前状态 */
+  readTurbo?(): Promise<number>;
 }

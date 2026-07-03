@@ -84,16 +84,16 @@ export function DisconnectedScreen() {
               虚拟设备
             </div>
             <button
-              onClick={() => { setMenuOpen(false); connectVirtual('W96P'); }}
+              onClick={() => { setMenuOpen(false); connectVirtual(false); }}
               style={menuItemStyle}
             >
-              虚拟 W96P（0-100）
+              虚拟 W96P（完整模式）
             </button>
             <button
-              onClick={() => { setMenuOpen(false); connectVirtual('W66D'); }}
+              onClick={() => { setMenuOpen(false); connectVirtual(true); }}
               style={menuItemStyle}
             >
-              虚拟 W66D（0-100）
+              虚拟 W66D（兼容模式）
             </button>
           </div>
         )}

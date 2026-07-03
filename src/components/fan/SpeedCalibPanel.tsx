@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useBle } from '../../hooks/useBle';
 import { useDeviceStore } from '../../stores/device';
 import { useToastStore } from '../../stores/toast';
+import { defaultSpeeds } from '../../ble/profiles';
 import { Card } from '../ui/Card';
 
 function isNonDecreasing(nums: number[]): boolean {
@@ -108,7 +109,7 @@ function GearSlider({ values, onChange }: { values: number[]; onChange: (i: numb
 }
 
 export function SpeedCalibPanel() {
-  const { profile, setSpeedCalib } = useBle();
+  const { isCompatMode, setSpeedCalib } = useBle();
   const speedCalib = useDeviceStore((s) => s.speedCalib);
   const show = useToastStore((s) => s.show);
 
@@ -127,7 +128,7 @@ export function SpeedCalibPanel() {
     if (disordered && !advanced) setAdvanced(true);
   }, [disordered, advanced]);
 
-  const defaults = profile?.defaultSpeeds ?? [30, 50, 70, 100];
+  const defaults = defaultSpeeds(isCompatMode);
 
   // ===== 滑块模式 =====
   const handleSliderChange = (i: number, v: number) => {

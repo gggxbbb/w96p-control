@@ -1,5 +1,3 @@
-import type { Profile } from './profiles';
-
 export interface BatteryInfo {
   voltageMv: number;
   currentMa: number;
@@ -75,9 +73,14 @@ export const parsePowerStatus = (dv: DataView): PowerStatus => {
   };
 };
 
-export const parseMotorInfo = (dv: DataView, profile: Profile): MotorInfo => {
+/**
+ * 解析电机信息。
+ * @param dv FFD3 特征值的 DataView
+ * @param isCompat 兼容模式（W66D）— 无电机电压字段
+ */
+export const parseMotorInfo = (dv: DataView, isCompat = false): MotorInfo => {
   const currentMa = readU16BE(dv, 0);
-  if (!profile.parseMotorFull) {
+  if (isCompat) {
     return { currentMa, block: false, voltageMv: 0 };
   }
   const rawBlock = dv.byteLength > 2 ? dv.getUint8(2) : 0;

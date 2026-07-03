@@ -1,5 +1,5 @@
-import { SERVICES, CHARS, ALL_OPTIONAL_SERVICES } from './uuids';
-import { pickProfile, type Profile } from './profiles';
+import { SERVICES, CHARS, ALL_OPTIONAL_SERVICES, OPTIONAL_CHARS } from './uuids';
+import { isCompatModel } from './profiles';
 import {
   parseBatteryInfo, parsePowerStatus, parseMotorInfo, parsePowerConfig,
 } from './parsers';
@@ -11,6 +11,7 @@ import { useDeviceStore } from '../stores/device';
 import { useBleMetrics, type OpRecord } from '../stores/bleMetrics';
 import { BlePackageProtocol } from '../dfu/packageProtocol';
 import { buildControlPayload, parseVersion, parseSnLittleEndian, CTRL_GET_VERSION, CTRL_GET_SN } from '../dfu/dfuProtocol';
+import { getFeatures } from './features';
 
 export type { BleState, BleSnapshot } from './types';
 
@@ -28,7 +29,7 @@ export class BleManager implements IBleManager {
   private pollActive = false;
   private pollIntervalMs = 1000;
   private lastWriteMs = 0;
-  profile: Profile | null = null;
+  isCompatMode = false;
 
   /** 计时的 GATT 读取（记录 metrics） */
   private async timedRead(uuid: string, opType: OpRecord['type'] = 'read'): Promise<DataView> {
@@ -62,7 +63,7 @@ export class BleManager implements IBleManager {
   private dfuPendingResolve: ((data: Uint8Array) => void) | null = null;
   private dfuNotifyCleanup: (() => void) | null = null;
 
-  onState?: (s: BleState, deviceName?: string, profile?: Profile) => void;
+  onState?: (s: BleState, deviceName?: string, _isCompat?: boolean) => void;
   onSnapshot?: (snap: BleSnapshot) => void;
   onError?: (msg: string) => void;
 
@@ -87,18 +88,41 @@ export class BleManager implements IBleManager {
       const main = await gatt.getPrimaryService(SERVICES.MAIN);
       const power = await gatt.getPrimaryService(SERVICES.POWER);
       const nature = await gatt.getPrimaryService(SERVICES.NATURE);
-      console.log('[BLE] 已获取 3 个主服务 (FFF0/FFD0/FFE0)');
+
+      // 硬件检测：通过 FFD3 字节长度判断兼容模式
+      await this.detectCompatMode(power);
+
+      // 发现所有特征（强制特征直接获取，可选特征 try/catch）
       for (const uuid of Object.values(CHARS)) {
-        // DFU chars belong to FEE0 service, not handled here
-        if (uuid.startsWith('0000fee')) continue;
+        if (uuid.startsWith('0000fee')) continue; // DFU chars
+        if (uuid.startsWith('0000ffc')) continue; // BLE_NAME service (handled separately)
         let svc = main;
         if (uuid.startsWith('0000ffd')) svc = power;
         else if (uuid.startsWith('0000ffe')) svc = nature;
+        // 可选特征（旧固件不存在）—— try/catch 静默跳过
+        if ((OPTIONAL_CHARS as readonly string[]).includes(uuid)) {
+          try {
+            this.chars.set(uuid, await svc.getCharacteristic(uuid));
+          } catch {
+            console.log('[BLE] 可选特征不可用:', uuid.slice(4, 8));
+          }
+          continue;
+        }
         this.chars.set(uuid, await svc.getCharacteristic(uuid));
       }
       console.log('[BLE] 已获取', this.chars.size, '个特征');
+
+      // 尝试连接 BLE 名称服务（FFC0, v1.3+）
+      try {
+        const bleNameSvc = await gatt.getPrimaryService(SERVICES.BLE_NAME);
+        const bleNameChar = await bleNameSvc.getCharacteristic(CHARS.BLE_NAME);
+        this.chars.set(CHARS.BLE_NAME, bleNameChar);
+        console.log('[BLE] BLE 名称服务已就绪 (FFC0)');
+      } catch {
+        console.log('[BLE] BLE 名称服务不可用（FFC0）');
+      }
+
       // 尝试连接 DFU 服务（FEE0），用于查询序列号和固件版本
-      // 使用 getPrimaryServices 避免找不到服务时抛 GATT 异常
       try {
         const dfuServices = await gatt.getPrimaryServices(SERVICES.DFU);
         if (dfuServices.length > 0) {
@@ -129,12 +153,11 @@ export class BleManager implements IBleManager {
         }
       } catch {
         console.log('[BLE] DFU 服务不可用（FEE0），将无法查询序列号/固件版本');
-        // 静默忽略，DFU 服务不可用不影响主控功能
       }
-      this.profile = pickProfile(this.device.name ?? undefined);
+
       this.writer.setNatureWindChar(this.chars.get(CHARS.NATURE_WIND)!);
       this.writer.setRegChar(this.chars.get(CHARS.POWER_CONFIG)!);
-      this.onState?.('connected', this.device.name ?? '未知', this.profile);
+      this.onState?.('connected', this.device.name ?? '未知', this.isCompatMode);
       setTimeout(() => { void this.readInitial().then(() => setTimeout(() => void this.queryDeviceInfo(), 500)); }, 1500);
     } catch (e) {
       console.log('[BLE] 连接失败:', e);
@@ -143,9 +166,20 @@ export class BleManager implements IBleManager {
     }
   }
 
-  private async readInitial(): Promise<void> {
-    if (!this.profile) return;
+  /** 通过读取 FFD3 字节长度检测兼容模式 */
+  private async detectCompatMode(powerSvc: BluetoothRemoteGATTService): Promise<void> {
+    try {
+      const motorChar = await powerSvc.getCharacteristic(CHARS.MOTOR_INFO);
+      const dv = new DataView((await motorChar.readValue()).buffer);
+      this.isCompatMode = isCompatModel(dv.byteLength);
+      console.log('[BLE] 硬件检测: FFD3 length=' + dv.byteLength + ' → ' + (this.isCompatMode ? '兼容模式' : '完整模式'));
+    } catch {
+      console.log('[BLE] FFD3 硬件检测失败，默认兼容模式');
+      this.isCompatMode = true;
+    }
+  }
 
+  private async readInitial(): Promise<void> {
     try {
       await this.scheduler.enqueueRead(async () => {
         const timer = await this.timedRead(CHARS.TIMER);
@@ -172,8 +206,9 @@ export class BleManager implements IBleManager {
           shutdownDelaySec: u16be(sdDv),
           natureWindSum: u8(nwSum),
           natureWindTime: new DataView(nwTime.buffer).getUint32(0, false),
+          isCompatMode: this.isCompatMode,
         });
-        console.log('[BLE] 初始读取完成: timer=' + u16be(timerDv) + 's, fan=' + u8(calibDv, 0) + '/' + u8(calibDv, 1) + '/' + u8(calibDv, 2) + '/' + u8(calibDv, 3) + ', nw=' + u8(nwDv) + ', gdm=' + u8(gdmDv));
+        console.log('[BLE] 初始读取完成: timer=' + u16be(timerDv) + 's, calib=' + u8(calibDv, 0) + '/' + u8(calibDv, 1) + '/' + u8(calibDv, 2) + '/' + u8(calibDv, 3));
       });
     } catch (e) {
       console.log('[BLE] 初始读取失败:', e);
@@ -299,8 +334,6 @@ export class BleManager implements IBleManager {
   }
 
   private async pollOnce(): Promise<void> {
-    if (!this.profile) return;
-
     // Don't start a new poll cycle if the previous one hasn't been consumed yet
     if (this.scheduler.pendingPollReads > 0) return;
 
@@ -316,6 +349,12 @@ export class BleManager implements IBleManager {
         const gdm = await this.timedRead(CHARS.GEAR_DOWN_MODE, 'poll');
         const pc = await this.timedRead(CHARS.POWER_CONFIG, 'poll');
         const timer = await this.timedRead(CHARS.TIMER, 'poll');
+
+        // v1.5+ Turbo 倒计时（可选特征）
+        let turboCountdown = 0;
+        if (this.chars.has(CHARS.TURBO_COUNTDOWN)) {
+          try { turboCountdown = u16be(await this.timedRead(CHARS.TURBO_COUNTDOWN, 'poll')); } catch {}
+        }
 
         const speedDv = speed;
         const batDv = bat;
@@ -333,11 +372,12 @@ export class BleManager implements IBleManager {
             fanSpeed: u8(speedDv),
             battery: parseBatteryInfo(batDv),
             powerStatus: parsePowerStatus(pwrDv),
-            motor: parseMotorInfo(motDv, this.profile!),
+            motor: parseMotorInfo(motDv, this.isCompatMode),
             powerConfig: parsePowerConfig(pcDv),
             natureWindOn: natureOn,
             gearDownMode: u8(gdmDv) as 0 | 1,
             timerRemainingSec: u16be(timerDv),
+            turboCountdownSec: turboCountdown,
           });
         }
       });
@@ -394,7 +434,6 @@ export class BleManager implements IBleManager {
     this.lastWriteMs = Date.now();
     const prevNw = useDeviceStore.getState().natureWindOn;
     const prevSpeed = useDeviceStore.getState().fanSpeed;
-    // Predict target speed from calibration: gear 0=off, gear N=speedCalib[N-1]
     const calib = useDeviceStore.getState().speedCalib;
     const targetSpeed = gear === 0 ? 0 : calib[gear - 1];
     this.onSnapshot?.({ fanSpeed: targetSpeed, natureWindOn: false });
@@ -419,18 +458,15 @@ export class BleManager implements IBleManager {
     const prevSpeed = useDeviceStore.getState().fanSpeed;
     const prevNw = useDeviceStore.getState().natureWindOn;
 
-    // 保险起见，依旧先手动触发开机
-    ///* 风扇V1.2 固件已修复此问题
-    // V3.4 行为：风扇关机时调转速，先自动开机到 1 档
-    if (prevSpeed === 0 && pct > 0) {
+    const features = getFeatures(useDeviceStore.getState().firmwareVersion);
+    if (features.has('autoBootOnSpeed') && prevSpeed === 0 && pct > 0) {
       try {
         console.log('[BLE] 未开机, 先手动开机');
         await this.writeGear(1);
       } catch {
-        return; // writeGear 内部已回滚，放弃后续写入
+        return;
       }
     }
-    //*/
 
     this.onSnapshot?.({ fanSpeed: pct, natureWindOn: false });
     try {
@@ -672,6 +708,104 @@ export class BleManager implements IBleManager {
     }
   }
 
+  // ===== v1.3+ 新功能 =====
+
+  /** v1.3+ Turbo 模式开关 (FFF9, 0x01=开启, 0x00=退出) */
+  async writeTurbo(on: boolean): Promise<void> {
+    this.lastWriteMs = Date.now();
+    const char = this.chars.get(CHARS.TURBO_MODE);
+    if (!char) throw new Error('固件不支持 Turbo 模式');
+
+    // 开机 workaround：风扇关机时开启 Turbo，先开机到 1 档
+    if (on) {
+      const features = getFeatures(useDeviceStore.getState().firmwareVersion);
+      const prevSpeed = useDeviceStore.getState().fanSpeed;
+      if (features.has('autoBootOnTurbo') && prevSpeed === 0) {
+        try {
+          console.log('[BLE] 未开机, 先手动开机（Turbo）');
+          await this.writeGear(1);
+        } catch {
+          return;
+        }
+      }
+    }
+
+    try {
+      await this.writer.enqueue(async () => {
+        await this.writer.rawWrite(char, new Uint8Array([on ? 1 : 0]));
+      });
+    } catch (e) {
+      console.log('[BLE] writeTurbo 失败:', e);
+    }
+  }
+
+  /** v1.3+ Turbo 时间设置 (FFF8, v1.3=1字节1-199s, v1.4+=2字节1-600s) */
+  async writeTurboTime(sec: number): Promise<void> {
+    this.lastWriteMs = Date.now();
+    const char = this.chars.get(CHARS.TURBO_TIME);
+    if (!char) throw new Error('固件不支持 Turbo 时间设置');
+    const features = getFeatures(useDeviceStore.getState().firmwareVersion);
+    const max = features.has('turbo2Byte') ? 600 : 199;
+    const clamped = Math.max(0, Math.min(max, sec));
+    try {
+      await this.writer.enqueue(async () => {
+        if (features.has('turbo2Byte')) {
+          // v1.4+: 2 bytes big-endian
+          await this.writer.rawWrite(char, new Uint8Array([(clamped >> 8) & 0xff, clamped & 0xff]));
+        } else {
+          // v1.3: 1 byte
+          await this.writer.rawWrite(char, new Uint8Array([clamped]));
+        }
+      });
+    } catch (e) {
+      console.log('[BLE] writeTurboTime 失败:', e);
+    }
+  }
+
+  /** v1.3+ 临时关灯 (FFFA, 0x00=关灯) */
+  async writeLightOff(): Promise<void> {
+    this.lastWriteMs = Date.now();
+    const char = this.chars.get(CHARS.LIGHT_OFF);
+    if (!char) throw new Error('固件不支持关灯功能');
+    try {
+      await this.writer.enqueue(async () => {
+        await this.writer.rawWrite(char, new Uint8Array([0]));
+      });
+    } catch (e) {
+      console.log('[BLE] writeLightOff 失败:', e);
+    }
+  }
+
+  /** v1.3+ 蓝牙名称修改 (FFC1, 字符串 "BLE_NAME=xxx,") */
+  async writeBleName(name: string): Promise<void> {
+    this.lastWriteMs = Date.now();
+    const char = this.chars.get(CHARS.BLE_NAME);
+    if (!char) throw new Error('固件不支持蓝牙名称修改');
+    try {
+      await this.writer.enqueue(async () => {
+        await this.writer.rawWrite(char, encodeCmd(cmd.bleName(name)));
+      });
+    } catch (e) {
+      console.log('[BLE] writeBleName 失败:', e);
+    }
+  }
+
+  /** v1.4+ 读取 Turbo 剩余倒计时 (FFFB, 2字节 big-endian) */
+  async readTurboCountdown(): Promise<number> {
+    return this.scheduler.enqueueRead(async () => {
+      const v = await this.timedRead(CHARS.TURBO_COUNTDOWN);
+      return u16be(v);
+    });
+  }
+
+  /** v1.4+ 读取 Turbo 当前状态 (FFF9, 0=未开启, 1=正在 Turbo) */
+  async readTurbo(): Promise<number> {
+    return this.scheduler.enqueueRead(async () => {
+      const v = await this.timedRead(CHARS.TURBO_MODE);
+      return u8(v);
+    });
+  }
+
   disconnect(): void {
     this.scheduler.destroy();
     this.stopPolling();
@@ -688,7 +822,7 @@ export class BleManager implements IBleManager {
     this.dfuNotifyChar = null;
     this.dfuPendingResolve = null;
     this.device = null;
-    this.profile = null;
+    this.isCompatMode = false;
     this.writer = new WriteQueue();
     this.dfuProtocol.reset();
     this.onState?.('idle');

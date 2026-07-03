@@ -24,6 +24,7 @@ interface DeviceState {
   powerConfig: PowerConfigRegs | null;
   serialNumber: string | null;
   firmwareVersion: string | null;
+  turboCountdownSec: number;
   setSnapshot: (snap: Partial<BleSnapshot>) => void;
   reset: () => void;
 }
@@ -45,6 +46,7 @@ const initialState = {
   powerConfig: null,
   serialNumber: null,
   firmwareVersion: null,
+  turboCountdownSec: 0,
 };
 
 export const useDeviceStore = create<DeviceState>()(

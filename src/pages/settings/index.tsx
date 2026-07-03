@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useBle } from '../../hooks/useBle';
+import { useDeviceStore } from '../../stores/device';
 import { useSettingsStore } from '../../stores/settings';
 import { Card } from '../../components/ui/Card';
 import { PageGrid } from '../../components/ui/PageGrid';
@@ -45,7 +46,8 @@ const SETTINGS_LAYOUTS: ResponsiveLayouts = {
 };
 
 export default function Settings() {
-  const { isConnected, deviceName, profile, disconnect } = useBle();
+  const { isConnected, deviceName, disconnect } = useBle();
+  const firmwareVersion = useDeviceStore((s) => s.firmwareVersion);
   const { theme, pollIntervalMs, curveEditorMode, historyRetentionMin, setTheme, setPollInterval, setCurveMode, setHistoryRetentionMin } = useSettingsStore();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -64,7 +66,7 @@ export default function Settings() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
             <Row label="连接状态" value={isConnected ? '已连接' : '未连接'} accent={isConnected ? 'var(--color-success)' : 'var(--color-text-muted)'} />
             <Row label="设备名称" value={deviceName ?? '--'} />
-            <Row label="设备档案" value={profile?.name ?? '--'} />
+            <Row label="设备档案" value={firmwareVersion ? `v${firmwareVersion}` : '--'} />
             {isConnected && (
               <button
                 onClick={disconnect}

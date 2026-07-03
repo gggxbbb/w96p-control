@@ -46,7 +46,7 @@ const NW_LAYOUTS: ResponsiveLayouts = {
 };
 
 export default function NatureWind() {
-  const { profile, readNatureCurve, setNatureCurve, writeNatureWindCtrl } = useBle();
+  const { readNatureCurve, setNatureCurve, writeNatureWindCtrl } = useBle();
   const storedCurve = useDeviceStore((s) => s.natureCurve);
   const editorMode = useSettingsStore((s) => s.curveEditorMode);
   const setCurveMode = useSettingsStore((s) => s.setCurveMode);
@@ -55,8 +55,8 @@ export default function NatureWind() {
   const natureWindSum = useDeviceStore((s) => s.natureWindSum);
   const natureWindTime = useDeviceStore((s) => s.natureWindTime);
 
-  const min = profile?.minSpeed ?? 0;
-  const max = profile?.maxSpeed ?? 100;
+  const min = 0;
+  const max = 100;
 
   // 本地编辑态
   const [editPoints, setEditPoints] = useState<number[]>(

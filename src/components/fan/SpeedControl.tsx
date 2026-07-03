@@ -6,12 +6,12 @@ import { GearRow } from './GearRow';
 import { Toggle } from '../ui/Toggle';
 
 export function SpeedControl() {
-  const { profile, setFanSpeed, toggleNatureWind } = useBle();
+  const { setFanSpeed, toggleNatureWind } = useBle();
   const fanSpeed = useDeviceStore((s) => s.fanSpeed);
   const natureWindOn = useDeviceStore((s) => s.natureWindOn);
 
-  const min = profile?.minSpeed ?? 0;
-  const max = profile?.maxSpeed ?? 100;
+  const min = 0;
+  const max = 100;
 
   const [dragSpeed, setDragSpeed] = useState<number | null>(null);
   const [inputValue, setInputValue] = useState(String(fanSpeed));

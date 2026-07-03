@@ -3,6 +3,8 @@ export const SERVICES = {
   POWER: '0000ffd0-0000-1000-8000-00805f9b34fb',
   NATURE: '0000ffe0-0000-1000-8000-00805f9b34fb',
   DFU: '0000fee0-0000-1000-8000-00805f9b34fb',
+  /** v1.3+ 蓝牙名称配置服务 */
+  BLE_NAME: '0000ffc0-0000-1000-8000-00805f9b34fb',
 } as const;
 
 export const CHARS = {
@@ -13,6 +15,14 @@ export const CHARS = {
   SHUTDOWN_DELAY: '0000fff5-0000-1000-8000-00805f9b34fb',
   GEAR_DOWN_MODE: '0000fff6-0000-1000-8000-00805f9b34fb',
   SPEED_CALIB: '0000fff7-0000-1000-8000-00805f9b34fb',
+  /** v1.3+ Turbo 时间 (FFF0 服务, v1.3=1字节, v1.4+=2字节) */
+  TURBO_TIME: '0000fff8-0000-1000-8000-00805f9b34fb',
+  /** v1.3+ Turbo 模式开关 (FFF0 服务, v1.4+ 可读) */
+  TURBO_MODE: '0000fff9-0000-1000-8000-00805f9b34fb',
+  /** v1.3+ 临时关灯 (FFF0 服务) */
+  LIGHT_OFF: '0000fffa-0000-1000-8000-00805f9b34fb',
+  /** v1.5+ Turbo 剩余倒计时 (FFF0 服务, 只读 2字节) */
+  TURBO_COUNTDOWN: '0000fffb-0000-1000-8000-00805f9b34fb',
   BATTERY_INFO: '0000ffd1-0000-1000-8000-00805f9b34fb',
   POWER_STATUS: '0000ffd2-0000-1000-8000-00805f9b34fb',
   MOTOR_INFO: '0000ffd3-0000-1000-8000-00805f9b34fb',
@@ -21,9 +31,20 @@ export const CHARS = {
   NATURE_WIND_SUM: '0000ffe1-0000-1000-8000-00805f9b34fb',
   NATURE_WIND_TIME: '0000ffe2-0000-1000-8000-00805f9b34fb',
   NATURE_WIND_CTRL: '0000ffe4-0000-1000-8000-00805f9b34fb',
+  /** v1.3+ 蓝牙名称特征 (FFC0 服务) */
+  /** V1.5+ 不可用 */
+  BLE_NAME: '0000ffc1-0000-1000-8000-00805f9b34fb',
   DFU_WRITE: '0000fee1-0000-1000-8000-00805f9b34fb',
   DFU_NOTIFY: '0000fee2-0000-1000-8000-00805f9b34fb',
 } as const;
+
+/** v1.3+ 可选特征（旧固件不存在，发现时用 try/catch） */
+export const OPTIONAL_CHARS = [
+  CHARS.TURBO_TIME,
+  CHARS.TURBO_MODE,
+  CHARS.LIGHT_OFF,
+  CHARS.TURBO_COUNTDOWN,
+] as const;
 
 export const ALL_OPTIONAL_SERVICES = Object.values(SERVICES);
 

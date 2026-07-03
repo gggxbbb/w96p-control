@@ -35,6 +35,7 @@ const DASHBOARD_LAYOUTS: ResponsiveLayouts = {
     { i: 'batt-est-pct', x: 9, y: 6, w: 3, h: 2 },
     { i: 'batt-est-rem', x: 0, y: 8, w: 3, h: 2 },
     { i: 'batt-est-eta', x: 3, y: 8, w: 3, h: 2 },
+    { i: 'turbo-countdown', x: 6, y: 8, w: 3, h: 2 },
     { i: 'fan-control', x: 0, y: 10, w: 8, h: 6 },
     { i: 'status', x: 8, y: 10, w: 4, h: 6 },
   ],
@@ -57,6 +58,7 @@ const DASHBOARD_LAYOUTS: ResponsiveLayouts = {
     { i: 'batt-est-pct', x: 0, y: 14, w: 5, h: 2 },
     { i: 'batt-est-rem', x: 5, y: 14, w: 5, h: 2 },
     { i: 'batt-est-eta', x: 0, y: 16, w: 5, h: 2 },
+    { i: 'turbo-countdown', x: 5, y: 16, w: 5, h: 2 },
     { i: 'fan-control', x: 0, y: 18, w: 10, h: 6 },
     { i: 'status', x: 0, y: 24, w: 10, h: 6 },
   ],
@@ -79,8 +81,9 @@ const DASHBOARD_LAYOUTS: ResponsiveLayouts = {
     { i: 'batt-est-pct', x: 3, y: 14, w: 3, h: 2 },
     { i: 'batt-est-rem', x: 0, y: 16, w: 3, h: 2 },
     { i: 'batt-est-eta', x: 3, y: 16, w: 3, h: 2 },
-    { i: 'fan-control', x: 0, y: 18, w: 6, h: 6 },
-    { i: 'status', x: 0, y: 24, w: 6, h: 6 },
+    { i: 'turbo-countdown', x: 0, y: 18, w: 3, h: 2 },
+    { i: 'fan-control', x: 0, y: 20, w: 6, h: 6 },
+    { i: 'status', x: 0, y: 26, w: 6, h: 6 },
   ],
   xs: [
     { i: 'fan-gear', x: 0, y: 0, w: 2, h: 2 },
@@ -101,13 +104,14 @@ const DASHBOARD_LAYOUTS: ResponsiveLayouts = {
     { i: 'batt-est-pct', x: 2, y: 28, w: 2, h: 2 },
     { i: 'batt-est-rem', x: 0, y: 30, w: 2, h: 2 },
     { i: 'batt-est-eta', x: 2, y: 30, w: 2, h: 2 },
-    { i: 'fan-control', x: 0, y: 32, w: 2, h: 6 },
-    { i: 'status', x: 0, y: 38, w: 2, h: 6 },
+    { i: 'turbo-countdown', x: 0, y: 32, w: 2, h: 2 },
+    { i: 'fan-control', x: 0, y: 34, w: 2, h: 6 },
+    { i: 'status', x: 0, y: 40, w: 2, h: 6 },
   ],
 };
 
 export default function Dashboard() {
-  const { isConnected, profile, setFanSpeed, toggleNatureWind } = useBle();
+  const { isConnected, isCompatMode, setFanSpeed, toggleNatureWind } = useBle();
   const fanSpeed = useDeviceStore((s) => s.fanSpeed);
   const natureWindOn = useDeviceStore((s) => s.natureWindOn);
   const battery = useDeviceStore((s) => s.battery);
@@ -115,6 +119,7 @@ export default function Dashboard() {
   const motor = useDeviceStore((s) => s.motor);
   const powerConfig = useDeviceStore((s) => s.powerConfig);
   const timerRemainingSec = useDeviceStore((s) => s.timerRemainingSec);
+  const turboCountdownSec = useDeviceStore((s) => s.turboCountdownSec);
   const dashboardCards = useSettingsStore((s) => s.dashboardCards);
   const setDashboardCards = useSettingsStore((s) => s.setDashboardCards);
   const show = useToastStore((s) => s.show);
@@ -122,13 +127,13 @@ export default function Dashboard() {
   const [dragSpeed, setDragSpeed] = useState<number | null>(null);
   const [cardPickerOpen, setCardPickerOpen] = useState(false);
 
-  if (!isConnected || !profile) {
+  if (!isConnected) {
     return <DisconnectedScreen />;
   }
 
   const batteryPower = battery ? (battery.voltageMv * battery.currentMa) / 1e6 : 0;
   const motorPower = motor
-    ? profile.motorPowerUsesMotorVoltage
+    ? !isCompatMode
       ? (motor.voltageMv * motor.currentMa) / 1e6
       : battery
         ? (battery.voltageMv * motor.currentMa) / 1e6
@@ -139,8 +144,8 @@ export default function Dashboard() {
   const estRemainMwh = (estSoc != null && battery?.capacityMwh) ? Math.round(battery.capacityMwh * estSoc / 100) : null;
   const estEtaMin = (estRemainMwh != null && batteryPower > 0) ? Math.round(estRemainMwh / (batteryPower * 1000) * 60) : null;
 
-  const minSpeed = profile.minSpeed;
-  const maxSpeed = profile.maxSpeed;
+  const minSpeed = 0;
+  const maxSpeed = 100;
   const displaySpeed = dragSpeed ?? fanSpeed;
 
   const toggleCard = (key: DashboardCardKey) => {
@@ -290,6 +295,15 @@ export default function Dashboard() {
       {dashboardCards['batt-est-eta'] && (
         <DraggableCard key="batt-est-eta">
           <MetricCard label="预计续航(估算)" value={estEtaMin ?? '--'} unit="min" />
+        </DraggableCard>
+      )}
+      {dashboardCards['turbo-countdown'] && (
+        <DraggableCard key="turbo-countdown">
+          <MetricCard
+            label="Turbo 倒计时" 
+            value={turboCountdownSec > 0 ? `${Math.floor(turboCountdownSec / 60)}:${String(turboCountdownSec % 60).padStart(2, '0')}` : '--'} 
+            unit="" 
+          />
         </DraggableCard>
       )}
 

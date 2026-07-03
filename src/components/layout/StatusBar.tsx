@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { useConnectionStore } from '../../stores/connection';
+import { useDeviceStore } from '../../stores/device';
 import { useSettingsStore } from '../../stores/settings';
 import { useBleMetrics } from '../../stores/bleMetrics';
 
@@ -11,10 +12,10 @@ function sep() {
 }
 
 export function StatusBar() {
-  const { state, profile } = useConnectionStore();
+  const { state, isCompatMode } = useConnectionStore();
+  const firmwareVersion = useDeviceStore((s) => s.firmwareVersion);
   const pollInterval = useSettingsStore((s) => s.pollIntervalMs);
   const metrics = useBleMetrics();
-  const schedState = metrics.schedulerState;
   const [now, setNow] = useState(() => new Date());
   const [debugOpen, setDebugOpen] = useState(false);
   const [learnOpen, setLearnOpen] = useState(false);
@@ -49,6 +50,10 @@ export function StatusBar() {
   const avgW = wOps.length > 0 ? Math.round(wOps.reduce((a, b) => a + b.duration, 0) / wOps.length) : 0;
   const avgR = rOps.length > 0 ? Math.round(rOps.reduce((a, b) => a + b.duration, 0) / rOps.length) : 0;
 
+  const versionLabel = firmwareVersion
+    ? `v${firmwareVersion}${isCompatMode ? ' 兼容' : ''}`
+    : isCompatMode ? 'W96P 兼容' : 'W96P';
+
   const Item = ({ children, className = 'status-label', onClick, style: itemStyle }: { children: React.ReactNode; className?: string; onClick?: () => void; style?: React.CSSProperties }) => (
     <span
       className={className}
@@ -58,8 +63,12 @@ export function StatusBar() {
         minWidth: 0,
         overflow: 'hidden',
         textOverflow: 'ellipsis',
+        fontSize: '10px',
+        color: 'var(--color-text-dim)',
+        fontWeight: 400,
         whiteSpace: 'nowrap',
-        cursor: onClick ? 'pointer' : undefined,
+        cursor: onClick ? 'pointer' : 'default',
+        userSelect: onClick ? 'none' : 'auto',
         ...itemStyle,
       }}
     >
@@ -71,37 +80,34 @@ export function StatusBar() {
     <>
       <footer
         style={{
-          height: '24px',
-          background: 'var(--color-bg-inset)',
+          height: '26px',
+          background: 'var(--color-bg-surface)',
           borderTop: '0.5px solid var(--color-border)',
           display: 'flex',
           alignItems: 'center',
-          padding: '0 8px',
-          gap: '6px',
-          fontSize: '10px',
-          color: 'var(--color-text-muted)',
-          fontFamily: 'var(--font-sans)',
-          fontVariantNumeric: 'tabular-nums',
+          padding: '0 12px',
+          gap: '8px',
           flexShrink: 0,
+          fontSize: '10px',
+          color: 'var(--color-text-dim)',
         }}
       >
-        <span style={{ color: statusColor, flexShrink: 0 }}>●</span>
-        {state === 'connected' && (
-          <Item>
-            {schedState === 'idle' ? '就绪' :
-             schedState === 'write' ? '写入' :
-             schedState === 'read' ? '读取' : '轮询'}
-          </Item>
-        )}
+        <span style={{
+          display: 'inline-block',
+          width: '6px', height: '6px', borderRadius: '50%',
+          background: statusColor,
+          flexShrink: 0,
+        }} />
+        {state === 'connected' && <Item>已连接</Item>}
         {state === 'connecting' && <Item>连接中</Item>}
         {state === 'error' && <Item>错误</Item>}
         {state !== 'connected' && state !== 'connecting' && state !== 'error' && <Item>空闲</Item>}
         {sep()}
         <Item>{pollInterval}ms</Item>
-        {profile && (
+        {state === 'connected' && (
           <>
             {sep()}
-            <Item onClick={() => setLearnOpen(true)}>{profile.name}</Item>
+            <Item onClick={() => setLearnOpen(true)}>{versionLabel}</Item>
           </>
         )}
         {state === 'connected' && (avgW > 0 || avgR > 0) && (

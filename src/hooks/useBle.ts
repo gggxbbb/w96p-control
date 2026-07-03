@@ -12,11 +12,11 @@ let managerInstance: IBleManager | null = null;
 let isVirtual = false;
 
 function bindCallbacks(m: IBleManager) {
-  m.onState = (s, name, profile) => {
+  m.onState = (s, name, isCompat) => {
     const conn = useConnectionStore.getState();
     if (s === 'connecting') conn.setConnecting();
-    else if (s === 'connected' && name && profile) {
-      conn.setConnected(name, profile);
+    else if (s === 'connected' && name) {
+      conn.setConnected(name, isCompat ?? false);
       useSettingsStore.getState().setLastDeviceName(name);
     } else if (s === 'error') conn.setError('连接失败');
     else if (s === 'idle') {
@@ -52,7 +52,7 @@ function getManager(): IBleManager {
 export function useBle() {
   const manager = useMemo(getManager, []);
   const state = useConnectionStore((s) => s.state);
-  const profile = useConnectionStore((s) => s.profile);
+  const isCompatMode = useConnectionStore((s) => s.isCompatMode);
   const deviceName = useConnectionStore((s) => s.deviceName);
   const pollInterval = useSettingsStore((s) => s.pollIntervalMs);
   const [isVirtualDevice, setIsVirtualDevice] = useState(isVirtual);
@@ -71,10 +71,10 @@ export function useBle() {
     void managerInstance.connect();
   };
 
-  const connectVirtual = (profileName: 'W96P' | 'W66D') => {
+  const connectVirtual = (compat: boolean) => {
     if (managerInstance) teardown(managerInstance);
     const vm = new VirtualManager();
-    vm.setVirtualProfile(profileName);
+    vm.setVirtualProfile(compat);
     bindCallbacks(vm);
     managerInstance = vm;
     isVirtual = true;
@@ -95,7 +95,7 @@ export function useBle() {
   const m = managerInstance ?? manager;
   return {
     state,
-    profile,
+    isCompatMode,
     deviceName,
     isConnected: state === 'connected',
     isVirtualDevice,
@@ -126,6 +126,16 @@ export function useBle() {
     readBatteryCapacity: () => m.readBatteryCapacity(),
     startPolling: () => m.startPolling(pollInterval),
     stopPolling: () => m.stopPolling(),
+    /** v1.3+ Turbo 模式开关 */
+    setTurbo: (on: boolean) => m.writeTurbo?.(on) ?? Promise.resolve(),
+    /** v1.3+ Turbo 时间设置 (1-199 秒) */
+    setTurboTime: (sec: number) => m.writeTurboTime?.(sec) ?? Promise.resolve(),
+    /** v1.3+ 临时关灯 */
+    lightOff: () => m.writeLightOff?.() ?? Promise.resolve(),
+    /** v1.3+ 蓝牙名称修改 */
+    setBleName: (name: string) => m.writeBleName?.(name) ?? Promise.resolve(),
+    /** v1.4+ 读取 Turbo 剩余倒计时 */
+    readTurboCountdown: () => m.readTurboCountdown?.() ?? Promise.resolve(0),
     manager: m,
   };
 }

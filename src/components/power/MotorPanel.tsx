@@ -5,12 +5,12 @@ import { MetricCard } from '../ui/MetricCard';
 import { StatusPill } from '../ui/StatusPill';
 
 export function MotorPanel() {
-  const { profile } = useBle();
+  const { isCompatMode } = useBle();
   const motor = useDeviceStore((s) => s.motor);
   const battery = useDeviceStore((s) => s.battery);
 
   const motorPower = motor
-    ? profile?.motorPowerUsesMotorVoltage
+    ? !isCompatMode
       ? (motor.voltageMv * motor.currentMa) / 1e6
       : battery
         ? (battery.voltageMv * motor.currentMa) / 1e6
@@ -21,22 +21,22 @@ export function MotorPanel() {
     <Card title="电机信息">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px', marginBottom: '12px' }}>
         <MetricCard label="电机电流" value={motor ? motor.currentMa : '--'} unit="mA" noGauge />
-        {profile?.parseMotorFull && (
+        {!isCompatMode && (
           <>
             <MetricCard label="电机电压" value={motor && motor.voltageMv > 0 ? motor.voltageMv / 1000 : '--'} unit="V" decimals={2} noGauge />
             <MetricCard label="电机功率" value={motorPower} unit="W" decimals={2} noGauge />
           </>
         )}
-        {!profile?.motorPowerUsesMotorVoltage && (
+        {isCompatMode && (
           <MetricCard label="电机功率（近似）" value={motorPower} unit="W" decimals={2} noGauge />
         )}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {motor?.block ? <StatusPill status="danger" label="堵转" /> : <StatusPill status="default" label="正常" />}
         </div>
       </div>
-      {!profile?.parseMotorFull && (
+      {isCompatMode && (
         <div style={{ fontSize: '10px', color: 'var(--color-text-dim)' }}>
-          当前 profile 不支持电机电压/堵转解析，功率按电池电压近似计算
+          兼容模式下不支持电机电压/堵转解析，功率按电池电压近似计算
         </div>
       )}
     </Card>

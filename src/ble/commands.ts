@@ -10,7 +10,9 @@ export const cmd = {
   setRegister: (reg: PowReg, byte: number) => `POW_${reg}=${byte},`,
   /** FFE4 自然风控制：1=保存当前配置，2=恢复默认 */
   natureWindCtrl: (op: 1 | 2) => new Uint8Array([op]),
-};
+  /** v1.3+ 蓝牙名称: BLE_NAME=xxx, */
+  bleName: (name: string) => `BLE_NAME=${name},`,
+} as const;
 
 export const encodeCmd = (str: string): Uint8Array =>
   new TextEncoder().encode(str);

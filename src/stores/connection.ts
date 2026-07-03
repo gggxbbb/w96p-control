@@ -1,15 +1,14 @@
 import { create } from 'zustand';
 import type { BleState } from '../ble/manager';
-import type { Profile } from '../ble/profiles';
 
 interface ConnectionState {
   state: BleState;
   deviceName: string | null;
-  profile: Profile | null;
+  isCompatMode: boolean;
   lastError: string | null;
   connectedAt: number | null;
   setConnecting: () => void;
-  setConnected: (name: string, profile: Profile) => void;
+  setConnected: (name: string, isCompat: boolean) => void;
   setError: (msg: string) => void;
   setDisconnected: () => void;
 }
@@ -17,13 +16,13 @@ interface ConnectionState {
 export const useConnectionStore = create<ConnectionState>((set) => ({
   state: 'idle',
   deviceName: null,
-  profile: null,
+  isCompatMode: false,
   lastError: null,
   connectedAt: null,
   setConnecting: () => set({ state: 'connecting', lastError: null }),
-  setConnected: (name, profile) =>
-    set({ state: 'connected', deviceName: name, profile, connectedAt: Date.now(), lastError: null }),
+  setConnected: (name, isCompatMode) =>
+    set({ state: 'connected', deviceName: name, isCompatMode, connectedAt: Date.now(), lastError: null }),
   setError: (msg) => set({ state: 'error', lastError: msg }),
   setDisconnected: () =>
-    set({ state: 'idle', deviceName: null, profile: null, connectedAt: null }),
+    set({ state: 'idle', deviceName: null, isCompatMode: false, connectedAt: null }),
 }));

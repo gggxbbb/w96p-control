@@ -46,7 +46,6 @@ const STEP_LABELS: Record<DfuStep, string> = {
 
 export default function OtaPage() {
   const deviceName = useConnectionStore((s) => s.deviceName);
-  const profile = useConnectionStore((s) => s.profile);
   const firmwareVersion = useDeviceStore((s) => s.firmwareVersion);
   const serialNumber = useDeviceStore((s) => s.serialNumber);
   const store = useDfuStore();
@@ -86,7 +85,7 @@ export default function OtaPage() {
       store.appendLog(`产品名: ${fw.productName}, 版本: ${fw.version}`, 'info');
 
       const warnings: string[] = [];
-      const productName = (profile?.name ?? deviceName ?? '').replace(/[^A-Za-z0-9]/g, '');
+      const productName = 'W96P';
       if (productName && fw.productName !== productName) {
         warnings.push(
           `固件产品名 "${fw.productName}" 与当前设备 "${productName}" 不匹配，刷入不匹配的固件极有可能导致设备变砖。`,
@@ -102,7 +101,7 @@ export default function OtaPage() {
       }
       setFirmwareWarnings(warnings);
     },
-    [store, deviceName, profile],
+    [store, deviceName],
   );
 
   const startUpgrade = useCallback(async () => {
@@ -177,7 +176,7 @@ export default function OtaPage() {
           <div>
             <span style={{ opacity: 0.6 }}>产品型号</span>
             <br />
-            {profile?.name ?? '—'}
+            {'W96P'}
           </div>
           <div>
             <span style={{ opacity: 0.6 }}>序列号</span>

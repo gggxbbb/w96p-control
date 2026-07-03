@@ -52,10 +52,10 @@ const GAUGE_PRESETS: Record<string, { min: number; max: number; dangerLow?: bool
 const DEFAULT_GAUGE_RANGE = { min: 0, max: 100 };
 
 /** 不适合仪表模式的卡片标签 */
-const NO_GAUGE_LABELS = new Set(['档位', '定时']);
+const NO_GAUGE_LABELS = new Set(['档位', '定时', 'Turbo 倒计时']);
 
 /** 不需要按值着色的卡片标签 */
-const NO_COLOR_LABELS = new Set(['定时', '档位']);
+const NO_COLOR_LABELS = new Set(['定时', '档位', 'Turbo 倒计时']);
 
 /** 统一颜色：按值在 min-max 范围中的百分比分区 */
 function getColor(numericValue: number, min: number, max: number, dangerLow?: boolean): string {

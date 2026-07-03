@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { parseBatteryInfo, parsePowerStatus, parseMotorInfo, parsePowerConfig } from './parsers';
-import { PROFILES } from './profiles';
 
 function dv(bytes: number[]): DataView {
   return new DataView(new Uint8Array(bytes).buffer);
@@ -42,29 +41,29 @@ describe('parsePowerStatus', () => {
 });
 
 describe('parseMotorInfo', () => {
-  it('W96P profile 解析完整（电流+堵转+电压）', () => {
+  it('完整模式 解析完整（电流+堵转+电压）', () => {
     // 电流 320mA (0x0140), 堵转=1, 电压 4800mV (0x12C0)（5字节）
-    const result = parseMotorInfo(dv([0x01, 0x40, 0x01, 0x12, 0xC0]), PROFILES.W96P);
+    const result = parseMotorInfo(dv([0x01, 0x40, 0x01, 0x12, 0xC0]), false);
     expect(result.currentMa).toBe(320);
     expect(result.block).toBe(true);
     expect(result.voltageMv).toBe(4800);
   });
 
-  it('W66D profile 仅解析电流', () => {
-    const result = parseMotorInfo(dv([0x01, 0x40, 0x01, 0x12, 0xC0]), PROFILES.W66D);
+  it('兼容模式 仅解析电流', () => {
+    const result = parseMotorInfo(dv([0x01, 0x40, 0x01, 0x12, 0xC0]), true);
     expect(result.currentMa).toBe(320);
     expect(result.block).toBe(false);
     expect(result.voltageMv).toBe(0);
   });
 
   it('电机电压超 20000mV 视为脏数据置 0', () => {
-    const result = parseMotorInfo(dv([0x01, 0x40, 0x00, 0xFF, 0xFF]), PROFILES.W96P);
+    const result = parseMotorInfo(dv([0x01, 0x40, 0x00, 0xFF, 0xFF]), false);
     expect(result.voltageMv).toBe(0);
   });
 
-  it('W96P 堵转掩码 0xF7 清除 bit3 保留位', () => {
+  it('堵转掩码 0xF7 清除 bit3 保留位', () => {
     // 0x09 & 0xF7 = 0x01，应判为堵转
-    const result = parseMotorInfo(dv([0x01, 0x40, 0x09, 0x12, 0xC0]), PROFILES.W96P);
+    const result = parseMotorInfo(dv([0x01, 0x40, 0x09, 0x12, 0xC0]), false);
     expect(result.block).toBe(true);
   });
 });

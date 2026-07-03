@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useBle } from '../../hooks/useBle';
+import { useDeviceStore } from '../../stores/device';
 import { StatusPill } from '../ui/StatusPill';
 
 interface AppBarProps {
@@ -7,7 +8,8 @@ interface AppBarProps {
 }
 
 export function AppBar({ onMenuClick }: AppBarProps) {
-  const { state, deviceName, profile, isConnected, isVirtualDevice, connectReal, connectVirtual, disconnect } = useBle();
+  const { state, deviceName, isCompatMode, isConnected, isVirtualDevice, connectReal, connectVirtual, disconnect } = useBle();
+  const firmwareVersion = useDeviceStore((s) => s.firmwareVersion);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -21,6 +23,10 @@ export function AppBar({ onMenuClick }: AppBarProps) {
     document.addEventListener('mousedown', onClick);
     return () => document.removeEventListener('mousedown', onClick);
   }, [menuOpen]);
+
+  const versionLabel = firmwareVersion
+    ? `v${firmwareVersion}${isCompatMode ? ' 兼容' : ''}`
+    : isCompatMode ? 'W96P 兼容' : 'W96P';
 
   return (
     <header
@@ -69,7 +75,7 @@ export function AppBar({ onMenuClick }: AppBarProps) {
       {isConnected && deviceName && (
         <span className="device-name" style={{ color: 'var(--color-text-muted)', fontSize: '12px' }}>
           {deviceName}
-          {profile && ` · ${profile.name}`}
+          {` · ${versionLabel}`}
           {isVirtualDevice && <span style={{ color: 'var(--color-warning)', marginLeft: '4px' }}>[虚拟]</span>}
         </span>
       )}
@@ -108,16 +114,16 @@ export function AppBar({ onMenuClick }: AppBarProps) {
               虚拟设备
             </div>
             <button
-              onClick={() => { setMenuOpen(false); connectVirtual('W96P'); }}
+              onClick={() => { setMenuOpen(false); connectVirtual(false); }}
               style={menuItemStyle}
             >
-              虚拟 W96P（0-100）
+              虚拟 W96P（完整模式）
             </button>
             <button
-              onClick={() => { setMenuOpen(false); connectVirtual('W66D'); }}
+              onClick={() => { setMenuOpen(false); connectVirtual(true); }}
               style={menuItemStyle}
             >
-              虚拟 W66D（0-100）
+              虚拟 W66D（兼容模式）
             </button>
           </div>
         )}
