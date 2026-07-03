@@ -93,16 +93,20 @@ export class BleManager implements IBleManager {
       await this.detectCompatMode(power);
 
       // 发现所有特征（强制特征直接获取，可选特征 try/catch）
+      const svcCache = new Map<BluetoothRemoteGATTService, BluetoothRemoteGATTCharacteristic[]>();
       for (const uuid of Object.values(CHARS)) {
         if (uuid.startsWith('0000fee')) continue; // DFU chars
         if (uuid.startsWith('0000ffc')) continue; // BLE_NAME service (handled separately)
         let svc = main;
         if (uuid.startsWith('0000ffd')) svc = power;
         else if (uuid.startsWith('0000ffe')) svc = nature;
-        // 可选特征（旧固件不存在）—— try/catch 静默跳过
+        // 可选特征（旧固件不存在）—— 先拿全量列表再从列表中查找
         if ((OPTIONAL_CHARS as readonly string[]).includes(uuid)) {
           try {
-            this.chars.set(uuid, await svc.getCharacteristic(uuid));
+            if (!svcCache.has(svc)) svcCache.set(svc, await svc.getCharacteristics());
+            const found = svcCache.get(svc)!.find(c => c.uuid === uuid);
+            if (found) this.chars.set(uuid, found);
+            else console.log('[BLE] 可选特征不在服务中:', uuid.slice(4, 8));
           } catch {
             console.log('[BLE] 可选特征不可用:', uuid.slice(4, 8));
           }
