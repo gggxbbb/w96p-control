@@ -65,11 +65,11 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/fan', label: '风扇', icon: NAV_ICONS.fan },
   { to: '/nature-wind', label: '自然风', icon: NAV_ICONS.nature },
   { to: '/power', label: '电源', icon: NAV_ICONS.power },
-  // 寄存器入口已移至状态栏时钟
+  // 寄存器配置功能不开放
   //{ to: '/power-config', label: '寄存器', icon: NAV_ICONS.config },
-  // 暂时隐藏：OTA 流程尚未跑通
+  // OTA 流程浏览器体验不佳且尚未跑通
   //{ to: '/ota', label: '固件升级', icon: NAV_ICONS.ota },
-  // 暂时隐藏：历史页尚未就绪
+  // 暂时隐藏：历史页尚未就绪，无实现计划
   // { to: '/history', label: '历史', icon: NAV_ICONS.history },
   { to: '/settings', label: '设置', icon: NAV_ICONS.settings },
 ];
