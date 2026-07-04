@@ -5,14 +5,7 @@ W96P / W66D BLE 风扇协议 SDK，零外部依赖（仅 Zustand）。
 ## 安装
 
 ```bash
-npm install @gggxbbb/w96p-ble-sdk --registry=https://npm.pkg.github.com
-```
-
-需要 GitHub PAT（`read:packages`）认证，在 `~/.npmrc` 中配置：
-
-```
-//npm.pkg.github.com/:_authToken=YOUR_TOKEN
-@gggxbbb:registry=https://npm.pkg.github.com/
+npm install @gggxbbb/w96p-ble-sdk
 ```
 
 ## 使用

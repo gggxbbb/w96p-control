@@ -8,12 +8,13 @@ on:
       - '.github/workflows/publish-sdk.yml'
   workflow_dispatch:  # 手动触发
 
+permissions:
+  id-token: write  # Required for OIDC
+  contents: read
+
 jobs:
   publish:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
 
     steps:
       - uses: actions/checkout@v6
