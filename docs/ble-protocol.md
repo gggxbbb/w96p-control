@@ -162,7 +162,7 @@
 
 ---
 
-### 3.9 TURBO_MODE `FFF9` — Turbo 开关
+### 3.9 TURBO_MODE `FFFC` — Turbo 开关（v1.6+，原 FFF9）
 
 - **属性**: Read / Write，v1.3+
 - **长度**: 1 字节

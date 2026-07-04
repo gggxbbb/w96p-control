@@ -707,7 +707,7 @@ export class BleManager implements IBleManager {
 
   // ===== v1.3+ 新功能 =====
 
-  /** v1.3+ Turbo 模式开关 (FFF9, 0x01=开启, 0x00=退出) */
+  /** v1.3+ Turbo 模式开关 (FFFC, 0x01=开启, 0x00=退出, v1.6+ 由 FFF9 改为 FFFC) */
   async writeTurbo(on: boolean): Promise<void> {
     this.lastWriteMs = Date.now();
     const char = this.chars.get(CHARS.TURBO_MODE);
@@ -796,7 +796,7 @@ export class BleManager implements IBleManager {
     });
   }
 
-  /** v1.4+ 读取 Turbo 当前状态 (FFF9, 0=未开启, 1=正在 Turbo) */
+  /** v1.4+ 读取 Turbo 当前状态 (FFFC, 0=未开启, 1=正在 Turbo, v1.6+ 由 FFF9 改为 FFFC) */
   async readTurbo(): Promise<number> {
     return this.scheduler.enqueueRead(async () => {
       const v = await this.timedRead(CHARS.TURBO_MODE);
