@@ -1,3 +1,10 @@
+/**
+ * GATT 写入队列
+ *
+ * 所有用户写操作通过此队列串行化，由 {@link GattScheduler} 调度执行。
+ * 处理自然风/风扇写入冲突（写入转速前自动关闭自然风）。
+ */
+
 import type { PowReg } from './commands';
 import { cmd, encodeCmd } from './commands';
 import type { GattScheduler } from './scheduler';
@@ -27,9 +34,11 @@ export class WriteQueue {
   setNatureWindChar(c: BluetoothRemoteGATTCharacteristic) {
     this._natureChar = c;
   }
+
   setRegChar(c: BluetoothRemoteGATTCharacteristic) {
     this.regChar = c;
   }
+
   setNatureWindOn(on: boolean) {
     this.natureWindOn = on;
   }
@@ -48,7 +57,12 @@ export class WriteQueue {
     });
   }
 
-  /** 直接 GATT 写入（含重试），不经过调度器 */
+  /**
+   * 直接 GATT 写入（含重试），不经过调度器
+   * @param char - 目标 GATT 特征
+   * @param data - 写入数据
+   * @param retries - 最大重试次数
+   */
   async rawWrite(
     char: BluetoothRemoteGATTCharacteristic,
     data: Uint8Array,
@@ -85,6 +99,11 @@ export class WriteQueue {
     }
   }
 
+  /**
+   * 写入风扇转速，自动处理自然风冲突
+   * @param char - FFF3 特征
+   * @param pct - 转速百分比 0-100
+   */
   async writeFanSpeed(
     char: BluetoothRemoteGATTCharacteristic,
     pct: number,
@@ -99,6 +118,12 @@ export class WriteQueue {
     });
   }
 
+  /**
+   * 写入电源寄存器位
+   * @param reg - 寄存器编号
+   * @param bit - 位偏移
+   * @param value - 目标值
+   */
   async writeRegisterBit(
     reg: PowReg,
     bit: number,

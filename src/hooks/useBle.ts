@@ -1,8 +1,6 @@
 import { useMemo, useState } from 'react';
-import { BleManager } from '../ble/manager';
-import { VirtualManager } from '../ble/virtualManager';
-import type { IBleManager } from '../ble/types';
-import type { PowReg } from '../ble/commands';
+import { BleManager, VirtualManager } from '@gggxbbb/w96p-ble-sdk';
+import type { IBleManager, PowReg } from '@gggxbbb/w96p-ble-sdk';
 import { useConnectionStore } from '../stores/connection';
 import { useDeviceStore } from '../stores/device';
 import { useSettingsStore } from '../stores/settings';

@@ -1,0 +1,26 @@
+{
+  "name": "@gggxbbb/w96p-ble-sdk",
+  "version": "17.0.0",
+  "private": false,
+  "type": "module",
+  "description": "W96P/W66D BLE fan protocol SDK",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gggxbbb/w96p-control.git",
+    "directory": "packages/sdk"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "dependencies": {
+    "zustand": "^5.0.14"
+  },
+  "peerDependencies": {
+    "zustand": "^5.0.0"
+  }
+}

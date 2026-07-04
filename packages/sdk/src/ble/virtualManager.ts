@@ -1,3 +1,13 @@
+/**
+ * 虚拟设备管理器
+ *
+ * 在浏览器中模拟 W96P/W66D 风扇行为，无需真实 BLE 设备即可调试 UI。
+ * 使用正弦波模拟电池充放电、随机抖动模拟风扇转速。
+ *
+ * 与 {@link BleManager} 实现相同接口 {@link IBleManager}，
+ * 可无缝替换用于开发测试。
+ */
+
 import type { IBleManager, BleState, BleSnapshot } from './types';
 import type { BatteryInfo, PowerStatus, MotorInfo, PowerConfigRegs } from './parsers';
 import type { PowReg } from './commands';
@@ -13,15 +23,15 @@ export class VirtualManager implements IBleManager {
 
   isCompatMode = false;
 
-  // 虚拟设备型号
+  /** 虚拟设备型号 */
   private virtualIsCompat = false;
 
-  // 内部状态
+  /** 内部状态 */
   private pollId: number | null = null;
   private timerInterval: number | null = null;
   private startTime = 0;
 
-  // 设备状态
+  /** 设备模拟状态 */
   private fanSpeed = 50;
   private timerRemainingSec = 0;
   private natureWindOn = false;
@@ -39,9 +49,13 @@ export class VirtualManager implements IBleManager {
   private powCOut = true;
   private powCIn = true;
 
-  // 自然风曲线播放位置
+  /** 自然风曲线播放位置 */
   private curvePosition = 0;
 
+  /**
+   * 设置虚拟设备型号
+   * @param compat - true=W66D 兼容模式, false=W96P 完整模式
+   */
   setVirtualProfile(compat: boolean) {
     this.virtualIsCompat = compat;
     this.speedCalib = [...(compat ? DEFAULT_SPEEDS_COMPAT : DEFAULT_SPEEDS_FULL)] as [number, number, number, number];
@@ -58,6 +72,7 @@ export class VirtualManager implements IBleManager {
     setTimeout(() => { void this.readInitial(); }, 1500);
   }
 
+  /** 模拟初始读取 */
   private async readInitial(): Promise<void> {
     this.onSnapshot?.({
       timerRemainingSec: this.timerRemainingSec,
@@ -89,6 +104,7 @@ export class VirtualManager implements IBleManager {
     if (this.timerInterval !== null) { clearInterval(this.timerInterval); this.timerInterval = null; }
   }
 
+  /** 模拟一次轮询：生成虚拟传感器数据 */
   private async pollOnce(): Promise<void> {
     const t = (Date.now() - this.startTime) / 1000;
 

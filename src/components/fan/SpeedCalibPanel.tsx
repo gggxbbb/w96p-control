@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useBle } from '../../hooks/useBle';
 import { useDeviceStore } from '../../stores/device';
 import { useToastStore } from '../../stores/toast';
-import { defaultSpeeds } from '../../ble/profiles';
+import { defaultSpeeds } from '@gggxbbb/w96p-ble-sdk';
 import { Card } from '../ui/Card';
 
 function isNonDecreasing(nums: number[]): boolean {

@@ -6,8 +6,8 @@ import { PageGrid } from '../ui/PageGrid';
 import { DraggableCard } from '../ui/DraggableCard';
 import { Toggle } from '../ui/Toggle';
 import { SegBtn } from '../ui/SegBtn';
-import { POW_SWITCHES, POW_SEGS, REG_TITLES, type PowSwitchDef, type PowSegDef } from '../../ble/powSwitches';
-import type { PowReg } from '../../ble/commands';
+import { POW_SWITCHES, POW_SEGS, REG_TITLES } from '@gggxbbb/w96p-ble-sdk';
+import type { PowSwitchDef, PowSegDef, PowReg } from '@gggxbbb/w96p-ble-sdk';
 import type { ResponsiveLayouts } from 'react-grid-layout';
 
 const PC_LAYOUTS: ResponsiveLayouts = {

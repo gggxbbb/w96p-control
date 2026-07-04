@@ -1,4 +1,15 @@
-// 默认曲线（协议文档）
+/**
+ * 自然风曲线预设与波形合成
+ *
+ * 提供内置曲线 PRESETS、波形生成器（正弦/三角/方波/锯齿/噪声）、
+ * 包络 ADSR 调制、多层合成等功能。
+ *
+ * 所有曲线输出 128 点，范围为 0-100，对应风扇转速百分比。
+ */
+
+// ── 曲线预设 ──
+
+/** 默认自然风曲线 (128 点，协议文档) */
 export const DEFAULT_CURVE: number[] = [
   55, 48, 40, 33, 28, 22, 21, 26, 33, 41, 48, 54, 58, 60, 61, 58,
   52, 45, 37, 30, 24, 20, 25, 33, 40, 48, 53, 57, 60, 60, 56, 51,
@@ -10,7 +21,7 @@ export const DEFAULT_CURVE: number[] = [
   33, 39, 44, 47, 48, 46, 41, 36, 30, 26, 23, 20, 22, 27, 33, 38,
 ];
 
-// 生成正弦曲线
+/** 生成正弦曲线 */
 function sineCurve(cycles: number, base: number, amp: number): number[] {
   const arr: number[] = [];
   for (let i = 0; i < 128; i++) {
@@ -20,12 +31,18 @@ function sineCurve(cycles: number, base: number, amp: number): number[] {
   return arr;
 }
 
+/** 内置曲线预设 */
 export const PRESETS = {
   smooth: { label: '平滑', data: DEFAULT_CURVE },
   quiet: { label: '安静', data: sineCurve(2, 35, 15) },
   strong: { label: '强劲', data: sineCurve(4, 60, 30) },
 } as const;
 
+/**
+ * 生成随机曲线（布朗运动风格，缓存上一个值做平滑）
+ * @param min - 最小值
+ * @param max - 最大值
+ */
 export const randomCurve = (min: number, max: number): number[] => {
   const range = max - min;
   const arr: number[] = [];
@@ -38,30 +55,52 @@ export const randomCurve = (min: number, max: number): number[] => {
   return arr;
 };
 
-// ============================================================
-// 信号发生器 — 波形合成 & 包络
-// ============================================================
+// ── 波形合成 ──
 
+/** 波形类型 */
 export type WaveformType = 'sine' | 'triangle' | 'square' | 'sawtooth' | 'noise';
 
+/** 单层波形配置 */
 export interface LayerConfig {
+  /** 是否启用此层 */
   enabled: boolean;
+  /** 波形类型 */
   waveform: WaveformType;
+  /** 振幅 (0-100) */
   amplitude: number;
+  /** 频率（每 128 点中的完整周期数） */
   frequency: number;
+  /** 直流偏移 */
   offset: number;
+  /** 相位 (°) */
   phase: number;
+  /** 是否反相 */
   invert: boolean;
 }
 
+/** ADSR 包络配置 */
 export interface EnvelopeConfig {
+  /** 是否启用包络 */
   enabled: boolean;
+  /** Attack 阶段点数 */
   attack: number;
+  /** Decay 阶段点数 */
   decay: number;
+  /** Sustain 系数 (0-1) */
   sustain: number;
+  /** Release 阶段点数 */
   release: number;
 }
 
+/**
+ * 生成单点波形采样
+ * @param i - 采样索引
+ * @param length - 总长度
+ * @param waveform - 波形类型
+ * @param amplitude - 振幅
+ * @param frequency - 频率
+ * @param phase - 相位
+ */
 export function generateWaveSample(
   i: number,
   length: number,
@@ -101,6 +140,11 @@ export function generateWaveSample(
   }
 }
 
+/**
+ * 根据配置生成单个完整波形层
+ * @param length - 曲线长度
+ * @param config - 层配置
+ */
 export function generateLayer(
   length: number,
   config: LayerConfig,
@@ -115,6 +159,11 @@ export function generateLayer(
   return pts;
 }
 
+/**
+ * 多层波形合成（各层叠加）
+ * @param length - 曲线长度
+ * @param layers - 层配置列表
+ */
 export function synthesizeLayers(
   length: number,
   layers: LayerConfig[],
@@ -130,6 +179,13 @@ export function synthesizeLayers(
   return points;
 }
 
+/**
+ * 对曲线应用 ADSR 包络
+ * @param points - 输入曲线
+ * @param env - 包络配置
+ * @param clampMin - 输出下限
+ * @param clampMax - 输出上限
+ */
 export function applyEnvelope(
   points: number[],
   env: EnvelopeConfig,
@@ -156,6 +212,14 @@ export function applyEnvelope(
   });
 }
 
+/**
+ * 完整合成流程：多层合成 + 可选的 ADSR 包络
+ * @param length - 曲线长度
+ * @param layers - 层配置列表
+ * @param envelope - 包络配置（enabled=false 时跳过）
+ * @param clampMin - 输出下限
+ * @param clampMax - 输出上限
+ */
 export function synthesizeWithEnvelope(
   length: number,
   layers: LayerConfig[],
@@ -170,6 +234,7 @@ export function synthesizeWithEnvelope(
   return composite.map((v) => Math.max(clampMin, Math.min(clampMax, v)));
 }
 
+/** 默认层配置（正弦波 2 周期，振幅 30） */
 export const DEFAULT_LAYER: LayerConfig = {
   enabled: true,
   waveform: 'sine',
@@ -180,6 +245,7 @@ export const DEFAULT_LAYER: LayerConfig = {
   invert: false,
 };
 
+/** 关闭的层模板 */
 export const LAYER_OFF: LayerConfig = {
   enabled: false,
   waveform: 'sine',
@@ -190,6 +256,7 @@ export const LAYER_OFF: LayerConfig = {
   invert: false,
 };
 
+/** 默认 ADSR 包络配置（关闭状态） */
 export const DEFAULT_ENVELOPE: EnvelopeConfig = {
   enabled: false,
   attack: 8,

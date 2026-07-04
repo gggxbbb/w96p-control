@@ -1,7 +1,7 @@
 import { useBle } from '../../hooks/useBle';
 import { useDeviceStore } from '../../stores/device';
 import { useConnectionStore } from '../../stores/connection';
-import { getFeatures } from '../../ble/features';
+import { getFeatures } from '@gggxbbb/w96p-ble-sdk';
 import { Card } from '../../components/ui/Card';
 import { PageGrid } from '../../components/ui/PageGrid';
 import { DraggableCard } from '../../components/ui/DraggableCard';

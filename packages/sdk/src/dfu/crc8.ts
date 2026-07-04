@@ -1,5 +1,12 @@
-// CRC-8 多项式查找表，init = 0x89 (137)
-// 从官方 APK BlePackageProtocol 提取
+/**
+ * CRC-8 校验 (多项式 0x31, init=0x89)
+ *
+ * 从官方 APK BlePackageProtocol 提取的查找表和算法。
+ *
+ * @deprecated DFU 模块将于未来版本移除，请勿在新代码中依赖。
+ */
+
+/** CRC-8 多项式查找表，init = 0x89 (137) */
 export const CRC8_TABLE: number[] = [
   0, 59, 118, 77, 236, 215, 154, 161, 227, 216, 149, 174, 15, 52, 121, 66,
   253, 198, 139, 176, 17, 42, 103, 92, 30, 37, 104, 83, 242, 201, 132, 191,
@@ -19,9 +26,16 @@ export const CRC8_TABLE: number[] = [
   204, 247, 186, 129, 32, 27, 86, 109, 47, 20, 89, 98, 195, 248, 181, 142,
 ];
 
+/** CRC-8 初始值 */
 export const CRC8_INIT = 137; // 0x89
 
-/** 计算一段字节的 CRC8 */
+/**
+ * 计算一段字节的 CRC8
+ * @param data - 输入数据
+ * @param offset - 起始偏移
+ * @param length - 计算长度，默认到末尾
+ * @deprecated
+ */
 export function calcCrc8(data: Uint8Array, offset = 0, length?: number): number {
   const len = length ?? (data.length - offset);
   let crc = CRC8_INIT;
@@ -31,7 +45,12 @@ export function calcCrc8(data: Uint8Array, offset = 0, length?: number): number 
   return crc & 0xff;
 }
 
-/** 递增更新 CRC8 */
+/**
+ * 递增更新 CRC8（流式场景）
+ * @param crc - 当前 CRC
+ * @param byte - 新字节
+ * @deprecated
+ */
 export function updateCrc8(crc: number, byte: number): number {
   return CRC8_TABLE[(crc ^ (byte & 0xff)) & 0xff]! & 0xff;
 }

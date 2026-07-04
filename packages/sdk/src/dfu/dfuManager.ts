@@ -1,10 +1,28 @@
+/**
+ * DFU 连接管理器
+ *
+ * 通过 FEE0 服务扫描、连接、重连 WITRN 设备，
+ * 发送包协议帧并等待响应。
+ *
+ * @deprecated DFU 模块将于未来版本移除，请勿在新代码中依赖。
+ */
+
 import { DFU_SERVICE, DFU_WRITE, DFU_NOTIFY } from '../ble/uuids';
 import { BlePackageProtocol } from './packageProtocol';
 
+/** DFU 日志回调 */
 export type DfuLogFn = (msg: string, level?: 'info' | 'warn' | 'error' | 'success') => void;
 
+/** BLE MTU=200 时单帧最大分片字节数 */
 const BLE_MAX_CHUNK = 197; // MTU 200 - 3
 
+/**
+ * DFU 升级管理器
+ *
+ * 封装 FEE0 服务的 BLE 连接、包协议帧收发和响应等待。
+ *
+ * @deprecated DFU 模块将于未来版本移除
+ */
 export class DfuManager {
   private gatt: BluetoothRemoteGATTServer | null = null;
   private device: BluetoothDevice | null = null;
@@ -15,20 +33,25 @@ export class DfuManager {
   private pendingResolve: ((data: Uint8Array) => void) | null = null;
   private notifyCleanup: (() => void) | null = null;
 
+  /** @param logFn - 日志回调 */
   constructor(logFn: DfuLogFn) {
     this.log = logFn;
   }
 
+  /** 设备是否连接 */
   get isConnected(): boolean {
     return this.gatt?.connected ?? false;
   }
 
-  /** 扫描并连接 WITRN 设备（FEE0 服务） */
+  /**
+   * 扫描并连接 WITRN 设备（FEE0 服务）
+   * @deprecated
+   */
   async connect(): Promise<void> {
     this.log('正在扫描 WITRN 设备...', 'info');
 
     const device = await navigator.bluetooth.requestDevice({
-      filters: [{ services: [DFU_SERVICE] }],   // 按 FEE0 服务 UUID 精确匹配
+      filters: [{ services: [DFU_SERVICE] }],
       optionalServices: [DFU_SERVICE],
     });
 
@@ -49,7 +72,10 @@ export class DfuManager {
     await this.setupService();
   }
 
-  /** 重连已配对的设备（不需要用户手势，用于 DFU 重启后） */
+  /**
+   * 重连已配对的设备（不需要用户手势，用于 DFU 重启后）
+   * @deprecated
+   */
   async reconnect(): Promise<void> {
     if (!this.device) throw new Error('无已配对设备，请先调用 connect()');
 
@@ -70,7 +96,12 @@ export class DfuManager {
     this.log('FEE0 服务就绪', 'success');
   }
 
-  /** 发送包协议帧并等待响应（单次请求-响应模式） */
+  /**
+   * 发送包协议帧并等待响应（单次请求-响应模式）
+   * @param payload - 协议载荷
+   * @param timeoutMs - 超时毫秒数
+   * @deprecated
+   */
   async request(payload: Uint8Array, timeoutMs = 3000): Promise<Uint8Array> {
     if (!this.writeChar) throw new Error('not connected');
 
@@ -86,12 +117,14 @@ export class DfuManager {
         reject(err);
       }, timeoutMs);
 
-      // Ensure notify is started
       if (!this.notifyCleanup) {
         this.notifyChar!
           .startNotifications()
           .then(() => {
             this.notifyChar!.addEventListener('characteristicvaluechanged', this.onNotify);
+            this.notifyCleanup = () => {
+              this.notifyChar?.removeEventListener('characteristicvaluechanged', this.onNotify);
+            };
             this.log('通知通道已开启', 'info');
             this.sendFrame(frame).catch((err) => {
               console.log('[DFU] sendFrame 失败:', err);
@@ -114,10 +147,13 @@ export class DfuManager {
     });
   }
 
-  /** 断开连接 */
+  /**
+   * 断开 DFU 连接并清理资源
+   * @deprecated
+   */
   async disconnect(): Promise<void> {
     if (this.notifyChar && this.notifyCleanup) {
-      this.notifyChar.removeEventListener('characteristicvaluechanged', this.onNotify);
+      this.notifyCleanup();
     }
     if (this.gatt?.connected) {
       await this.gatt.disconnect();

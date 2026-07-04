@@ -1,5 +1,6 @@
 /// <reference types="vitest" />
 import { execSync } from 'node:child_process'
+import path from 'node:path'
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
@@ -23,6 +24,11 @@ export default defineConfig({
     'import.meta.env.VITE_COMMIT_HASH': JSON.stringify(gitHash()),
     'import.meta.env.VITE_BUILD_TIME': JSON.stringify(buildTime()),
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV ?? 'development'),
+  },
+  resolve: {
+    alias: {
+      '@gggxbbb/w96p-ble-sdk': path.resolve(__dirname, 'packages/sdk/src'),
+    },
   },
   plugins: [
     react(),

@@ -1,4 +1,4 @@
-import type { DfuManager } from './dfuManager';
+import type { DfuManager } from '@gggxbbb/w96p-ble-sdk';
 import {
   buildControlPayload,
   buildWriteFlashPayload,
@@ -14,9 +14,9 @@ import {
   CTRL_END_UP,
   CTRL_RESET,
   CTRL_OK,
-} from './dfuProtocol';
-import type { FirmwareInfo } from './firmware';
-import { FLASH_OFFSET } from './firmware';
+} from '@gggxbbb/w96p-ble-sdk';
+import type { FirmwareInfo } from '@gggxbbb/w96p-ble-sdk';
+import { FLASH_OFFSET } from '@gggxbbb/w96p-ble-sdk';
 import type { DfuStep } from '../stores/dfu';
 import { useDfuStore } from '../stores/dfu';
 

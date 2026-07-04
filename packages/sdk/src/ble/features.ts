@@ -1,8 +1,16 @@
 /**
  * 固件版本特性门控
- * 
- * compareVersion("1.3", "1.2") => 1
- * compareVersion("1.10", "1.10") => 0
+ *
+ * 不同固件版本支持不同功能特性，通过版本号比较动态决定 UI 展示。
+ *
+ * @example
+ * compareVersion("1.3", "1.2") // => 1
+ * compareVersion("1.10", "1.10") // => 0
+ */
+
+/**
+ * 语义化版本号比较
+ * @returns 1（a > b）、0（相等）、-1（a < b）
  */
 export function compareVersion(a: string | null, b: string): number {
   if (!a || a === 'unknown') return -1;
@@ -25,10 +33,13 @@ export const FEATURE_BASE = new Set([
 
 /** 每个固件版本的增量变更：+加功能 / -减功能 */
 export interface FeatureDelta {
+  /** 新增的功能标识 */
   add?: string[];
+  /** 移除的功能标识 */
   remove?: string[];
 }
 
+/** 固件版本特性增量表（按版本升序排列） */
 export const FEATURE_DELTAS: [string, FeatureDelta][] = [
   ['1.3', { add: ['turbo', 'turboTime', 'lightOff', 'bleName'] }],
   ['1.5', {
@@ -38,7 +49,13 @@ export const FEATURE_DELTAS: [string, FeatureDelta][] = [
   ['1.7', { add: ['bleSn'] }],
 ];
 
-/** 根据固件版本获取启用的功能集合。兼容模式下默认启用所有功能。 */
+/**
+ * 根据固件版本获取启用的功能集合
+ *
+ * @param version - 设备固件版本号（可能为 null 或 "unknown"）
+ * @param isCompatMode - 兼容模式下默认启用所有功能
+ * @returns 功能标识字符串的集合
+ */
 export function getFeatures(version: string | null, isCompatMode = false): Set<string> {
   // 未获取版本信息时与兼容模式一样，默认启用所有功能
   const unknown = isCompatMode || !version || version === 'unknown';

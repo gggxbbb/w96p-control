@@ -11,7 +11,7 @@ import { CurveCanvas } from '../../components/nature-wind/CurveCanvas';
 import { CurveChart } from '../../components/nature-wind/CurveChart';
 import { SignalGenerator } from '../../components/nature-wind/SignalGenerator';
 import { DeviceCurve } from '../../components/nature-wind/DeviceCurve';
-import { DEFAULT_CURVE } from '../../lib/curvePresets';
+import { DEFAULT_CURVE } from '@gggxbbb/w96p-ble-sdk';
 import type { ResponsiveLayouts } from 'react-grid-layout';
 
 const NW_LAYOUTS: ResponsiveLayouts = {

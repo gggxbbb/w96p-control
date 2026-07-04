@@ -5,8 +5,8 @@ import {
   DEFAULT_LAYER,
   LAYER_OFF,
   DEFAULT_ENVELOPE,
-} from '../../lib/curvePresets';
-import type { LayerConfig, EnvelopeConfig, WaveformType } from '../../lib/curvePresets';
+} from '@gggxbbb/w96p-ble-sdk';
+import type { LayerConfig, EnvelopeConfig, WaveformType } from '@gggxbbb/w96p-ble-sdk';
 
 /* ================================================================
    Props

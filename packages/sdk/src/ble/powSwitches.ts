@@ -1,15 +1,29 @@
+/**
+ * 电源寄存器开关定义
+ *
+ * 定义了 POW_1A ~ POW_2C 寄存器中每一位的含义，
+ * 包括布尔开关位 (POW_SWITCHES) 和多选位域 (POW_SEGS)。
+ */
+
 import type { PowReg } from './commands';
 
+/** 开关位定义 */
 export interface PowSwitchDef {
+  /** 唯一标识 */
   key: string;
+  /** UI 显示名称 */
   label: string;
+  /** 所在寄存器 */
   reg: PowReg;
+  /** 位偏移 (0-7) */
   bit: number;
+  /** 是否取反（0 表示使能，如 PD FCP 开关） */
   inverted?: boolean;
+  /** 功能说明 */
   desc?: string;
 }
 
-// 开关位定义（inverted = 0 表示使能）
+/** 电源寄存器开关位表 */
 export const POW_SWITCHES: PowSwitchDef[] = [
   // POW_1C
   { key: 'fcp_src', label: 'FCP 输出', reg: '1C', bit: 0, inverted: true },
@@ -30,17 +44,25 @@ export const POW_SWITCHES: PowSwitchDef[] = [
   { key: 'pps0_en', label: 'PPS0 使能', reg: '2B', bit: 5, inverted: true },
 ];
 
+/** 多选位域定义 */
 export interface PowSegDef {
+  /** 唯一标识 */
   key: string;
+  /** UI 显示名称 */
   label: string;
+  /** 所在寄存器 */
   reg: PowReg;
+  /** 位偏移 (0-7) */
   bitOffset: number;
+  /** 位宽 (1-4) */
   bitWidth: number;
+  /** 可选项列表 */
   options: { value: number; label: string }[];
+  /** 功能说明 */
   desc?: string;
 }
 
-// 非开关位（多选一位域）
+/** 非开关位（多选一位域） */
 export const POW_SEGS: PowSegDef[] = [
   // POW_1A
   {
@@ -97,7 +119,7 @@ export const POW_SEGS: PowSegDef[] = [
   },
 ];
 
-// 按寄存器分组
+/** 寄存器中文标题映射 */
 export const REG_TITLES: Record<PowReg, string> = {
   '1A': 'POW_1A — 电压与协议支持',
   '1C': 'POW_1C — PD/FCP Source/Sink',

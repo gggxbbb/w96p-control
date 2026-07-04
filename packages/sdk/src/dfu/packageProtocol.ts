@@ -1,8 +1,22 @@
+/**
+ * BLE 分包协议
+ *
+ * 实现 WITRN DFU 分包协议（0x55 帧头 + 密钥加密 + CRC8 校验）。
+ * 与官方 APK BlePackageProtocol 完全对齐。
+ *
+ * @deprecated DFU 模块将于未来版本移除，请勿在新代码中依赖。
+ */
+
 import { calcCrc8, CRC8_TABLE, updateCrc8, CRC8_INIT } from './crc8';
 
+/** 帧头字节 (0x55) */
 export const PACKAGE_HEAD = 0x55;
+/** 单帧最大载荷字节数 */
 export const PACKAGE_MAX_PAYLOAD = 300;
+
+/** 帧固定开销：HEAD(1) + KEY(1) + LEN(2) + CRC8(1) */
 const FRAME_FIXED_OVERHEAD = 5; // HEAD(1) + KEY(1) + LEN(2) + CRC8(1)
+/** 接收超时（ms），超出后重置接收状态机 */
 const RX_TIMEOUT_MS = 500;
 
 const RxStage = {
@@ -14,6 +28,14 @@ const RxStage = {
 } as const;
 type RxStage = (typeof RxStage)[keyof typeof RxStage];
 
+/**
+ * BLE 分包协议处理器
+ *
+ * 支持帧打包（pack）和接收状态机（onReceive）。
+ * 在 debugMode 下 key 固定为 0（不加密）。
+ *
+ * @deprecated
+ */
 export class BlePackageProtocol {
   private rxStage: RxStage = RxStage.WAIT_HEAD;
   private rxKey = 0;
@@ -24,13 +46,18 @@ export class BlePackageProtocol {
   private rxLastByteTimeMs = 0;
   private readonly debugMode: boolean;
 
+  /** @param debugMode - true=不加密（key=0），false=随机加密 */
   constructor(debugMode = true) {
     this.debugMode = debugMode;
     this.rxBuffer = new Uint8Array(PACKAGE_MAX_PAYLOAD + 1); // +1 for CRC byte
     this.reset();
   }
 
-  /** 封包：payload → [0x55, key, len_lo, len_hi, encrypted_payload..., crc] */
+  /**
+   * 封包：payload → [0x55, key, len_lo, len_hi, encrypted_payload..., crc]
+   * @param payload - 待打包载荷
+   * @deprecated
+   */
   pack(payload: Uint8Array): Uint8Array {
     if (payload.length < 1 || payload.length > PACKAGE_MAX_PAYLOAD) {
       throw new Error(`payload length ${payload.length} out of range [1, ${PACKAGE_MAX_PAYLOAD}]`);
@@ -56,7 +83,11 @@ export class BlePackageProtocol {
     return frame;
   }
 
-  /** 接收字节流，返回解析完整的 payload 列表 */
+  /**
+   * 接收字节流，返回解析完整的 payload 列表
+   * @param data - 原始 GATT 通知数据
+   * @deprecated
+   */
   onReceive(data: Uint8Array): Uint8Array[] {
     if (data.length === 0) return [];
 
@@ -74,6 +105,7 @@ export class BlePackageProtocol {
     return results;
   }
 
+  /** 重置接收状态机 */
   reset(): void {
     this.rxStage = RxStage.WAIT_HEAD;
     this.rxKey = 0;

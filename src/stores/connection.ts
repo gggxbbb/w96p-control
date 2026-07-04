@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { BleState } from '../ble/manager';
+import type { BleState } from '@gggxbbb/w96p-ble-sdk';
 
 interface ConnectionState {
   state: BleState;

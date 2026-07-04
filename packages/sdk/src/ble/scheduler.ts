@@ -3,20 +3,25 @@
  *
  * 优先级：用户写 > 用户读 > 轮询读
  *
- * 所有 GATT 操作串行化，避免 "GATT operation already in progress"。
- * 轮询读队列非空时不进入下一个轮询周期（由调用方通过 pendingPollReads 判断）。
+ * 所有 GATT 操作串行化，避免 "GATT operation already in progress" 错误。
+ * 轮询读队列非空时不进入下一个轮询周期（由调用方通过 {@link pendingPollReads} 判断）。
  */
 
 type GattTask<T = unknown> = () => Promise<T>;
 
 import { useBleMetrics } from '../stores/bleMetrics';
 
+/** 调度器统计快照 */
 export interface SchedulerStats {
+  /** 写队列待处理数 */
   write: number;
+  /** 读队列待处理数 */
   read: number;
+  /** 轮询队列待处理数 */
   poll: number;
+  /** 是否正在执行 */
   active: boolean;
-  /** 当前正在执行的任务类型 */
+  /** 当前执行的任务类型 */
   current: 'idle' | 'write' | 'read' | 'poll';
 }
 
@@ -49,7 +54,7 @@ export class GattScheduler {
 
   // ── 提交接口 ──
 
-  /** 提交用户写任务（最高优先） */
+  /** 提交用户写任务（最高优先级） */
   enqueueWrite<T>(task: GattTask<T>): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       this.writeQueue.push(async () => {
@@ -61,7 +66,7 @@ export class GattScheduler {
     });
   }
 
-  /** 提交用户读任务（中优先） */
+  /** 提交用户读任务（中等优先级） */
   enqueueRead<T>(task: GattTask<T>): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       this.readQueue.push(async () => {
@@ -73,7 +78,7 @@ export class GattScheduler {
     });
   }
 
-  /** 提交轮询读任务（最低优先） */
+  /** 提交轮询读任务（最低优先级） */
   enqueuePoll<T>(task: GattTask<T>): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       this.pollQueue.push(async () => {
@@ -85,7 +90,7 @@ export class GattScheduler {
     });
   }
 
-  /** 停止调度器，清空所有队列 */
+  /** 停止调度器并清空所有队列 */
   destroy(): void {
     const w = this.writeQueue.length;
     const r = this.readQueue.length;

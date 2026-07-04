@@ -4,7 +4,7 @@ import { useDeviceStore } from '../../stores/device';
 import { useToastStore } from '../../stores/toast';
 import { Card } from '../ui/Card';
 import { Toggle } from '../ui/Toggle';
-import { getFeatures } from '../../ble/features';
+import { getFeatures } from '@gggxbbb/w96p-ble-sdk';
 
 export function TurboPanel() {
   const { setTurbo, setTurboTime, readTurboCountdown, readTurboTime } = useBle();

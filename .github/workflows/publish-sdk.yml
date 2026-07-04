@@ -1,0 +1,46 @@
+name: Publish SDK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/sdk/**'
+  workflow_dispatch:  # 手动触发
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://npm.pkg.github.com'
+
+      - name: Check if version already published
+        id: check
+        working-directory: packages/sdk
+        run: |
+          PKG=$(node -e "console.log(require('./package.json').name)")
+          VER=$(node -e "console.log(require('./package.json').version)")
+          echo "name=$PKG" >> $GITHUB_OUTPUT
+          echo "version=$VER" >> $GITHUB_OUTPUT
+          if npm view "$PKG@$VER" version 2>/dev/null; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "⚠️  $PKG@$VER already published — skipping"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "✅  $PKG@$VER will be published"
+          fi
+
+      - name: Publish
+        if: steps.check.outputs.exists == 'false'
+        working-directory: packages/sdk
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

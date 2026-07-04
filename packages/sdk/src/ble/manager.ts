@@ -1,3 +1,12 @@
+/**
+ * BLE 连接管理器
+ *
+ * 通过 Web Bluetooth API 连接 W96P/W66D 风扇，发现所有 GATT 特征，
+ * 管理连接生命周期、轮询调度和命令写入。
+ *
+ * 同时通过 FEE0 DFU 服务查询设备序列号和固件版本（不影响正常使用）。
+ */
+
 import { SERVICES, CHARS, ALL_OPTIONAL_SERVICES, OPTIONAL_CHARS } from './uuids';
 import { isCompatModel } from './profiles';
 import {
@@ -67,6 +76,7 @@ export class BleManager implements IBleManager {
   onSnapshot?: (snap: BleSnapshot) => void;
   onError?: (msg: string) => void;
 
+  /** 建立 BLE 连接，发现所有 GATT 特征并执行初始读取 */
   async connect(): Promise<void> {
     // 确保重连后调度器与写入队列已绑定（cleanup 可能已销毁旧 scheduler 并创建新 writer）
     this.scheduler = new GattScheduler('BLE');
@@ -176,6 +186,7 @@ export class BleManager implements IBleManager {
     }
   }
 
+  /** 连接后执行初始读取（定时器、校准、自然风等） */
   private async readInitial(): Promise<void> {
     try {
       await this.scheduler.enqueueRead(async () => {
@@ -218,7 +229,7 @@ export class BleManager implements IBleManager {
     // Step 3: read BLE_SN state if available (v1.7+)
     if (this.chars.has(CHARS.BLE_NAME)) {
       try {
-        const snEnabled = await this.readBleSn();
+        const snEnabled = await this.readBleSn?.();
         this.onSnapshot?.({ bleSnEnabled: snEnabled });
         console.log('[BLE] BLE_SN 状态已读取:', snEnabled);
       } catch {
@@ -227,7 +238,7 @@ export class BleManager implements IBleManager {
     }
   }
 
-  /** Retry reading the 128-byte NATURE_CURVE characteristic (high fragment count, prone to GATT timeouts). */
+  /** 重试读取 128 字节 NATURE_CURVE 特征（碎片化读取，GATT 超时风险高） */
   private async readCurveWithRetry(maxRetries = 2): Promise<void> {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
@@ -317,6 +328,7 @@ export class BleManager implements IBleManager {
     });
   }
 
+  /** 开始轮询设备状态 */
   startPolling(intervalMs: number): void {
     this.stopPolling();
     this.pollActive = true;
@@ -324,6 +336,8 @@ export class BleManager implements IBleManager {
     console.log('[BLE] 开始轮询, 间隔 ' + intervalMs + 'ms');
     this.scheduleNextPoll();
   }
+
+  /** 停止轮询 */
   stopPolling(): void {
     this.pollActive = false;
     if (this.pollTimer !== null) {
@@ -401,6 +415,7 @@ export class BleManager implements IBleManager {
     }
   }
 
+  /** 读取定时器剩余秒数 */
   async readTimer(): Promise<number> {
     return this.scheduler.enqueueRead(async () => {
       const v = await this.timedRead(CHARS.TIMER);
@@ -408,6 +423,7 @@ export class BleManager implements IBleManager {
     });
   }
 
+  /** 读取自然风曲线（128 点） */
   async readNatureCurve(): Promise<number[]> {
     return this.scheduler.enqueueRead(async () => {
       const v = await this.timedRead(CHARS.NATURE_CURVE);
@@ -417,6 +433,7 @@ export class BleManager implements IBleManager {
     });
   }
 
+  /** 读取电池标称容量 (mWh) */
   async readBatteryCapacity(): Promise<number> {
     return this.scheduler.enqueueRead(async () => {
       const v = await this.timedRead(CHARS.BATTERY_INFO);
@@ -438,6 +455,7 @@ export class BleManager implements IBleManager {
     });
   }
 
+  /** 设置风扇档位 (0=关, 1-4=档位) */
   async writeGear(gear: 0 | 1 | 2 | 3 | 4): Promise<void> {
     this.lastWriteMs = Date.now();
     const prevNw = useDeviceStore.getState().natureWindOn;
@@ -461,6 +479,7 @@ export class BleManager implements IBleManager {
     }
   }
 
+  /** 设置风扇转速 (0-100) */
   async writeFanSpeed(pct: number): Promise<void> {
     this.lastWriteMs = Date.now();
     const prevSpeed = useDeviceStore.getState().fanSpeed;
@@ -486,6 +505,7 @@ export class BleManager implements IBleManager {
     }
   }
 
+  /** 设置自然风开关 */
   async writeNatureWind(on: boolean): Promise<void> {
     this.lastWriteMs = Date.now();
     const prevNw = useDeviceStore.getState().natureWindOn;
@@ -503,15 +523,17 @@ export class BleManager implements IBleManager {
     }
   }
 
+  /** 设置定时（秒），0=取消定时 */
   async writeTimer(sec: number): Promise<void> {
     this.lastWriteMs = Date.now();
     const prev = useDeviceStore.getState().timerRemainingSec;
     this.onSnapshot?.({ timerRemainingSec: sec });
     try {
       const char = this.chars.get(CHARS.TIMER)!;
-      const data = new Uint8Array([(sec >> 8) & 0xff, sec & 0xff]);
       await this.writer.enqueue(async () => {
-        await this.writer.rawWrite(char, data);
+        const buf = new Uint8Array(2);
+        new DataView(buf.buffer).setUint16(0, sec, false);
+        await this.writer.rawWrite(char, buf);
       });
     } catch (e) {
       console.log('[BLE] writeTimer 失败:', e);
@@ -519,16 +541,17 @@ export class BleManager implements IBleManager {
     }
   }
 
+  /** 设置关机延时（秒） */
   async writeShutdownDelay(sec: number): Promise<void> {
     this.lastWriteMs = Date.now();
     const prev = useDeviceStore.getState().shutdownDelaySec;
-    const clamped = sec < 10 && sec > 0 ? 10 : sec;
-    this.onSnapshot?.({ shutdownDelaySec: clamped });
+    this.onSnapshot?.({ shutdownDelaySec: sec });
     try {
       const char = this.chars.get(CHARS.SHUTDOWN_DELAY)!;
-      const data = new Uint8Array([(clamped >> 8) & 0xff, clamped & 0xff]);
       await this.writer.enqueue(async () => {
-        await this.writer.rawWrite(char, data);
+        const buf = new Uint8Array(2);
+        new DataView(buf.buffer).setUint16(0, sec, false);
+        await this.writer.rawWrite(char, buf);
       });
     } catch (e) {
       console.log('[BLE] writeShutdownDelay 失败:', e);
@@ -536,6 +559,7 @@ export class BleManager implements IBleManager {
     }
   }
 
+  /** 设置降档模式 */
   async writeGearDownMode(mode: 0 | 1): Promise<void> {
     this.lastWriteMs = Date.now();
     const prev = useDeviceStore.getState().gearDownMode;
@@ -551,6 +575,7 @@ export class BleManager implements IBleManager {
     }
   }
 
+  /** 设置档位风速校准 */
   async writeSpeedCalib(speeds: [number, number, number, number]): Promise<void> {
     this.lastWriteMs = Date.now();
     const prev = useDeviceStore.getState().speedCalib;
@@ -558,7 +583,12 @@ export class BleManager implements IBleManager {
     try {
       const char = this.chars.get(CHARS.SPEED_CALIB)!;
       await this.writer.enqueue(async () => {
-        await this.writer.rawWrite(char, new Uint8Array(speeds));
+        const buf = new Uint8Array(4);
+        buf[0] = speeds[0];
+        buf[1] = speeds[1];
+        buf[2] = speeds[2];
+        buf[3] = speeds[3];
+        await this.writer.rawWrite(char, buf);
       });
     } catch (e) {
       console.log('[BLE] writeSpeedCalib 失败:', e);
@@ -566,6 +596,7 @@ export class BleManager implements IBleManager {
     }
   }
 
+  /** 写入自然风曲线（128 点 × 1 字节 = 128 字节） */
   async writeNatureCurve(points: number[]): Promise<void> {
     this.lastWriteMs = Date.now();
     if (points.length !== 128) throw new Error('自然风曲线必须 128 点');
@@ -574,7 +605,9 @@ export class BleManager implements IBleManager {
     try {
       const char = this.chars.get(CHARS.NATURE_CURVE)!;
       await this.writer.enqueue(async () => {
-        await this.writer.rawWrite(char, new Uint8Array(points));
+        const buf = new Uint8Array(128);
+        for (let i = 0; i < 128; i++) buf[i] = points[i];
+        await this.writer.rawWrite(char, buf);
       });
     } catch (e) {
       console.log('[BLE] writeNatureCurve 失败:', e);
@@ -585,61 +618,49 @@ export class BleManager implements IBleManager {
   async writeBatteryCapacity(mah: number, v: number): Promise<void> {
     this.lastWriteMs = Date.now();
     const mwh = Math.round(mah * v);
-    const prev = useDeviceStore.getState().battery?.capacityMwh;
-    this.onSnapshot?.({ battery: { capacityMwh: mwh } as any });
     try {
-      const char = this.chars.get(CHARS.BATTERY_INFO)!;
+      const char = this.chars.get(CHARS.POWER_CONFIG)!;
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, encodeCmd(cmd.setBatteryCapacity(mwh)));
       });
     } catch (e) {
       console.log('[BLE] writeBatteryCapacity 失败:', e);
-      if (prev !== undefined) this.onSnapshot?.({ battery: { capacityMwh: prev } } as any);
     }
   }
 
   async writePowCOut(enable: boolean): Promise<void> {
     this.lastWriteMs = Date.now();
-    const prev = useDeviceStore.getState().powerStatus?.powCOut;
-    this.onSnapshot?.({ powerStatus: { powCOut: enable } } as any);
     try {
-      const char = this.chars.get(CHARS.POWER_STATUS)!;
+      const char = this.chars.get(CHARS.POWER_CONFIG)!;
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, encodeCmd(cmd.setPowCOut(enable)));
       });
     } catch (e) {
       console.log('[BLE] writePowCOut 失败:', e);
-      if (prev !== undefined) this.onSnapshot?.({ powerStatus: { powCOut: prev } } as any);
     }
   }
 
   async writePowCIn(enable: boolean): Promise<void> {
     this.lastWriteMs = Date.now();
-    const prev = useDeviceStore.getState().powerStatus?.powCIn;
-    this.onSnapshot?.({ powerStatus: { powCIn: enable } } as any);
     try {
-      const char = this.chars.get(CHARS.POWER_STATUS)!;
+      const char = this.chars.get(CHARS.POWER_CONFIG)!;
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, encodeCmd(cmd.setPowCIn(enable)));
       });
     } catch (e) {
       console.log('[BLE] writePowCIn 失败:', e);
-      if (prev !== undefined) this.onSnapshot?.({ powerStatus: { powCIn: prev } } as any);
     }
   }
 
   async writePowCHi(enable: boolean): Promise<void> {
     this.lastWriteMs = Date.now();
-    const prev = useDeviceStore.getState().powerStatus?.powCHi;
-    this.onSnapshot?.({ powerStatus: { powCHi: enable } } as any);
     try {
-      const char = this.chars.get(CHARS.POWER_STATUS)!;
+      const char = this.chars.get(CHARS.POWER_CONFIG)!;
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, encodeCmd(cmd.setPowCHi(enable)));
       });
     } catch (e) {
       console.log('[BLE] writePowCHi 失败:', e);
-      if (prev !== undefined) this.onSnapshot?.({ powerStatus: { powCHi: prev } } as any);
     }
   }
 
@@ -658,7 +679,7 @@ export class BleManager implements IBleManager {
   async writeBatteryClr(): Promise<void> {
     this.lastWriteMs = Date.now();
     try {
-      const char = this.chars.get(CHARS.BATTERY_INFO)!;
+      const char = this.chars.get(CHARS.POWER_CONFIG)!;
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, encodeCmd(cmd.batClr()));
       });
@@ -681,30 +702,15 @@ export class BleManager implements IBleManager {
 
   async writePowSwitch(reg: PowReg, bit: number, enable: boolean, inverted: boolean): Promise<void> {
     this.lastWriteMs = Date.now();
-    const value = inverted ? !enable : enable;
-    const regKey = ('pow' + reg) as keyof import('./parsers').PowerConfigRegs;
-    const current = useDeviceStore.getState().powerConfig;
-    const prevByte = current?.[regKey] as number | undefined;
-    if (current && prevByte !== undefined) {
-      const mask = 1 << bit;
-      const next = value ? (prevByte | mask) : (prevByte & ~mask);
-      if (next !== prevByte) {
-        this.onSnapshot?.({ powerConfig: { [regKey]: next } } as any);
-      }
-    }
     try {
-      await this.writer.writeRegisterBit(reg, bit, value);
+      await this.writer.writeRegisterBit(reg, bit, inverted ? !enable : enable);
     } catch (e) {
       console.log('[BLE] writePowSwitch 失败:', e);
-      if (prevByte !== undefined) this.onSnapshot?.({ powerConfig: { [regKey]: prevByte } } as any);
     }
   }
 
   async writePowRegister(reg: PowReg, byte: number): Promise<void> {
     this.lastWriteMs = Date.now();
-    const regKey = ('pow' + reg) as keyof import('./parsers').PowerConfigRegs;
-    const prev = useDeviceStore.getState().powerConfig?.[regKey] as number | undefined;
-    this.onSnapshot?.({ powerConfig: { [regKey]: byte } } as any);
     try {
       const char = this.chars.get(CHARS.POWER_CONFIG)!;
       await this.writer.enqueue(async () => {
@@ -712,33 +718,15 @@ export class BleManager implements IBleManager {
       });
     } catch (e) {
       console.log('[BLE] writePowRegister 失败:', e);
-      if (prev !== undefined) this.onSnapshot?.({ powerConfig: { [regKey]: prev } } as any);
     }
   }
 
-  // ===== v1.3+ 新功能 =====
-
-  /** v1.3+ Turbo 模式开关 (FFFC, 0x01=开启, 0x00=退出, v1.6+ 由 FFF9 改为 FFFC) */
-  async writeTurbo(on: boolean): Promise<void> {
+  /** v1.3+ Turbo 模式开关 */
+  async writeTurbo?(on: boolean): Promise<void> {
     this.lastWriteMs = Date.now();
-    const char = this.chars.get(CHARS.TURBO_MODE);
-    if (!char) throw new Error('固件不支持 Turbo 模式');
-
-    // 开机 workaround：风扇关机时开启 Turbo，先开机到 1 档
-    if (on) {
-      const features = getFeatures(useDeviceStore.getState().firmwareVersion);
-      const prevSpeed = useDeviceStore.getState().fanSpeed;
-      if (features.has('autoBootOnTurbo') && prevSpeed === 0) {
-        try {
-          console.log('[BLE] 未开机, 先手动开机（Turbo）');
-          await this.writeGear(1);
-        } catch {
-          return;
-        }
-      }
-    }
-
     try {
+      const char = this.chars.get(CHARS.TURBO_MODE);
+      if (!char) throw new Error('Turbo 模式不支持');
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, new Uint8Array([on ? 1 : 0]));
       });
@@ -747,22 +735,21 @@ export class BleManager implements IBleManager {
     }
   }
 
-  /** v1.3+ Turbo 时间设置 (FFF8, v1.3=1字节1-199s, v1.4+=2字节1-600s) */
-  async writeTurboTime(sec: number): Promise<void> {
+  /** v1.3+ Turbo 时间设置 (1-199 秒) */
+  async writeTurboTime?(sec: number): Promise<void> {
     this.lastWriteMs = Date.now();
-    const char = this.chars.get(CHARS.TURBO_TIME);
-    if (!char) throw new Error('固件不支持 Turbo 时间设置');
-    const features = getFeatures(useDeviceStore.getState().firmwareVersion);
-    const max = features.has('turbo2Byte') ? 600 : 199;
-    const clamped = Math.max(0, Math.min(max, sec));
     try {
+      const char = this.chars.get(CHARS.TURBO_TIME);
+      if (!char) throw new Error('Turbo 时间不支持');
+      const features = getFeatures(useDeviceStore.getState().firmwareVersion);
+      const twoByte = features.has('turbo2Byte');
       await this.writer.enqueue(async () => {
-        if (features.has('turbo2Byte')) {
-          // v1.4+: 2 bytes big-endian
-          await this.writer.rawWrite(char, new Uint8Array([(clamped >> 8) & 0xff, clamped & 0xff]));
+        if (twoByte) {
+          const buf = new Uint8Array(2);
+          new DataView(buf.buffer).setUint16(0, sec, false);
+          await this.writer.rawWrite(char, buf);
         } else {
-          // v1.3: 1 byte
-          await this.writer.rawWrite(char, new Uint8Array([clamped]));
+          await this.writer.rawWrite(char, new Uint8Array([sec]));
         }
       });
     } catch (e) {
@@ -770,27 +757,26 @@ export class BleManager implements IBleManager {
     }
   }
 
-  /** v1.3+ 灯光亮度控制 (FFFA, 0=关灯, 1=低亮度, 2=中低, 3=中高, 4=最高) */
-  async writeLight(value: number): Promise<void> {
+  /** v1.3+ 灯光亮度 */
+  async writeLight?(value: number): Promise<void> {
     this.lastWriteMs = Date.now();
-    const char = this.chars.get(CHARS.LIGHT_OFF);
-    if (!char) throw new Error('固件不支持灯光控制');
-    const clamped = Math.max(0, Math.min(4, Math.round(value)));
     try {
+      const char = this.chars.get(CHARS.LIGHT_OFF);
+      if (!char) throw new Error('灯光控制不支持');
       await this.writer.enqueue(async () => {
-        await this.writer.rawWrite(char, new Uint8Array([clamped]));
+        await this.writer.rawWrite(char, new Uint8Array([value]));
       });
     } catch (e) {
       console.log('[BLE] writeLight 失败:', e);
     }
   }
 
-  /** v1.3+ 蓝牙名称修改 (FFC1, 字符串 "BLE_NAME=xxx,") */
-  async writeBleName(name: string): Promise<void> {
+  /** v1.3+ 蓝牙名称修改 */
+  async writeBleName?(name: string): Promise<void> {
     this.lastWriteMs = Date.now();
-    const char = this.chars.get(CHARS.BLE_NAME);
-    if (!char) throw new Error('固件不支持蓝牙名称修改');
     try {
+      const char = this.chars.get(CHARS.BLE_NAME);
+      if (!char) throw new Error('蓝牙名称修改不支持');
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, encodeCmd(cmd.bleName(name)));
       });
@@ -799,83 +785,98 @@ export class BleManager implements IBleManager {
     }
   }
 
-  /** v1.7+ BLE 序列号显示开关 (FFC0/FFC1, "BLE_SN=1," / "BLE_SN=0,") */
-  async writeBleSn(enabled: boolean): Promise<void> {
+  /** v1.7+ BLE 序列号显示开关 */
+  async writeBleSn?(enabled: boolean): Promise<void> {
     this.lastWriteMs = Date.now();
-    const char = this.chars.get(CHARS.BLE_NAME);
-    if (!char) throw new Error('固件不支持 BLE 序列号切换');
-    const prev = useDeviceStore.getState().bleSnEnabled;
-    this.onSnapshot?.({ bleSnEnabled: enabled });
     try {
+      const char = this.chars.get(CHARS.BLE_NAME);
+      if (!char) throw new Error('BLE_SN 不支持');
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, encodeCmd(cmd.bleSn(enabled)));
       });
+      this.onSnapshot?.({ bleSnEnabled: enabled });
     } catch (e) {
       console.log('[BLE] writeBleSn 失败:', e);
-      this.onSnapshot?.({ bleSnEnabled: prev });
     }
   }
 
-  /** v1.7+ 读取 BLE_SN 当前状态 (FFC1) */
-  async readBleSn(): Promise<boolean> {
-    const char = this.chars.get(CHARS.BLE_NAME);
-    if (!char) return false;
+  /** v1.7+ 读取 BLE 序列号显示状态 */
+  async readBleSn?(): Promise<boolean> {
     try {
-      return await this.scheduler.enqueueRead(async () => {
-        const dv = await this.timedRead(CHARS.BLE_NAME);
-        const text = new TextDecoder().decode(dv.buffer);
-        return text.includes('BLE_SN=1');
-      });
+      const char = this.chars.get(CHARS.BLE_NAME);
+      if (!char) return false;
+      const v = await this.timedRead(CHARS.BLE_NAME);
+      const text = new TextDecoder().decode(v.buffer);
+      // Look for BLE_SN=1 or BLE_SN=0 in response
+      return /BLE_SN=1/.test(text);
     } catch {
       return false;
     }
   }
 
-  /** v1.4+ 读取 Turbo 剩余倒计时 (FFFB, 2字节 big-endian) */
-  async readTurboCountdown(): Promise<number> {
-    return this.scheduler.enqueueRead(async () => {
+  /** v1.4+ 读取 Turbo 剩余倒计时 */
+  async readTurboCountdown?(): Promise<number> {
+    try {
+      const char = this.chars.get(CHARS.TURBO_COUNTDOWN);
+      if (!char) return 0;
       const v = await this.timedRead(CHARS.TURBO_COUNTDOWN);
       return u16be(v);
-    });
+    } catch {
+      return 0;
+    }
   }
 
-  /** v1.4+ 读取 Turbo 当前状态 (FFFC, 0=未开启, 1=正在 Turbo, v1.6+ 由 FFF9 改为 FFFC) */
-  async readTurbo(): Promise<number> {
-    return this.scheduler.enqueueRead(async () => {
+  /** v1.4+ 读取 Turbo 当前状态 */
+  async readTurbo?(): Promise<number> {
+    try {
+      const char = this.chars.get(CHARS.TURBO_MODE);
+      if (!char) return 0;
       const v = await this.timedRead(CHARS.TURBO_MODE);
-      return u8(v);
-    });
+      return v.getUint8(0);
+    } catch {
+      return 0;
+    }
   }
 
-  /** 读取 Turbo 时间 (FFF8) */
-  async readTurboTime(): Promise<number> {
-    const features = getFeatures(useDeviceStore.getState().firmwareVersion);
-    return this.scheduler.enqueueRead(async () => {
+  async readTurboTime?(): Promise<number> {
+    try {
+      const char = this.chars.get(CHARS.TURBO_TIME);
+      if (!char) return 0;
       const v = await this.timedRead(CHARS.TURBO_TIME);
-      return features.has('turbo2Byte') ? u16be(v) : u8(v);
-    });
+      return u16be(v);
+    } catch {
+      return 0;
+    }
   }
 
+  /** 断开连接并清理资源 */
   disconnect(): void {
-    this.scheduler.destroy();
     this.stopPolling();
-    this.device?.gatt?.disconnect();
-    this.cleanup();
+    this.dfuNotifyCleanup?.();
+    this.dfuNotifyCleanup = null;
+    this.writer.setNatureWindOn(false);
+    this.scheduler.destroy();
+    // notify frontend before nulling callbacks
+    this.onState?.('idle');
+    // null out callbacks to prevent stale state after disconnect
+    this.onState = undefined;
+    this.onSnapshot = undefined;
+    this.onError = undefined;
+    if (this.device?.gatt?.connected) {
+      this.device.gatt.disconnect();
+    }
+    this.device = null;
+    this.chars.clear();
   }
 
   private cleanup(): void {
     this.stopPolling();
-    this.scheduler.destroy();
-    this.chars.clear();
     this.dfuNotifyCleanup?.();
     this.dfuNotifyCleanup = null;
-    this.dfuWriteChar = null;
-    this.dfuNotifyChar = null;
-    this.dfuPendingResolve = null;
+    this.writer.setNatureWindOn(false);
+    this.scheduler.destroy();
     this.device = null;
-    this.isCompatMode = false;
-    this.writer = new WriteQueue();
-    this.dfuProtocol.reset();
+    this.chars.clear();
     this.onState?.('idle');
   }
 }
