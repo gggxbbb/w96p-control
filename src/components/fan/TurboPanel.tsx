@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useBle } from '../../hooks/useBle';
 import { useDeviceStore } from '../../stores/device';
 import { useToastStore } from '../../stores/toast';
@@ -7,10 +7,11 @@ import { Toggle } from '../ui/Toggle';
 import { getFeatures } from '@gggxbbb/w96p-ble-sdk';
 
 export function TurboPanel() {
-  const { setTurbo, setTurboTime, readTurboCountdown, readTurboTime } = useBle();
+  const { setTurbo, setTurboTime, readTurboTime } = useBle();
   const show = useToastStore((s) => s.show);
 
   const features = getFeatures(useDeviceStore((s) => s.firmwareVersion));
+  const turboCountdownSec = useDeviceStore((s) => s.turboCountdownSec);
   const has2Byte = features.has('turbo2Byte');
   const hasCountdown = features.has('turboCountdown');
 
@@ -28,20 +29,14 @@ export function TurboPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const pollCountdown = useCallback(() => {
-    if (!hasCountdown) return;
-    readTurboCountdown().then((v) => {
-      setCountdown(v > 0 ? v : null);
-      if (v > 0 && !turboOn) setTurboOn(true);
-      else if (v === 0 && turboOn) setTurboOn(false);
-    }).catch(() => {});
-  }, [hasCountdown, readTurboCountdown, turboOn]);
-
+  // 从全局轮询的 store 中同步 Turbo 倒计时，不再额外 GATT 读取
   useEffect(() => {
     if (!hasCountdown) return;
-    const id = setInterval(pollCountdown, 1000);
-    return () => clearInterval(id);
-  }, [hasCountdown, pollCountdown]);
+    const v = turboCountdownSec;
+    setCountdown(v > 0 ? v : null);
+    if (v > 0 && !turboOn) setTurboOn(true);
+    else if (v === 0 && turboOn) setTurboOn(false);
+  }, [hasCountdown, turboCountdownSec, turboOn]);
 
   const handleTurboToggle = (on: boolean) => {
     setTurbo(on);

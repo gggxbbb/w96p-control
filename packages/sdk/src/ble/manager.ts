@@ -805,10 +805,11 @@ export class BleManager implements IBleManager {
     try {
       const char = this.chars.get(CHARS.BLE_NAME);
       if (!char) return false;
-      const v = await this.timedRead(CHARS.BLE_NAME);
-      const text = new TextDecoder().decode(v.buffer);
-      // Look for BLE_SN=1 or BLE_SN=0 in response
-      return /BLE_SN=1/.test(text);
+      return this.scheduler.enqueueRead(async () => {
+        const v = await this.timedRead(CHARS.BLE_NAME);
+        const text = new TextDecoder().decode(v.buffer);
+        return /BLE_SN[=]?1/.test(text);
+      });
     } catch {
       return false;
     }
@@ -819,8 +820,10 @@ export class BleManager implements IBleManager {
     try {
       const char = this.chars.get(CHARS.TURBO_COUNTDOWN);
       if (!char) return 0;
-      const v = await this.timedRead(CHARS.TURBO_COUNTDOWN);
-      return u16be(v);
+      return this.scheduler.enqueueRead(async () => {
+        const v = await this.timedRead(CHARS.TURBO_COUNTDOWN);
+        return u16be(v);
+      });
     } catch {
       return 0;
     }
@@ -831,8 +834,10 @@ export class BleManager implements IBleManager {
     try {
       const char = this.chars.get(CHARS.TURBO_MODE);
       if (!char) return 0;
-      const v = await this.timedRead(CHARS.TURBO_MODE);
-      return v.getUint8(0);
+      return this.scheduler.enqueueRead(async () => {
+        const v = await this.timedRead(CHARS.TURBO_MODE);
+        return v.getUint8(0);
+      });
     } catch {
       return 0;
     }
@@ -842,8 +847,10 @@ export class BleManager implements IBleManager {
     try {
       const char = this.chars.get(CHARS.TURBO_TIME);
       if (!char) return 0;
-      const v = await this.timedRead(CHARS.TURBO_TIME);
-      return u16be(v);
+      return this.scheduler.enqueueRead(async () => {
+        const v = await this.timedRead(CHARS.TURBO_TIME);
+        return u16be(v);
+      });
     } catch {
       return 0;
     }
