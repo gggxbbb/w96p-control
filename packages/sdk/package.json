@@ -13,7 +13,7 @@
     "directory": "packages/sdk"
   },
   "license": "MIT",
-  "author": "",
+  "author": "gggxbbb",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
