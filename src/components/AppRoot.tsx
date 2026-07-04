@@ -4,11 +4,9 @@ import { router } from '../app/router';
 import { BrowserGate } from './BrowserGate';
 import { UpdatePrompt } from './UpdatePrompt';
 import { DeviceCard } from './connection/DeviceCard';
-import { useBle } from '../hooks/useBle';
 import { useConnectionStore } from '../stores/connection';
 
 export default function AppRoot() {
-  const { isConnected } = useBle();
   const state = useConnectionStore((s) => s.state);
 
   // 主题同步

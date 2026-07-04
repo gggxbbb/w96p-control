@@ -34,7 +34,7 @@ function getGearLabel(speed: number, calib: [number, number, number, number]): s
 
 export default function HomePage() {
   const [sheetOpen, setSheetOpen] = useState(false);
-  const longPressTimer = useRef<ReturnType<typeof setTimeout>>();
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const isLongPressRef = useRef(false);
 
   const fanSpeed = useDeviceStore((s) => s.fanSpeed);

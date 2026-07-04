@@ -1,5 +1,21 @@
 import { useBleMetrics, BUCKETS } from '../../stores/bleMetrics';
-import { Card } from '../../components/ui/Card';
+
+const sectionStyle: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.04)',
+  backdropFilter: 'blur(10px)',
+  WebkitBackdropFilter: 'blur(10px)',
+  border: '0.5px solid var(--color-border)',
+  borderRadius: 14,
+  padding: 16,
+  marginBottom: 16,
+};
+
+const sectionTitleStyle: React.CSSProperties = {
+  fontSize: 13,
+  fontWeight: 500,
+  color: 'var(--color-text-secondary)',
+  marginBottom: 12,
+};
 
 const COLORS = {
   write: '#4ade80',
@@ -68,7 +84,8 @@ export default function DebugBlePage() {
       </div>
 
       {/* 延迟统计 */}
-      <Card title="操作延迟分布" style={{ marginBottom: 16 }}>
+      <div style={sectionStyle}>
+        <div style={sectionTitleStyle}>操作延迟分布</div>
         <div style={{ display: 'flex', gap: 8, marginBottom: 8, fontSize: 11, opacity: 0.6 }}>
           <span>写: {avgW}ms</span>
           <span>读: {avgR}ms</span>
@@ -93,10 +110,11 @@ export default function DebugBlePage() {
             );
           })}
         </div>
-      </Card>
+      </div>
 
       {/* 按特征统计 */}
-      <Card title="按特征平均耗时" style={{ marginBottom: 16 }}>
+      <div style={sectionStyle}>
+        <div style={sectionTitleStyle}>按特征平均耗时</div>
         {(() => {
           const groups: Record<string, { sum: number; cnt: number; max: number; type: string }> = {};
           for (const op of metrics.ops) {
@@ -152,10 +170,11 @@ export default function DebugBlePage() {
             </table>
           );
         })()}
-      </Card>
+      </div>
 
       {/* 最近操作 */}
-      <Card title="最近操作" style={{ marginBottom: 16 }}>
+      <div style={{...sectionStyle, maxHeight: 'auto'}}>
+        <div style={sectionTitleStyle}>最近操作</div>
         <div style={{ maxHeight: 300, overflowY: 'auto', fontSize: 11, fontFamily: 'monospace' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
@@ -194,7 +213,7 @@ export default function DebugBlePage() {
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
 
       {/* 重置 */}
       <div style={{ textAlign: 'center' }}>
