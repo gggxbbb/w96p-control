@@ -1,5 +1,11 @@
 # w96p-control Agent Rules
 
+## ⚠️ 提交与推送
+
+- **绝对禁止**在用户未明确指令的情况下执行 `git commit` 或 `git push`
+- 改动完成后只能汇报改了什么，等待用户说"提交""推送""commit""push"等关键词
+- **但凡改动过 `packages/sdk/` 下的任何代码**，必须主动询问是否需要 bump `packages/sdk/package.json` 中的版本号
+
 ## BLE GATT 操作必须走调度器
 
 所有 `timedRead` / GATT 读写都必须通过 `GattScheduler` 的三个队列之一：
