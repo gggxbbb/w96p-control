@@ -30,4 +30,22 @@ jobs:
         run: npm ci
       - name: Publish
         working-directory: packages/sdk
-        run: npm publish --access public
+        shell: bash
+        run: |
+          set +e
+          output=$(npm publish --access public 2>&1)
+          status=$?
+          echo "$output"
+
+          if [ $status -eq 0 ]; then
+            echo "Publish succeeded"
+            exit 0
+          fi
+
+          if echo "$output" | grep -q "You cannot publish over the previously published versions"; then
+            echo "Version already published; treating as success."
+            exit 0
+          fi
+
+          echo "Publish failed with an unexpected error."
+          exit $status
