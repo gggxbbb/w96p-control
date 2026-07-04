@@ -25,6 +25,8 @@ export interface BleSnapshot {
   isCompatMode?: boolean;
   /** v1.5+ Turbo 剩余倒计时（秒） */
   turboCountdownSec?: number;
+  /** v1.7+ BLE 序列号显示状态 */
+  bleSnEnabled?: boolean;
 }
 
 export interface IBleManager {
@@ -66,6 +68,10 @@ export interface IBleManager {
   writeLight?(value: number): Promise<void>;
   /** v1.3+ 蓝牙名称修改 */
   writeBleName?(name: string): Promise<void>;
+  /** v1.7+ BLE 序列号显示开关 (FFC0/FFC1) */
+  writeBleSn?(enabled: boolean): Promise<void>;
+  /** v1.7+ 读取 BLE 序列号显示状态 */
+  readBleSn?(): Promise<boolean>;
   /** v1.4+ 读取 Turbo 剩余倒计时 */
   readTurboCountdown?(): Promise<number>;
   /** v1.4+ 读取 Turbo 当前状态 */

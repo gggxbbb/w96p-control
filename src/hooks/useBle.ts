@@ -134,6 +134,10 @@ export function useBle() {
     setLight: (v: number) => m.writeLight?.(v) ?? Promise.resolve(),
     /** v1.3+ 蓝牙名称修改 */
     setBleName: (name: string) => m.writeBleName?.(name) ?? Promise.resolve(),
+    /** v1.7+ BLE 序列号显示开关 */
+    setBleSn: (enabled: boolean) => m.writeBleSn?.(enabled) ?? Promise.resolve(),
+    /** v1.7+ 回读 BLE 序列号显示状态 */
+    readBleSn: () => m.readBleSn?.() ?? Promise.resolve(false),
     /** v1.4+ 读取 Turbo 剩余倒计时 */
     readTurboCountdown: () => m.readTurboCountdown?.() ?? Promise.resolve(0),
     readTurboTime: () => m.readTurboTime?.() ?? Promise.resolve(0),

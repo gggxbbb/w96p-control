@@ -3,7 +3,7 @@ export const SERVICES = {
   POWER: '0000ffd0-0000-1000-8000-00805f9b34fb',
   NATURE: '0000ffe0-0000-1000-8000-00805f9b34fb',
   DFU: '0000fee0-0000-1000-8000-00805f9b34fb',
-  /** v1.3+ 蓝牙名称配置服务 */
+  /** v1.3+ 蓝牙名称/序列号配置服务 */
   BLE_NAME: '0000ffc0-0000-1000-8000-00805f9b34fb',
 } as const;
 
@@ -31,8 +31,7 @@ export const CHARS = {
   NATURE_WIND_SUM: '0000ffe1-0000-1000-8000-00805f9b34fb',
   NATURE_WIND_TIME: '0000ffe2-0000-1000-8000-00805f9b34fb',
   NATURE_WIND_CTRL: '0000ffe4-0000-1000-8000-00805f9b34fb',
-  /** v1.3+ 蓝牙名称特征 (FFC0 服务) */
-  /** V1.5+ 不可用 */
+  /** v1.3+ 蓝牙名称/序列号特征 (FFC0 服务), v1.7+ 支持 BLE_SN */
   BLE_NAME: '0000ffc1-0000-1000-8000-00805f9b34fb',
   DFU_WRITE: '0000fee1-0000-1000-8000-00805f9b34fb',
   DFU_NOTIFY: '0000fee2-0000-1000-8000-00805f9b34fb',

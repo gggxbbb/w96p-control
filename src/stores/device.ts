@@ -25,6 +25,7 @@ interface DeviceState {
   serialNumber: string | null;
   firmwareVersion: string | null;
   turboCountdownSec: number;
+  bleSnEnabled: boolean;
   setSnapshot: (snap: Partial<BleSnapshot>) => void;
   reset: () => void;
 }
@@ -47,6 +48,7 @@ const initialState = {
   serialNumber: null,
   firmwareVersion: null,
   turboCountdownSec: 0,
+  bleSnEnabled: false,
 };
 
 export const useDeviceStore = create<DeviceState>()(

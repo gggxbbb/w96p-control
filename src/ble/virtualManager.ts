@@ -220,6 +220,7 @@ export class VirtualManager implements IBleManager {
   async writeTurboTime?(_sec: number): Promise<void> { /* no-op */ }
   async writeLight?(_value: number): Promise<void> { /* no-op */ }
   async writeBleName?(_name: string): Promise<void> { /* no-op */ }
+  async writeBleSn?(_enabled: boolean): Promise<void> { /* no-op */ }
   async readTurboCountdown?(): Promise<number> { return 0; }
   async readTurbo?(): Promise<number> { return 0; }
 

@@ -35,6 +35,7 @@ export const FEATURE_DELTAS: [string, FeatureDelta][] = [
     add: ['turbo2Byte', 'turboCountdown', 'turboReadable'],
     remove: ['bleName'],
   }],
+  ['1.7', { add: ['bleSn'] }],
 ];
 
 /** 根据固件版本获取启用的功能集合。兼容模式下默认启用所有功能。 */

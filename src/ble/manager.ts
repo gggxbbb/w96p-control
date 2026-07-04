@@ -214,6 +214,17 @@ export class BleManager implements IBleManager {
     }
     // Step 2: read NATURE_CURVE separately (128B → ~7 GATT fragments) with retry
     await this.readCurveWithRetry();
+
+    // Step 3: read BLE_SN state if available (v1.7+)
+    if (this.chars.has(CHARS.BLE_NAME)) {
+      try {
+        const snEnabled = await this.readBleSn();
+        this.onSnapshot?.({ bleSnEnabled: snEnabled });
+        console.log('[BLE] BLE_SN 状态已读取:', snEnabled);
+      } catch {
+        console.log('[BLE] BLE_SN 状态读取失败（可能固件不支持）');
+      }
+    }
   }
 
   /** Retry reading the 128-byte NATURE_CURVE characteristic (high fragment count, prone to GATT timeouts). */
@@ -785,6 +796,38 @@ export class BleManager implements IBleManager {
       });
     } catch (e) {
       console.log('[BLE] writeBleName 失败:', e);
+    }
+  }
+
+  /** v1.7+ BLE 序列号显示开关 (FFC0/FFC1, "BLE_SN=1," / "BLE_SN=0,") */
+  async writeBleSn(enabled: boolean): Promise<void> {
+    this.lastWriteMs = Date.now();
+    const char = this.chars.get(CHARS.BLE_NAME);
+    if (!char) throw new Error('固件不支持 BLE 序列号切换');
+    const prev = useDeviceStore.getState().bleSnEnabled;
+    this.onSnapshot?.({ bleSnEnabled: enabled });
+    try {
+      await this.writer.enqueue(async () => {
+        await this.writer.rawWrite(char, encodeCmd(cmd.bleSn(enabled)));
+      });
+    } catch (e) {
+      console.log('[BLE] writeBleSn 失败:', e);
+      this.onSnapshot?.({ bleSnEnabled: prev });
+    }
+  }
+
+  /** v1.7+ 读取 BLE_SN 当前状态 (FFC1) */
+  async readBleSn(): Promise<boolean> {
+    const char = this.chars.get(CHARS.BLE_NAME);
+    if (!char) return false;
+    try {
+      return await this.scheduler.enqueueRead(async () => {
+        const dv = await this.timedRead(CHARS.BLE_NAME);
+        const text = new TextDecoder().decode(dv.buffer);
+        return text.includes('BLE_SN=1');
+      });
+    } catch {
+      return false;
     }
   }
 

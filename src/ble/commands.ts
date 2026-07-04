@@ -12,6 +12,8 @@ export const cmd = {
   natureWindCtrl: (op: 1 | 2) => new Uint8Array([op]),
   /** v1.3+ 蓝牙名称: BLE_NAME=xxx, */
   bleName: (name: string) => `BLE_NAME=${name},`,
+  /** v1.7+ BLE 序列号显示开关: BLE_SN=1, / BLE_SN=0, */
+  bleSn: (enabled: boolean) => `BLE_SN=${enabled ? 1 : 0},`,
 } as const;
 
 export const encodeCmd = (str: string): Uint8Array =>

@@ -101,9 +101,9 @@ export default function Fan() {
           <LightPanel />
         </DraggableCard>
       )}
-      {features.has('bleName') && (
+      {(features.has('bleName') || features.has('bleSn')) && (
         <DraggableCard key="ble-name">
-          <BleNamePanel />
+          <BleNamePanel mode={features.has('bleSn') ? 'sn' : 'name'} />
         </DraggableCard>
       )}
     </PageGrid>
