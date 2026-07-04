@@ -5,31 +5,16 @@ import { BrowserGate } from './BrowserGate';
 import { UpdatePrompt } from './UpdatePrompt';
 import { DeviceCard } from './connection/DeviceCard';
 import { useConnectionStore } from '../stores/connection';
+import { useSettingsStore } from '../stores/settings';
 
 export default function AppRoot() {
   const state = useConnectionStore((s) => s.state);
+  const theme = useSettingsStore((s) => s.theme);
 
-  // 主题同步
+  // 主题同步：Zustand store 变化 → DOM 属性同步
   useEffect(() => {
-    const handleTheme = () => {
-      document.documentElement.dataset.theme =
-        document.documentElement.dataset.theme === 'light' ? 'dark' : 'dark';
-    };
-    // 从 localStorage 读初始主题
-    try {
-      const raw = localStorage.getItem('w96p-settings');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed?.state?.theme) {
-          document.documentElement.dataset.theme = parsed.state.theme;
-        }
-      }
-    } catch {
-      // ignore
-    }
-    window.addEventListener('themechange', handleTheme);
-    return () => window.removeEventListener('themechange', handleTheme);
-  }, []);
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
 
   return (
     <BrowserGate>
