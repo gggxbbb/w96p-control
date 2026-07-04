@@ -1,18 +1,12 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
-import { AppLayout } from '../components/layout/AppLayout';
-import { ConnGuard } from '../components/connection/ConnGuard';
+import { AppShell } from '../components/layout/AppShell';
 
-const Dashboard = lazy(() => import('../pages/dashboard'));
-const Fan = lazy(() => import('../pages/fan'));
-const NatureWind = lazy(() => import('../pages/nature-wind'));
-const Power = lazy(() => import('../pages/power'));
-const PowerConfig = lazy(() => import('../pages/power-config'));
-const History = lazy(() => import('../pages/history'));
-const Settings = lazy(() => import('../pages/settings'));
-const Ota = lazy(() => import('../pages/ota'));
-const DebugBle = lazy(() => import('../pages/debug-ble'));
-const BatteryLearn = lazy(() => import('../pages/battery-learn'));
+const HomePage = lazy(() => import('../pages/home'));
+const PowerPage = lazy(() => import('../pages/power-v2'));
+const NatureWindPage = lazy(() => import('../pages/nature-wind-v2'));
+const BatteryLearnPage = lazy(() => import('../pages/battery-learn'));
+const DebugBlePage = lazy(() => import('../pages/debug-ble'));
 
 function Loading() {
   return (
@@ -26,18 +20,48 @@ function Loading() {
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <AppLayout />,
+    element: <AppShell />,
     children: [
-      { index: true, element: <Suspense fallback={<Loading />}><Dashboard /></Suspense> },
-      { path: 'fan', element: <Suspense fallback={<Loading />}><ConnGuard><Fan /></ConnGuard></Suspense> },
-      { path: 'nature-wind', element: <Suspense fallback={<Loading />}><ConnGuard><NatureWind /></ConnGuard></Suspense> },
-      { path: 'power', element: <Suspense fallback={<Loading />}><ConnGuard><Power /></ConnGuard></Suspense> },
-      { path: 'power-config', element: <Suspense fallback={<Loading />}><ConnGuard><PowerConfig /></ConnGuard></Suspense> },
-      { path: 'ota', element: <Suspense fallback={<Loading />}><ConnGuard><Ota /></ConnGuard></Suspense> },
-      { path: 'history', element: <Suspense fallback={<Loading />}><ConnGuard><History /></ConnGuard></Suspense> },
-      { path: 'settings', element: <Suspense fallback={<Loading />}><Settings /></Suspense> },
-      { path: 'debug/ble', element: <Suspense fallback={<Loading />}><DebugBle /></Suspense> },
-      { path: 'battery-learn', element: <Suspense fallback={<Loading />}><BatteryLearn /></Suspense> },
+      {
+        index: true,
+        element: (
+          <Suspense fallback={<Loading />}>
+            <HomePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'power',
+        element: (
+          <Suspense fallback={<Loading />}>
+            <PowerPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'nature-wind',
+        element: (
+          <Suspense fallback={<Loading />}>
+            <NatureWindPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'battery-learn',
+        element: (
+          <Suspense fallback={<Loading />}>
+            <BatteryLearnPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'debug/ble',
+        element: (
+          <Suspense fallback={<Loading />}>
+            <DebugBlePage />
+          </Suspense>
+        ),
+      },
     ],
   },
 ]);
