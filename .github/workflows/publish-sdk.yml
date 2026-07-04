@@ -16,29 +16,17 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '22'
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@gggxbbb'
-        env:
-          NODE_AUTH_TOKEN: ${{ github.token }}
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false  # never use caching in release builds
 
       - name: Install dependencies
         working-directory: packages/sdk
         run: npm ci
-
-      - name: Verify authentication
-        working-directory: packages/sdk
-        run: |
-          npm whoami --registry=https://npm.pkg.github.com
-        env:
-          NODE_AUTH_TOKEN: ${{ github.token }}
-
       - name: Publish
         working-directory: packages/sdk
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ github.token }}
+        run: npm stage publish
