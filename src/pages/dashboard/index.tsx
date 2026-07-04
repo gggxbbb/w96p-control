@@ -35,9 +35,11 @@ const DASHBOARD_LAYOUTS: ResponsiveLayouts = {
     { i: 'batt-est-pct', x: 9, y: 6, w: 3, h: 2 },
     { i: 'batt-est-rem', x: 0, y: 8, w: 3, h: 2 },
     { i: 'batt-est-eta', x: 3, y: 8, w: 3, h: 2 },
-    { i: 'turbo-countdown', x: 6, y: 8, w: 3, h: 2 },
-    { i: 'fan-control', x: 0, y: 10, w: 8, h: 6 },
-    { i: 'status', x: 8, y: 10, w: 4, h: 6 },
+    { i: 'pow-level-rem', x: 6, y: 8, w: 3, h: 2 },
+    { i: 'pow-level-eta', x: 9, y: 8, w: 3, h: 2 },
+    { i: 'turbo-countdown', x: 0, y: 10, w: 3, h: 2 },
+    { i: 'fan-control', x: 0, y: 12, w: 8, h: 6 },
+    { i: 'status', x: 8, y: 12, w: 4, h: 6 },
   ],
   md: [
     { i: 'fan-gear', x: 0, y: 0, w: 3, h: 2 },
@@ -58,9 +60,11 @@ const DASHBOARD_LAYOUTS: ResponsiveLayouts = {
     { i: 'batt-est-pct', x: 0, y: 14, w: 5, h: 2 },
     { i: 'batt-est-rem', x: 5, y: 14, w: 5, h: 2 },
     { i: 'batt-est-eta', x: 0, y: 16, w: 5, h: 2 },
-    { i: 'turbo-countdown', x: 5, y: 16, w: 5, h: 2 },
-    { i: 'fan-control', x: 0, y: 18, w: 10, h: 6 },
-    { i: 'status', x: 0, y: 24, w: 10, h: 6 },
+    { i: 'pow-level-rem', x: 5, y: 16, w: 5, h: 2 },
+    { i: 'pow-level-eta', x: 0, y: 18, w: 5, h: 2 },
+    { i: 'turbo-countdown', x: 5, y: 18, w: 5, h: 2 },
+    { i: 'fan-control', x: 0, y: 20, w: 10, h: 6 },
+    { i: 'status', x: 0, y: 26, w: 10, h: 6 },
   ],
   sm: [
     { i: 'fan-gear', x: 0, y: 0, w: 3, h: 2 },
@@ -81,9 +85,11 @@ const DASHBOARD_LAYOUTS: ResponsiveLayouts = {
     { i: 'batt-est-pct', x: 3, y: 14, w: 3, h: 2 },
     { i: 'batt-est-rem', x: 0, y: 16, w: 3, h: 2 },
     { i: 'batt-est-eta', x: 3, y: 16, w: 3, h: 2 },
-    { i: 'turbo-countdown', x: 0, y: 18, w: 3, h: 2 },
-    { i: 'fan-control', x: 0, y: 20, w: 6, h: 6 },
-    { i: 'status', x: 0, y: 26, w: 6, h: 6 },
+    { i: 'pow-level-rem', x: 0, y: 18, w: 3, h: 2 },
+    { i: 'pow-level-eta', x: 3, y: 18, w: 3, h: 2 },
+    { i: 'turbo-countdown', x: 0, y: 20, w: 3, h: 2 },
+    { i: 'fan-control', x: 0, y: 22, w: 6, h: 6 },
+    { i: 'status', x: 0, y: 28, w: 6, h: 6 },
   ],
   xs: [
     { i: 'fan-gear', x: 0, y: 0, w: 2, h: 2 },
@@ -104,9 +110,11 @@ const DASHBOARD_LAYOUTS: ResponsiveLayouts = {
     { i: 'batt-est-pct', x: 2, y: 28, w: 2, h: 2 },
     { i: 'batt-est-rem', x: 0, y: 30, w: 2, h: 2 },
     { i: 'batt-est-eta', x: 2, y: 30, w: 2, h: 2 },
-    { i: 'turbo-countdown', x: 0, y: 32, w: 2, h: 2 },
-    { i: 'fan-control', x: 0, y: 34, w: 2, h: 6 },
-    { i: 'status', x: 0, y: 40, w: 2, h: 6 },
+    { i: 'pow-level-rem', x: 0, y: 32, w: 2, h: 2 },
+    { i: 'pow-level-eta', x: 2, y: 32, w: 2, h: 2 },
+    { i: 'turbo-countdown', x: 0, y: 34, w: 2, h: 2 },
+    { i: 'fan-control', x: 0, y: 36, w: 2, h: 6 },
+    { i: 'status', x: 0, y: 42, w: 2, h: 6 },
   ],
 };
 
@@ -143,6 +151,12 @@ export default function Dashboard() {
   const estSoc = battery ? voltageToSoc(battery.voltageMv) : null;
   const estRemainMwh = (estSoc != null && battery?.capacityMwh) ? Math.round(battery.capacityMwh * estSoc / 100) : null;
   const estEtaMin = (estRemainMwh != null && batteryPower > 0) ? Math.round(estRemainMwh / (batteryPower * 1000) * 60) : null;
+  const powRemainingMwh = (powerConfig && battery?.capacityMwh)
+    ? Math.round(battery.capacityMwh * powerConfig.powLevel / 100)
+    : null;
+  const powEtaMin = (powRemainingMwh != null && batteryPower > 0)
+    ? Math.round(powRemainingMwh / (batteryPower * 1000) * 60)
+    : null;
 
   const minSpeed = 0;
   const maxSpeed = 100;
@@ -295,6 +309,16 @@ export default function Dashboard() {
       {dashboardCards['batt-est-eta'] && (
         <DraggableCard key="batt-est-eta">
           <MetricCard label="预计续航(估算)" value={estEtaMin ?? '--'} unit="min" />
+        </DraggableCard>
+      )}
+      {dashboardCards['pow-level-rem'] && (
+        <DraggableCard key="pow-level-rem">
+          <MetricCard label="剩余容量(芯片)" value={powRemainingMwh ?? '--'} unit="mWh" range={{ min: 0, max: battery?.capacityMwh ?? 20000, dangerLow: true }} persistKey="dashboard-剩余容量芯片" />
+        </DraggableCard>
+      )}
+      {dashboardCards['pow-level-eta'] && (
+        <DraggableCard key="pow-level-eta">
+          <MetricCard label="预计续航(芯片)" value={powEtaMin ?? '--'} unit="min" />
         </DraggableCard>
       )}
       {dashboardCards['turbo-countdown'] && (

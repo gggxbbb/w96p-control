@@ -6,6 +6,7 @@ import { useBleMetrics } from '../../stores/bleMetrics';
 
 const DebugBle = lazy(() => import('../../pages/debug-ble'));
 const BatteryLearn = lazy(() => import('../../pages/battery-learn'));
+const PowerConfigPanel = lazy(() => import('../power/PowerConfigPanel').then(m => ({ default: m.PowerConfigPanel })));
 
 function sep() {
   return <span style={{ color: 'var(--color-text-dim)', flexShrink: 0, opacity: 0.4 }}>|</span>;
@@ -19,6 +20,7 @@ export function StatusBar() {
   const [now, setNow] = useState(() => new Date());
   const [debugOpen, setDebugOpen] = useState(false);
   const [learnOpen, setLearnOpen] = useState(false);
+  const [pwrCfgOpen, setPwrCfgOpen] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -121,7 +123,18 @@ export function StatusBar() {
           </>
         )}
         <div style={{ flex: 1, minWidth: 0 }} />
-        <span style={{ color: 'var(--color-text-dim)', flexShrink: 0, whiteSpace: 'nowrap' }}>{timeStr} GMT+8</span>
+        <span
+          onClick={() => setPwrCfgOpen(true)}
+          style={{
+            color: 'var(--color-text-dim)',
+            flexShrink: 0,
+            whiteSpace: 'nowrap',
+            cursor: 'pointer',
+            userSelect: 'none',
+          }}
+        >
+          {timeStr} GMT+8
+        </span>
       </footer>
 
       {debugOpen && (
@@ -238,6 +251,66 @@ export function StatusBar() {
             <div style={{ flex: 1, overflow: 'auto', padding: '0 16px 16px' }}>
               <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', opacity: 0.4 }}>加载中...</div>}>
                 <BatteryLearn />
+              </Suspense>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pwrCfgOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => setPwrCfgOpen(false)}
+        >
+          <div
+            style={{
+              background: 'var(--color-bg-surface)',
+              borderRadius: 12,
+              width: 'min(720px, 95vw)',
+              height: 'min(85vh, 700px)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 16px',
+                borderBottom: '0.5px solid var(--color-border)',
+                flexShrink: 0,
+              }}
+            >
+              <span style={{ fontWeight: 600, fontSize: 14 }}>电源寄存器</span>
+              <button
+                onClick={() => setPwrCfgOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: 18,
+                  cursor: 'pointer',
+                  color: 'var(--color-text)',
+                  padding: '0 4px',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ flex: 1, overflow: 'auto', padding: '0 16px 16px' }}>
+              <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', opacity: 0.4 }}>加载中...</div>}>
+                <PowerConfigPanel />
               </Suspense>
             </div>
           </div>
