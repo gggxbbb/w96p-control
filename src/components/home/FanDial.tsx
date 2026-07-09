@@ -5,11 +5,12 @@ interface FanDialProps {
   value: number;
   min?: number;
   max?: number;
+  'aria-label'?: string;
   onChange?: (value: number) => void;
   onCommit?: (value: number) => void;
 }
 
-export function FanDial({ value, min = 0, max = 100, onChange, onCommit }: FanDialProps) {
+export function FanDial({ value, min = 0, max = 100, 'aria-label': ariaLabel, onChange, onCommit }: FanDialProps) {
   const ref = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
   const latestValueRef = useRef(value);
@@ -78,6 +79,7 @@ export function FanDial({ value, min = 0, max = 100, onChange, onCommit }: FanDi
       ref={ref}
       tabIndex={0}
       role="slider"
+      aria-label={ariaLabel}
       aria-valuenow={value}
       aria-valuemin={min}
       aria-valuemax={max}
