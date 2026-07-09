@@ -5,6 +5,7 @@ interface Action {
   icon: ReactNode;
   label: string;
   active?: boolean;
+  /** CSS color value used when active (e.g. 'var(--color-new-accent-nature)'). */
   accent?: string;
   onClick: () => void;
 }
@@ -20,6 +21,8 @@ export function QuickActions({ actions }: QuickActionsProps) {
         <button
           key={a.key}
           type="button"
+          className="quick-action-btn"
+          aria-pressed={a.active}
           onClick={a.onClick}
           style={{
             display: 'flex',
@@ -42,7 +45,7 @@ export function QuickActions({ actions }: QuickActionsProps) {
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: 20,
-            boxShadow: a.active ? `0 4px 12px ${a.accent ?? 'var(--color-new-accent)'}40` : 'inset 0 0 0 1px var(--color-new-border)',
+            boxShadow: a.active ? '0 4px 12px rgba(0,0,0,0.12)' : 'inset 0 0 0 1px var(--color-new-border)',
           }}>
             {a.icon}
           </div>

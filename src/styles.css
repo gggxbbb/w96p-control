@@ -385,3 +385,9 @@ body {
   color: var(--color-new-text-muted);
   font-family: var(--font-sans);
 }
+
+.quick-action-btn:focus-visible {
+  outline: 2px solid var(--color-new-accent);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
