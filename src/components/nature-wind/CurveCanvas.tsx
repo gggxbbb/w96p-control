@@ -189,6 +189,8 @@ export function CurveCanvas({ points, onChange, min, max }: CurveCanvasProps) {
     <div ref={containerRef} style={{ width: '100%' }}>
       <canvas
         ref={canvasRef}
+        role="img"
+        aria-label="自然风曲线编辑器，128 个点，可通过鼠标或触摸拖拽编辑"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

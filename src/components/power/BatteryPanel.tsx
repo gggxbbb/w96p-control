@@ -55,10 +55,10 @@ export function BatteryPanel() {
         </div>
         <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>容量设置</div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
-          <input type="number" min={100} max={50000} value={mah} onChange={(e) => setMah(e.target.value)} style={inputStyle} />
+          <input aria-label="电池容量 (mAh)" type="number" min={100} max={50000} value={mah} onChange={(e) => setMah(e.target.value)} style={inputStyle} />
           <span style={unitStyle}>mAh</span>
           <span style={{ color: 'var(--color-text-dim)' }}>×</span>
-          <input type="number" min={3} max={30} step={0.1} value={voltage} onChange={(e) => setVoltage(e.target.value)} style={inputStyle} />
+          <input aria-label="电池电压 (V)" type="number" min={3} max={30} step={0.1} value={voltage} onChange={(e) => setVoltage(e.target.value)} style={inputStyle} />
           <span style={unitStyle}>V</span>
           <div style={{ flex: 1 }} />
           <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>

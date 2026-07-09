@@ -381,21 +381,24 @@ body {
   border-radius: 20px;
 }
 
-.new-page {
-  background: var(--color-new-bg-page);
-  color: var(--color-new-text);
+.theme-new {
+  --color-bg-page: var(--color-new-bg-page);
+  --color-bg-surface: var(--color-new-bg-surface);
+  --color-bg-inset: var(--color-new-bg-inset);
+  --color-border: var(--color-new-border);
+  --color-border-strong: var(--color-new-border);
   --color-text: var(--color-new-text);
   --color-text-muted: var(--color-new-text-muted);
   --color-text-dim: var(--color-new-text-dim);
-  --color-bg-page: var(--color-new-bg-inset);
-  --color-bg-surface: var(--color-new-bg-surface);
-  --color-bg-inset: var(--color-new-border);
-  --color-border: var(--color-new-border);
-  --color-border-strong: var(--color-new-border);
   --color-accent: var(--color-new-accent);
   --color-success: var(--color-new-success);
   --color-warning: var(--color-new-warning);
   --color-danger: var(--color-new-danger);
+}
+
+.new-page {
+  background: var(--color-new-bg-page);
+  color: var(--color-new-text);
 }
 
 .text-label {

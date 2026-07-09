@@ -92,7 +92,7 @@ export default function NatureWind() {
     try {
       await setNatureCurve(editPoints);
       const readBack = await readNatureCurve();
-      useDeviceStore.getState().setSnapshot({ natureCurveReadAt: Date.now(), natureCurve: readBack } as any);
+      useDeviceStore.setState({ natureCurveReadAt: Date.now(), natureCurve: readBack });
       show('曲线已写入设备并读回确认');
     } catch {
       show('写入失败');
@@ -133,7 +133,7 @@ export default function NatureWind() {
     try {
       const pts = await readNatureCurve();
       setEditPoints(pts);
-      useDeviceStore.getState().setSnapshot({ natureCurveReadAt: Date.now() } as any);
+      useDeviceStore.setState({ natureCurveReadAt: Date.now() });
       show(`已读取 ${pts.length} 点曲线`);
     } catch {
       show('读取失败');
@@ -160,7 +160,7 @@ export default function NatureWind() {
   const avgVal = editPoints.length ? editPoints.reduce((a, b) => a + b, 0) / editPoints.length : 0;
 
   return (
-    <div className="new-page" style={{ minHeight: '100%' }}>
+    <div className="new-page theme-new" style={{ minHeight: '100%' }}>
       <PageGrid pageKey="nature-wind" pageName="自然风" defaultLayouts={NW_LAYOUTS}>
         <DraggableCard key="editor">
           <Card title="自然风曲线编辑器" variant="new">
@@ -180,6 +180,7 @@ export default function NatureWind() {
             ) : (
               <div>
                 <textarea
+                  aria-label="自然风曲线文本编辑，128 个数值空格分隔"
                   value={textValue}
                   onChange={(e) => setTextValue(e.target.value)}
                   onBlur={handleTextSubmit}
