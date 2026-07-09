@@ -39,7 +39,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <h3 style={{ margin: 0, fontSize: 16, fontWeight: 500 }}>{title}</h3>
-          <button type="button" onClick={onClose} style={{ background: 'transparent', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--color-new-text-muted)' }}>×</button>
+          <button type="button" onClick={() => ref.current?.close()} style={{ background: 'transparent', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--color-new-text-muted)' }}>×</button>
         </div>
         {children}
       </div>

@@ -37,22 +37,24 @@ export function DetailPanel({ children, onOpenAdvanced }: DetailPanelProps) {
           gap: 12,
         }}>
           {children}
-          <div style={{ gridColumn: '1 / -1', textAlign: 'center', marginTop: 4 }}>
-            <button
-              type="button"
-              onClick={onOpenAdvanced}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--color-new-text-muted)',
-                fontSize: 11,
-                cursor: 'pointer',
-                textDecoration: 'underline',
-              }}
-            >
-              打开完整面板
-            </button>
-          </div>
+          {onOpenAdvanced && (
+            <div style={{ gridColumn: '1 / -1', textAlign: 'center', marginTop: 4 }}>
+              <button
+                type="button"
+                onClick={onOpenAdvanced}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--color-new-text-muted)',
+                  fontSize: 11,
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                }}
+              >
+                打开完整面板
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
