@@ -61,14 +61,14 @@
   --color-new-bg-inset: #232320;
   --color-new-border: #2C2C2A;
   --color-new-text: #F4F4F5;
-  --color-new-text-muted: #888780;
-  --color-new-text-dim: #5F5E5A;
+  --color-new-text-muted: #A8A7A1;
+  --color-new-text-dim: #73726D;
   --color-new-accent: #FF8C42;
   --color-new-accent-nature: #4ECDC4;
   --color-new-accent-dark: #292F36;
-  --color-new-success: #1D9E75;
-  --color-new-warning: #BA7517;
-  --color-new-danger: #E24B4A;
+  --color-new-success: #2ECB8F;
+  --color-new-warning: #E6A23C;
+  --color-new-danger: #FF6B6B;
 }
 
 body {
@@ -379,4 +379,5 @@ body {
 .text-label {
   font-size: 12px;
   color: var(--color-new-text-muted);
+  font-family: var(--font-sans);
 }
