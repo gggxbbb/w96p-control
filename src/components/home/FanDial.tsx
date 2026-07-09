@@ -45,12 +45,14 @@ interface FanDialProps {
 export function FanDial({ value, min = 0, max = 100, onChange, onCommit }: FanDialProps) {
   const ref = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
+  const latestValueRef = useRef(value);
 
   const updateFromPoint = useCallback((clientX: number, clientY: number) => {
     if (!ref.current) return;
     const rect = ref.current.getBoundingClientRect();
     const mapped = pointToAngle(clientX, clientY, rect);
     const next = angleToValue(mapped, min, max);
+    latestValueRef.current = next;
     onChange?.(next);
   }, [min, max, onChange]);
 
@@ -69,10 +71,14 @@ export function FanDial({ value, min = 0, max = 100, onChange, onCommit }: FanDi
     if (!dragging.current) return;
     dragging.current = false;
     ref.current?.releasePointerCapture(e.pointerId);
-    onCommit?.(value);
+    onCommit?.(latestValueRef.current);
   };
 
   const angle = valueToAngle(value, min, max);
+  const radius = 92; // outer ring inner radius: 110 - 18
+  const theta = (135 + angle) * (Math.PI / 180);
+  const indicatorX = 110 + radius * Math.cos(theta);
+  const indicatorY = 110 - radius * Math.sin(theta); // flip y for screen coords
 
   return (
     <div
@@ -85,7 +91,7 @@ export function FanDial({ value, min = 0, max = 100, onChange, onCommit }: FanDi
         width: 220,
         height: 220,
         borderRadius: '50%',
-        background: `conic-gradient(from 180deg, #FFE8D6 0deg, var(--color-new-accent) ${angle}deg, var(--color-new-border) ${angle}deg)`,
+        background: `conic-gradient(from 135deg, #FFE8D6 0deg, var(--color-new-accent) ${angle}deg, var(--color-new-border) ${angle}deg)`,
         boxShadow: 'inset 0 0 0 18px var(--color-new-bg-page), 0 12px 32px rgba(255,140,66,0.18)',
         display: 'flex',
         alignItems: 'center',
@@ -111,15 +117,14 @@ export function FanDial({ value, min = 0, max = 100, onChange, onCommit }: FanDi
       </div>
       <div style={{
         position: 'absolute',
-        bottom: 18,
-        right: 42,
+        left: indicatorX,
+        top: indicatorY,
         width: 14,
         height: 14,
         borderRadius: '50%',
         background: 'var(--color-new-accent)',
         boxShadow: '0 2px 8px rgba(255,107,53,0.5)',
-        transform: `rotate(${angle}deg)`,
-        transformOrigin: '-68px -68px',
+        transform: 'translate(-50%, -50%)',
       }} />
     </div>
   );
