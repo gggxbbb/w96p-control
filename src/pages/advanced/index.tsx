@@ -15,7 +15,7 @@ import { StatusSummary } from '../../components/dashboard/StatusSummary';
 import { voltageToSoc } from '../../utils/battery';
 import type { ResponsiveLayouts } from 'react-grid-layout';
 
-const DASHBOARD_LAYOUTS: ResponsiveLayouts = {
+const ADVANCED_LAYOUTS: ResponsiveLayouts = {
   lg: [
     { i: 'fan-gear', x: 0, y: 0, w: 3, h: 2 },
     { i: 'fan-speed', x: 3, y: 0, w: 3, h: 2 },
@@ -128,8 +128,8 @@ export default function Advanced() {
   const powerConfig = useDeviceStore((s) => s.powerConfig);
   const timerRemainingSec = useDeviceStore((s) => s.timerRemainingSec);
   const turboCountdownSec = useDeviceStore((s) => s.turboCountdownSec);
-  const dashboardCards = useSettingsStore((s) => s.dashboardCards);
-  const setDashboardCards = useSettingsStore((s) => s.setDashboardCards);
+  const advancedCards = useSettingsStore((s) => s.dashboardCards);
+  const setAdvancedCards = useSettingsStore((s) => s.setDashboardCards);
   const show = useToastStore((s) => s.show);
 
   const [dragSpeed, setDragSpeed] = useState<number | null>(null);
@@ -163,9 +163,9 @@ export default function Advanced() {
   const displaySpeed = dragSpeed ?? fanSpeed;
 
   const toggleCard = (key: DashboardCardKey) => {
-    const next = { ...dashboardCards, [key]: !dashboardCards[key] };
-    setDashboardCards(next);
-    if (!dashboardCards[key]) {
+    const next = { ...advancedCards, [key]: !advancedCards[key] };
+    setAdvancedCards(next);
+    if (!advancedCards[key]) {
       show('新卡片默认为 1×1，请进入编辑模式调整布局');
     }
   };
@@ -174,7 +174,7 @@ export default function Advanced() {
     const defaults: Record<string, boolean> = {};
     for (const k of DASHBOARD_CARD_KEYS) defaults[k] = false;
     for (const k of DASHBOARD_CARD_DEFAULTS) defaults[k] = true;
-    setDashboardCards(defaults as typeof dashboardCards);
+    setAdvancedCards(defaults as typeof advancedCards);
   };
 
   const renderToolbar = () => (
@@ -189,7 +189,7 @@ export default function Advanced() {
             <div style={popoverTitleStyle}>选择可见卡片</div>
             {DASHBOARD_CARD_KEYS.map((key) => (
               <label key={key} style={checkboxRowStyle}>
-                <input type="checkbox" checked={dashboardCards[key]} onChange={() => toggleCard(key)} style={{ accentColor: 'var(--color-accent)' }} />
+                <input type="checkbox" checked={advancedCards[key]} onChange={() => toggleCard(key)} style={{ accentColor: 'var(--color-accent)' }} />
                 <span>{DASHBOARD_CARD_LABELS[key]}</span>
               </label>
             ))}
@@ -214,114 +214,114 @@ export default function Advanced() {
   })();
 
   return (
-    <PageGrid pageKey="dashboard" pageName="总览" defaultLayouts={DASHBOARD_LAYOUTS} renderToolbar={renderToolbar} onReset={resetCards}>
-      {dashboardCards['fan-gear'] && (
+    <PageGrid pageKey="advanced" pageName="高级视图" defaultLayouts={ADVANCED_LAYOUTS} renderToolbar={renderToolbar} onReset={resetCards}>
+      {advancedCards['fan-gear'] && (
         <DraggableCard key="fan-gear">
           <MetricCard label="档位" value={gearNum} unit="档" />
         </DraggableCard>
       )}
-      {dashboardCards['fan-speed'] && (
+      {advancedCards['fan-speed'] && (
         <DraggableCard key="fan-speed">
-          <MetricCard label="转速" value={fanSpeed} unit="%" range={{ min: 0, max: 100 }} persistKey="dashboard-转速" />
+          <MetricCard label="转速" value={fanSpeed} unit="%" range={{ min: 0, max: 100 }} persistKey="advanced-转速" />
         </DraggableCard>
       )}
-      {dashboardCards['fan-timer'] && (
+      {advancedCards['fan-timer'] && (
         <DraggableCard key="fan-timer">
           <MetricCard label="定时" value={timerDisplay} rawValue={timerRemainingSec}  />
         </DraggableCard>
       )}
-      {dashboardCards['batt-power'] && (
+      {advancedCards['batt-power'] && (
         <DraggableCard key="batt-power">
-          <MetricCard label="电池功率" value={batteryPower} unit="W" decimals={2} range={{ min: -20, max: 20 }} persistKey="dashboard-电池功率" />
+          <MetricCard label="电池功率" value={batteryPower} unit="W" decimals={2} range={{ min: -20, max: 20 }} persistKey="advanced-电池功率" />
         </DraggableCard>
       )}
-      {dashboardCards['motor-power'] && (
+      {advancedCards['motor-power'] && (
         <DraggableCard key="motor-power">
-          <MetricCard label="电机功率" value={motorPower} unit="W" decimals={2} range={{ min: 0, max: 20 }} persistKey="dashboard-电机功率" />
+          <MetricCard label="电机功率" value={motorPower} unit="W" decimals={2} range={{ min: 0, max: 20 }} persistKey="advanced-电机功率" />
         </DraggableCard>
       )}
-      {dashboardCards['motor-cur'] && (
+      {advancedCards['motor-cur'] && (
         <DraggableCard key="motor-cur">
-          <MetricCard label="电机电流" value={motor ? motor.currentMa : '--'} unit="mA" range={{ min: 0, max: 5000 }} persistKey="dashboard-电机电流" />
+          <MetricCard label="电机电流" value={motor ? motor.currentMa : '--'} unit="mA" range={{ min: 0, max: 5000 }} persistKey="advanced-电机电流" />
         </DraggableCard>
       )}
-      {dashboardCards['batt-volt'] && (
+      {advancedCards['batt-volt'] && (
         <DraggableCard key="batt-volt">
-          <MetricCard label="电池电压" value={battery ? battery.voltageMv / 1000 : '--'} unit="V" decimals={2} range={{ min: 3.0, max: 4.2, dangerLow: true }} persistKey="dashboard-电池电压" />
+          <MetricCard label="电池电压" value={battery ? battery.voltageMv / 1000 : '--'} unit="V" decimals={2} range={{ min: 3.0, max: 4.2, dangerLow: true }} persistKey="advanced-电池电压" />
         </DraggableCard>
       )}
-      {dashboardCards['vbus-volt'] && (
+      {advancedCards['vbus-volt'] && (
         <DraggableCard key="vbus-volt">
-          <MetricCard label="VBUS 电压" value={powerStatus ? powerStatus.vbusVmV / 1000 : '--'} unit="V" decimals={2} range={{ min: 0, max: 12 }} persistKey="dashboard-VBUS电压" />
+          <MetricCard label="VBUS 电压" value={powerStatus ? powerStatus.vbusVmV / 1000 : '--'} unit="V" decimals={2} range={{ min: 0, max: 12 }} persistKey="advanced-VBUS电压" />
         </DraggableCard>
       )}
-      {dashboardCards['motor-volt'] && (
+      {advancedCards['motor-volt'] && (
         <DraggableCard key="motor-volt">
-          <MetricCard label="电机电压" value={motor && motor.voltageMv > 0 ? motor.voltageMv / 1000 : '--'} unit="V" decimals={2} range={{ min: 0, max: 12 }} persistKey="dashboard-电机电压" />
+          <MetricCard label="电机电压" value={motor && motor.voltageMv > 0 ? motor.voltageMv / 1000 : '--'} unit="V" decimals={2} range={{ min: 0, max: 12 }} persistKey="advanced-电机电压" />
         </DraggableCard>
       )}
-      {dashboardCards['batt-cur'] && (
+      {advancedCards['batt-cur'] && (
         <DraggableCard key="batt-cur">
-          <MetricCard label="电池电流" value={battery ? battery.currentMa : '--'} unit="mA" range={{ min: -5000, max: 5000 }} persistKey="dashboard-电池电流" />
+          <MetricCard label="电池电流" value={battery ? battery.currentMa : '--'} unit="mA" range={{ min: -5000, max: 5000 }} persistKey="advanced-电池电流" />
         </DraggableCard>
       )}
-      {dashboardCards['batt-cap'] && (
+      {advancedCards['batt-cap'] && (
         <DraggableCard key="batt-cap">
           <MetricCard label="电池容量" value={battery ? battery.capacityMwh : '--'} unit="mWh" />
         </DraggableCard>
       )}
-      {dashboardCards['vbus-cur'] && (
+      {advancedCards['vbus-cur'] && (
         <DraggableCard key="vbus-cur">
-          <MetricCard label="VBUS 电流" value={powerStatus ? powerStatus.vbusCurMa : '--'} unit="mA" range={{ min: -5000, max: 5000 }} persistKey="dashboard-VBUS电流" />
+          <MetricCard label="VBUS 电流" value={powerStatus ? powerStatus.vbusCurMa : '--'} unit="mA" range={{ min: -5000, max: 5000 }} persistKey="advanced-VBUS电流" />
         </DraggableCard>
       )}
-      {dashboardCards['vbus-power'] && (
+      {advancedCards['vbus-power'] && (
         <DraggableCard key="vbus-power">
-          <MetricCard label="VBUS 功率" value={vbusPower} unit="W" decimals={2} range={{ min: -20, max: 20 }} persistKey="dashboard-VBUS功率" />
+          <MetricCard label="VBUS 功率" value={vbusPower} unit="W" decimals={2} range={{ min: -20, max: 20 }} persistKey="advanced-VBUS功率" />
         </DraggableCard>
       )}
-      {dashboardCards['pow-core-temp'] && (
+      {advancedCards['pow-core-temp'] && (
         <DraggableCard key="pow-core-temp">
-          <MetricCard label="芯片温度 (powCoreTemp)" value={powerConfig ? powerConfig.powCoreTemp : '--'} unit="℃" range={{ min: 0, max: 120 }} persistKey="dashboard-芯片温度" />
+          <MetricCard label="芯片温度 (powCoreTemp)" value={powerConfig ? powerConfig.powCoreTemp : '--'} unit="℃" range={{ min: 0, max: 120 }} persistKey="advanced-芯片温度" />
         </DraggableCard>
       )}
-      {dashboardCards['pow-level'] && (
+      {advancedCards['pow-level'] && (
         <DraggableCard key="pow-level">
-          <MetricCard label="电量 (powLevel)" value={powerConfig ? powerConfig.powLevel : '--'} unit="%" range={{ min: 0, max: 100, dangerLow: true }} persistKey="dashboard-电量" />
+          <MetricCard label="电量 (powLevel)" value={powerConfig ? powerConfig.powLevel : '--'} unit="%" range={{ min: 0, max: 100, dangerLow: true }} persistKey="advanced-电量" />
         </DraggableCard>
       )}
-      {dashboardCards['batt-est-pct'] && (
+      {advancedCards['batt-est-pct'] && (
         <DraggableCard key="batt-est-pct">
           <MetricCard
             label="电量(电压估算)"
             value={battery ? voltageToSoc(battery.voltageMv) : '--'}
             unit="%"
             range={{ min: 0, max: 100, dangerLow: true }}
-            persistKey="dashboard-电量估算"
+            persistKey="advanced-电量估算"
           />
         </DraggableCard>
       )}
-      {dashboardCards['batt-est-rem'] && (
+      {advancedCards['batt-est-rem'] && (
         <DraggableCard key="batt-est-rem">
-          <MetricCard label="剩余容量(估算)" value={estRemainMwh ?? '--'} unit="mWh" range={{ min: 0, max: battery?.capacityMwh ?? 20000, dangerLow: true }} persistKey="dashboard-剩余容量" />
+          <MetricCard label="剩余容量(估算)" value={estRemainMwh ?? '--'} unit="mWh" range={{ min: 0, max: battery?.capacityMwh ?? 20000, dangerLow: true }} persistKey="advanced-剩余容量" />
         </DraggableCard>
       )}
-      {dashboardCards['batt-est-eta'] && (
+      {advancedCards['batt-est-eta'] && (
         <DraggableCard key="batt-est-eta">
           <MetricCard label="预计续航(估算)" value={estEtaMin ?? '--'} unit="min" />
         </DraggableCard>
       )}
-      {dashboardCards['pow-level-rem'] && (
+      {advancedCards['pow-level-rem'] && (
         <DraggableCard key="pow-level-rem">
-          <MetricCard label="剩余容量(芯片)" value={powRemainingMwh ?? '--'} unit="mWh" range={{ min: 0, max: battery?.capacityMwh ?? 20000, dangerLow: true }} persistKey="dashboard-剩余容量芯片" />
+          <MetricCard label="剩余容量(芯片)" value={powRemainingMwh ?? '--'} unit="mWh" range={{ min: 0, max: battery?.capacityMwh ?? 20000, dangerLow: true }} persistKey="advanced-剩余容量芯片" />
         </DraggableCard>
       )}
-      {dashboardCards['pow-level-eta'] && (
+      {advancedCards['pow-level-eta'] && (
         <DraggableCard key="pow-level-eta">
           <MetricCard label="预计续航(芯片)" value={powEtaMin ?? '--'} unit="min" />
         </DraggableCard>
       )}
-      {dashboardCards['turbo-countdown'] && (
+      {advancedCards['turbo-countdown'] && (
         <DraggableCard key="turbo-countdown">
           <MetricCard
             label="Turbo 倒计时" 
