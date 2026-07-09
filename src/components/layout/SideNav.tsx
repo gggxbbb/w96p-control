@@ -28,22 +28,22 @@ export function SideNav() {
             title={item.label}
             aria-current={active ? 'page' : undefined}
             style={({ isActive }) => ({
-            width: '40px',
-            height: '40px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: isActive ? 'color-mix(in srgb, var(--color-new-accent) 13%, transparent)' : 'transparent',
-            borderLeft: isActive ? '2px solid var(--color-new-accent)' : '2px solid transparent',
-            borderRadius: '4px',
-            color: isActive ? 'var(--color-new-accent)' : 'var(--color-new-text-muted)',
-            textDecoration: 'none',
-          })}
-        >
-          {item.icon}
-        </NavLink>
-      );
-    })}
+              width: '40px',
+              height: '40px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: isActive ? 'color-mix(in srgb, var(--color-new-accent) 13%, transparent)' : 'transparent',
+              borderLeft: isActive ? '2px solid var(--color-new-accent)' : '2px solid transparent',
+              borderRadius: '4px',
+              color: isActive ? 'var(--color-new-accent)' : 'var(--color-new-text-muted)',
+              textDecoration: 'none',
+            })}
+          >
+            {item.icon}
+          </NavLink>
+        );
+      })}
     </nav>
   );
 }
