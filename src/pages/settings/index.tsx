@@ -217,10 +217,10 @@ export default function Settings() {
 
       <DraggableCard key="advanced">
         <Card title="高级">
-          <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <Link to="/advanced" style={{ fontSize: 13, color: 'var(--color-text-dim)', textDecoration: 'none' }}>高级视图</Link>
-            <Link to="/battery-learn" style={{ fontSize: 13, color: 'var(--color-text-dim)', textDecoration: 'none' }}>电池学习</Link>
-            <Link to="/debug-ble" style={{ fontSize: 13, color: 'var(--color-text-dim)', textDecoration: 'none' }}>BLE 调试</Link>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <AdvancedLink to="/advanced">高级视图</AdvancedLink>
+            <AdvancedLink to="/battery-learn">电池学习</AdvancedLink>
+            <AdvancedLink to="/debug/ble">BLE 调试</AdvancedLink>
           </div>
         </Card>
       </DraggableCard>
@@ -243,5 +243,26 @@ function SettingRow({ label, children }: { label: string; children: React.ReactN
       <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '6px' }}>{label}</div>
       {children}
     </div>
+  );
+}
+
+function AdvancedLink({ to, children }: { to: string; children: React.ReactNode }) {
+  return (
+    <Link
+      to={to}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        fontSize: '13px',
+        color: 'var(--color-text-dim)',
+        textDecoration: 'none',
+        padding: '6px 0',
+      }}
+      className="advanced-link"
+    >
+      <span>{children}</span>
+      <span aria-hidden="true">›</span>
+    </Link>
   );
 }
