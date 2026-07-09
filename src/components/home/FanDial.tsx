@@ -1,38 +1,5 @@
-import { useRef, useCallback, type PointerEvent } from 'react';
-
-export function clamp(v: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, v));
-}
-
-export function valueToAngle(value: number, min: number, max: number): number {
-  const ratio = (value - min) / (max - min || 1);
-  return ratio * 270;
-}
-
-export function angleToValue(angle: number, min: number, max: number): number {
-  const ratio = clamp(angle, 0, 270) / 270;
-  return Math.round(min + ratio * (max - min));
-}
-
-/** Convert pointer position to 0-270 degrees. Active arc runs from bottom-left (135°)
- *  clockwise through top (270°) to bottom-right (45°). */
-export function pointToAngle(clientX: number, clientY: number, rect: DOMRect): number {
-  const cx = rect.left + rect.width / 2;
-  const cy = rect.top + rect.height / 2;
-  const dx = clientX - cx;
-  const dy = clientY - cy;
-  const a = (Math.atan2(dy, dx) * (180 / Math.PI) + 360) % 360;
-  let mapped: number;
-  if (a >= 135) {
-    mapped = a - 135;
-  } else if (a <= 45) {
-    mapped = a + 225;
-  } else {
-    // In the inactive lower-right quadrant, snap to nearest endpoint
-    mapped = a < 90 ? 270 : 0;
-  }
-  return mapped;
-}
+import { useRef, useCallback, type PointerEvent, type KeyboardEvent } from 'react';
+import { clamp, valueToAngle, angleToValue, pointToAngle } from './FanDial/math';
 
 interface FanDialProps {
   value: number;
@@ -74,6 +41,32 @@ export function FanDial({ value, min = 0, max = 100, onChange, onCommit }: FanDi
     onCommit?.(latestValueRef.current);
   };
 
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    let next = value;
+    switch (e.key) {
+      case 'ArrowUp':
+      case 'ArrowRight':
+        next = clamp(value + 5, min, max);
+        break;
+      case 'ArrowDown':
+      case 'ArrowLeft':
+        next = clamp(value - 5, min, max);
+        break;
+      case 'Home':
+        next = min;
+        break;
+      case 'End':
+        next = max;
+        break;
+      default:
+        return;
+    }
+    e.preventDefault();
+    latestValueRef.current = next;
+    onChange?.(next);
+    onCommit?.(next);
+  };
+
   const angle = valueToAngle(value, min, max);
   const radius = 92; // outer ring inner radius: 110 - 18
   const theta = (225 + angle) * (Math.PI / 180);
@@ -83,15 +76,21 @@ export function FanDial({ value, min = 0, max = 100, onChange, onCommit }: FanDi
   return (
     <div
       ref={ref}
+      tabIndex={0}
+      role="slider"
+      aria-valuenow={value}
+      aria-valuemin={min}
+      aria-valuemax={max}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
+      onKeyDown={handleKeyDown}
       style={{
         width: 220,
         height: 220,
         borderRadius: '50%',
-        background: `conic-gradient(from 225deg, #FFE8D6 0deg, var(--color-new-accent) ${angle}deg, var(--color-new-border) ${angle}deg)`,
+        background: `conic-gradient(from 225deg, var(--color-new-accent-track) 0deg, var(--color-new-accent) ${angle}deg, var(--color-new-border) ${angle}deg)`,
         boxShadow: 'inset 0 0 0 18px var(--color-new-bg-page), 0 12px 32px rgba(255,140,66,0.18)',
         display: 'flex',
         alignItems: 'center',
@@ -123,7 +122,7 @@ export function FanDial({ value, min = 0, max = 100, onChange, onCommit }: FanDi
         height: 14,
         borderRadius: '50%',
         background: 'var(--color-new-accent)',
-        boxShadow: '0 2px 8px rgba(255,107,53,0.5)',
+        boxShadow: '0 2px 8px rgba(255,140,66,0.5)',
         transform: 'translate(-50%, -50%)',
       }} />
     </div>

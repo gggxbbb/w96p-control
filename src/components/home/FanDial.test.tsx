@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { angleToValue, valueToAngle, clamp, pointToAngle } from './FanDial';
+import { angleToValue, valueToAngle, clamp, pointToAngle } from './FanDial/math';
 
 function rect(left: number, top: number, size: number): DOMRect {
   return new DOMRect(left, top, size, size);
@@ -16,6 +16,9 @@ describe('FanDial math', () => {
     expect(valueToAngle(0, 0, 100)).toBe(0);
     expect(valueToAngle(100, 0, 100)).toBe(270);
     expect(valueToAngle(50, 0, 100)).toBe(135);
+    // out-of-range input is clamped before computing the ratio
+    expect(valueToAngle(-10, 0, 100)).toBe(0);
+    expect(valueToAngle(120, 0, 100)).toBe(270);
   });
 
   it('maps angle to value', () => {
