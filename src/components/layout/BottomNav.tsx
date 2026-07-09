@@ -1,11 +1,11 @@
 import { useLocation, Link } from 'react-router-dom';
-import { NAV_ITEMS } from './navItems';
+import { NAV_ITEMS, isNavActive } from './navItems';
 
 export function BottomNav() {
   const { pathname } = useLocation();
 
   return (
-    <nav className="bottom-nav" style={{
+    <nav aria-label="主导航（底部）" className="bottom-nav" style={{
       justifyContent: 'space-around',
       alignItems: 'center',
       height: 64,
@@ -14,7 +14,7 @@ export function BottomNav() {
       paddingBottom: 'env(safe-area-inset-bottom)',
     }}>
       {NAV_ITEMS.map((item) => {
-        const active = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
+        const active = isNavActive(pathname, item.path);
         return (
           <Link
             key={item.path}

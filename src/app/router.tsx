@@ -1,12 +1,11 @@
+// oxlint-disable react/only-export-components
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { AppLayout } from '../components/layout/AppLayout';
 import { ConnGuard } from '../components/connection/ConnGuard';
 
 const Dashboard = lazy(() => import('../pages/dashboard'));
-// oxlint-disable react/only-export-components
 const Advanced = lazy(() => import('../pages/advanced'));
-// oxlint-enable react/only-export-components
 const NatureWind = lazy(() => import('../pages/nature-wind'));
 const Power = lazy(() => import('../pages/power'));
 const PowerConfig = lazy(() => import('../pages/power-config'));

@@ -1,11 +1,10 @@
-import { useLocation, NavLink } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { NAV_ITEMS } from './navItems';
 
 export function SideNav() {
-  const { pathname } = useLocation();
-
   return (
     <nav
+      aria-label="主导航（侧边）"
       className="side-nav"
       style={{
         width: '56px',
@@ -18,32 +17,29 @@ export function SideNav() {
         flexShrink: 0,
       }}
     >
-      {NAV_ITEMS.map((item) => {
-        const active = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
-        return (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            end={item.path === '/'}
-            title={item.label}
-            aria-current={active ? 'page' : undefined}
-            style={({ isActive }) => ({
-              width: '40px',
-              height: '40px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: isActive ? 'color-mix(in srgb, var(--color-new-accent) 13%, transparent)' : 'transparent',
-              borderLeft: isActive ? '2px solid var(--color-new-accent)' : '2px solid transparent',
-              borderRadius: '4px',
-              color: isActive ? 'var(--color-new-accent)' : 'var(--color-new-text-muted)',
-              textDecoration: 'none',
-            })}
-          >
-            {item.icon}
-          </NavLink>
-        );
-      })}
+      {NAV_ITEMS.map((item) => (
+        <NavLink
+          key={item.path}
+          to={item.path}
+          end={item.path === '/'}
+          title={item.label}
+          aria-label={item.label}
+          style={({ isActive }) => ({
+            width: '40px',
+            height: '40px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: isActive ? 'color-mix(in srgb, var(--color-new-accent) 13%, transparent)' : 'transparent',
+            borderLeft: isActive ? '2px solid var(--color-new-accent)' : '2px solid transparent',
+            borderRadius: '4px',
+            color: isActive ? 'var(--color-new-accent)' : 'var(--color-new-text-muted)',
+            textDecoration: 'none',
+          })}
+        >
+          {item.icon}
+        </NavLink>
+      ))}
     </nav>
   );
 }

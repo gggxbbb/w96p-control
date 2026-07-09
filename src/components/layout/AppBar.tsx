@@ -16,8 +16,17 @@ export function AppBar() {
         setMenuOpen(false);
       }
     };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMenuOpen(false);
+      }
+    };
     document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKeyDown);
+    };
   }, [menuOpen]);
 
   const versionLabel = firmwareVersion
@@ -38,7 +47,7 @@ export function AppBar() {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="1.5">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="1.5">
           <circle cx="12" cy="12" r="2.5" />
           <path d="M12 9.5V4M12 14.5V20M9.5 12H4M14.5 12H20M10.3 10.3L6.5 6.5M13.7 13.7L17.5 17.5M13.7 10.3L17.5 6.5M10.3 13.7L6.5 17.5" />
         </svg>
@@ -67,6 +76,10 @@ export function AppBar() {
 
       <div ref={menuRef} style={{ position: 'relative' }}>
         <button
+          type="button"
+          aria-expanded={menuOpen}
+          aria-haspopup="menu"
+          aria-controls="connect-menu"
           onClick={() => {
             if (isConnected) {
               disconnect();
@@ -79,8 +92,15 @@ export function AppBar() {
           {isConnected ? '断开' : '连接 ▾'}
         </button>
         {menuOpen && !isConnected && (
-          <div style={menuStyle}>
+          <div
+            id="connect-menu"
+            role="menu"
+            aria-label="连接选项"
+            style={menuStyle}
+          >
             <button
+              type="button"
+              role="menuitem"
               onClick={() => { setMenuOpen(false); connectReal(); }}
               style={menuItemStyle}
             >
@@ -90,18 +110,24 @@ export function AppBar() {
             <div style={{ padding: '4px 10px', fontSize: '10px', color: 'var(--color-text-dim)', letterSpacing: '0.5px' }}>
               虚拟设备
             </div>
-            <button
-              onClick={() => { setMenuOpen(false); connectVirtual(false); }}
-              style={menuItemStyle}
-            >
-              虚拟 W96P（完整模式）
-            </button>
-            <button
-              onClick={() => { setMenuOpen(false); connectVirtual(true); }}
-              style={menuItemStyle}
-            >
-              虚拟 W66D（兼容模式）
-            </button>
+            <div role="group" aria-label="虚拟设备">
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => { setMenuOpen(false); connectVirtual(false); }}
+                style={menuItemStyle}
+              >
+                虚拟 W96P（完整模式）
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => { setMenuOpen(false); connectVirtual(true); }}
+                style={menuItemStyle}
+              >
+                虚拟 W66D（兼容模式）
+              </button>
+            </div>
           </div>
         )}
       </div>
