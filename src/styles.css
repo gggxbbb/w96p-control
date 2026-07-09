@@ -94,14 +94,15 @@ body {
   to { transform: translateX(0); }
 }
 
-/* 响应式导航：大屏侧栏，小屏汉堡按钮 */
-.menu-toggle { display: none; }
+/* 响应式导航：大屏侧栏，小屏底部导航 */
+.bottom-nav { display: flex; }
 .side-nav { display: none; }
 @media (min-width: 768px) {
+  .bottom-nav { display: none; }
   .side-nav { display: flex; }
 }
 @media (max-width: 767px) {
-  .menu-toggle { display: flex; }
+  .menu-toggle { display: none; }
   .device-name { display: none; }
   .status-label { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 }
