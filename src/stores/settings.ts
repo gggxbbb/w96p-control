@@ -74,7 +74,7 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
-      theme: 'system',
+      theme: 'light',
       pollIntervalMs: 500,
       curveEditorMode: 'canvas',
       historyRetentionMin: 30,

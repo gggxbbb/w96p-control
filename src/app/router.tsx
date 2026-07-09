@@ -37,7 +37,7 @@ export const router = createBrowserRouter([
       { path: 'ota', element: <Suspense fallback={<Loading />}><ConnGuard><Ota /></ConnGuard></Suspense> },
       { path: 'history', element: <Suspense fallback={<Loading />}><ConnGuard><History /></ConnGuard></Suspense> },
       { path: 'settings', element: <Suspense fallback={<Loading />}><Settings /></Suspense> },
-      { path: 'debug/ble', element: <Suspense fallback={<Loading />}><DebugBle /></Suspense> },
+      { path: 'debug-ble', element: <Suspense fallback={<Loading />}><DebugBle /></Suspense> },
       { path: 'battery-learn', element: <Suspense fallback={<Loading />}><BatteryLearn /></Suspense> },
     ],
   },

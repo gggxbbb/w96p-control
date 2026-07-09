@@ -35,7 +35,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       }}
     >
       <div
-        className="surface-card"
+        className="surface-card theme-new"
         style={{
           padding: 16,
           color: 'var(--color-new-text)',

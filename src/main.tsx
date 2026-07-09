@@ -8,7 +8,7 @@ import './styles.css';
 // Anti-FOUC: read persisted theme synchronously before React hydrate.
 // Zustand persist rehydrates async; reading localStorage here is the
 // only way to set the correct data-theme before first paint.
-let initialTheme: 'light' | 'dark' | 'system' = 'system';
+let initialTheme: 'light' | 'dark' | 'system' = 'light';
 try {
   const raw = localStorage.getItem('w96p-settings');
   const parsed = raw ? (JSON.parse(raw) as { state?: { theme?: 'light' | 'dark' | 'system' } }) : null;

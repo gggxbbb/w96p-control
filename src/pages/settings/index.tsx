@@ -217,7 +217,7 @@ export default function Settings() {
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <AdvancedLink to="/advanced">高级视图</AdvancedLink>
             <AdvancedLink to="/battery-learn">电池学习</AdvancedLink>
-            <AdvancedLink to="/debug/ble">BLE 调试</AdvancedLink>
+            <AdvancedLink to="/debug-ble">BLE 调试</AdvancedLink>
           </div>
         </Card>
       </DraggableCard>
