@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useBle } from '../../hooks/useBle';
 import { useDeviceStore } from '../../stores/device';
 import { useSettingsStore } from '../../stores/settings';
@@ -18,6 +19,7 @@ const SETTINGS_LAYOUTS: ResponsiveLayouts = {
     { i: 'curve', x: 6, y: 3, w: 6, h: 3 },
     { i: 'cache', x: 6, y: 6, w: 6, h: 4 },
     { i: 'about', x: 0, y: 11, w: 12, h: 4 },
+    { i: 'advanced', x: 0, y: 15, w: 12, h: 3 },
   ],
   md: [
     { i: 'device', x: 0, y: 0, w: 5, h: 5 },
@@ -26,6 +28,7 @@ const SETTINGS_LAYOUTS: ResponsiveLayouts = {
     { i: 'curve', x: 5, y: 3, w: 5, h: 3 },
     { i: 'cache', x: 5, y: 6, w: 5, h: 4 },
     { i: 'about', x: 0, y: 11, w: 10, h: 4 },
+    { i: 'advanced', x: 0, y: 15, w: 10, h: 3 },
   ],
   sm: [
     { i: 'device', x: 0, y: 0, w: 6, h: 5 },
@@ -34,6 +37,7 @@ const SETTINGS_LAYOUTS: ResponsiveLayouts = {
     { i: 'curve', x: 0, y: 13, w: 6, h: 3 },
     { i: 'cache', x: 0, y: 16, w: 6, h: 4 },
     { i: 'about', x: 0, y: 20, w: 6, h: 4 },
+    { i: 'advanced', x: 0, y: 24, w: 6, h: 3 },
   ],
   xs: [
     { i: 'device', x: 0, y: 0, w: 2, h: 6 },
@@ -42,6 +46,7 @@ const SETTINGS_LAYOUTS: ResponsiveLayouts = {
     { i: 'curve', x: 0, y: 16, w: 2, h: 4 },
     { i: 'cache', x: 0, y: 20, w: 2, h: 5 },
     { i: 'about', x: 0, y: 25, w: 2, h: 5 },
+    { i: 'advanced', x: 0, y: 30, w: 2, h: 4 },
   ],
 };
 
@@ -207,6 +212,16 @@ export default function Settings() {
                 Web Bluetooth API · Chrome 56+ / Edge 79+
               </div>
             </div>
+        </Card>
+      </DraggableCard>
+
+      <DraggableCard key="advanced">
+        <Card title="高级">
+          <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Link to="/advanced" style={{ fontSize: 13, color: 'var(--color-text-dim)', textDecoration: 'none' }}>高级视图</Link>
+            <Link to="/battery-learn" style={{ fontSize: 13, color: 'var(--color-text-dim)', textDecoration: 'none' }}>电池学习</Link>
+            <Link to="/debug-ble" style={{ fontSize: 13, color: 'var(--color-text-dim)', textDecoration: 'none' }}>BLE 调试</Link>
+          </div>
         </Card>
       </DraggableCard>
     </PageGrid>
