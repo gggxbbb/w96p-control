@@ -35,7 +35,7 @@ export function BatteryPanel() {
   };
 
   return (
-    <Card title="电池信息">
+    <Card title="电池信息" variant="new">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px' }}>
         <MetricCard label="电压" value={battery ? battery.voltageMv / 1000 : '--'} unit="V" decimals={2} />
         <MetricCard label="电流" value={battery ? battery.currentMa : '--'} unit="mA" />

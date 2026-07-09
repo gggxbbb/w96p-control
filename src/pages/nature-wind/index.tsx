@@ -160,145 +160,147 @@ export default function NatureWind() {
   const avgVal = editPoints.length ? editPoints.reduce((a, b) => a + b, 0) / editPoints.length : 0;
 
   return (
-    <PageGrid pageKey="nature-wind" pageName="自然风" defaultLayouts={NW_LAYOUTS}>
-      <DraggableCard key="editor">
-        <Card title="自然风曲线编辑器">
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-          <SegBtn
-            options={[
-              { value: 'canvas' as const, label: 'Canvas 拖拽' },
-              { value: 'textarea' as const, label: '文本编辑' },
-            ]}
-            value={editorMode}
-            onChange={(v) => setCurveMode(v)}
-          />
-        </div>
+    <div className="new-page" style={{ minHeight: '100%' }}>
+      <PageGrid pageKey="nature-wind" pageName="自然风" defaultLayouts={NW_LAYOUTS}>
+        <DraggableCard key="editor">
+          <Card title="自然风曲线编辑器" variant="new">
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+              <SegBtn
+                options={[
+                  { value: 'canvas' as const, label: 'Canvas 拖拽' },
+                  { value: 'textarea' as const, label: '文本编辑' },
+                ]}
+                value={editorMode}
+                onChange={(v) => setCurveMode(v)}
+              />
+            </div>
 
-        {editorMode === 'canvas' ? (
-          <CurveCanvas points={editPoints} onChange={handleCanvasChange} min={min} max={max} />
-        ) : (
-          <div>
-            <textarea
-              value={textValue}
-              onChange={(e) => setTextValue(e.target.value)}
-              onBlur={handleTextSubmit}
+            {editorMode === 'canvas' ? (
+              <CurveCanvas points={editPoints} onChange={handleCanvasChange} min={min} max={max} />
+            ) : (
+              <div>
+                <textarea
+                  value={textValue}
+                  onChange={(e) => setTextValue(e.target.value)}
+                  onBlur={handleTextSubmit}
+                  style={{
+                    width: '100%',
+                    minHeight: '80px',
+                    background: 'var(--color-bg-page)',
+                    border: '0.5px solid var(--color-border-strong)',
+                    borderRadius: '4px',
+                    padding: '8px',
+                    color: 'var(--color-text)',
+                    fontSize: '11px',
+                    fontFamily: 'var(--font-mono)',
+                    fontVariantNumeric: 'tabular-nums',
+                    resize: 'vertical',
+                  }}
+                  placeholder="128 个数值，空格分隔（0-100）"
+                />
+                <button
+                  onClick={handleTextSubmit}
+                  style={{
+                    marginTop: '6px',
+                    background: 'transparent',
+                    color: 'var(--color-text-muted)',
+                    border: '0.5px solid var(--color-border-strong)',
+                    borderRadius: '4px',
+                    padding: '4px 10px',
+                    fontSize: '11px',
+                    fontFamily: 'var(--font-sans)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  解析文本
+                </button>
+              </div>
+            )}
+
+            <div
               style={{
-                width: '100%',
-                minHeight: '80px',
-                background: 'var(--color-bg-page)',
-                border: '0.5px solid var(--color-border-strong)',
-                borderRadius: '4px',
-                padding: '8px',
-                color: 'var(--color-text)',
-                fontSize: '11px',
-                fontFamily: 'var(--font-mono)',
-                fontVariantNumeric: 'tabular-nums',
-                resize: 'vertical',
-              }}
-              placeholder="128 个数值，空格分隔（0-100）"
-            />
-            <button
-              onClick={handleTextSubmit}
-              style={{
-                marginTop: '6px',
-                background: 'transparent',
+                display: 'flex',
+                gap: '16px',
+                marginTop: '8px',
+                fontSize: '10px',
                 color: 'var(--color-text-muted)',
-                border: '0.5px solid var(--color-border-strong)',
-                borderRadius: '4px',
-                padding: '4px 10px',
-                fontSize: '11px',
-                fontFamily: 'var(--font-sans)',
-                cursor: 'pointer',
+                fontVariantNumeric: 'tabular-nums',
               }}
             >
-              解析文本
-            </button>
-          </div>
-        )}
-
-        <div
-          style={{
-            display: 'flex',
-            gap: '16px',
-            marginTop: '8px',
-            fontSize: '10px',
-            color: 'var(--color-text-muted)',
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
-          <span>最小 {minVal}</span>
-          <span>最大 {maxVal}</span>
-          <span>平均 {avgVal.toFixed(1)}</span>
-          <span>范围 {min}-{max}</span>
-        </div>
-        </Card>
-      </DraggableCard>
-
-      <DraggableCard key="generator">
-        <Card title="信号发生器">
-          <SignalGenerator
-            onSendToEditor={handleSendToEditor}
-          />
-        </Card>
-      </DraggableCard>
-
-      <DraggableCard key="preview">
-        <Card title="只读预览">
-          <CurveChart points={editPoints} min={min} max={max} />
-        </Card>
-      </DraggableCard>
-
-      <DraggableCard key="device">
-        <Card title="设备实际曲线">
-          <DeviceCurve
-            points={storedCurve}
-            min={min}
-            max={max}
-            readAt={natureCurveReadAt}
-            pointCount={natureWindSum || undefined}
-            totalTime={natureWindTime || undefined}
-          />
-        </Card>
-      </DraggableCard>
-
-      <DraggableCard key="actions">
-        <Card title="操作">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {/* 曲线数据：读写设备 RAM */}
-          <div>
-            <div style={{ fontSize: '10px', color: 'var(--color-text-dim)', marginBottom: '6px' }}>曲线数据 · 立即生效</div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={handleRead} style={secondaryBtn}>
-                从设备读取
-              </button>
-              <button onClick={handleApply} style={primaryBtn}>
-                写入到设备
-              </button>
+              <span>最小 {minVal}</span>
+              <span>最大 {maxVal}</span>
+              <span>平均 {avgVal.toFixed(1)}</span>
+              <span>范围 {min}-{max}</span>
             </div>
-          </div>
-          {/* 配置持久化：设备闪存 */}
-          <div>
-            <div style={{ fontSize: '10px', color: 'var(--color-text-dim)', marginBottom: '6px' }}>设备闪存 · 断电保留</div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={handleSaveToDevice} style={secondaryBtn}>
-                保存当前曲线
-              </button>
-              <button onClick={handleRestoreDefault} style={secondaryBtn}>
-                恢复出厂曲线
-              </button>
+          </Card>
+        </DraggableCard>
+
+        <DraggableCard key="generator">
+          <Card title="信号发生器" variant="new">
+            <SignalGenerator
+              onSendToEditor={handleSendToEditor}
+            />
+          </Card>
+        </DraggableCard>
+
+        <DraggableCard key="preview">
+          <Card title="只读预览" variant="new">
+            <CurveChart points={editPoints} min={min} max={max} />
+          </Card>
+        </DraggableCard>
+
+        <DraggableCard key="device">
+          <Card title="设备实际曲线" variant="new">
+            <DeviceCurve
+              points={storedCurve}
+              min={min}
+              max={max}
+              readAt={natureCurveReadAt}
+              pointCount={natureWindSum || undefined}
+              totalTime={natureWindTime || undefined}
+            />
+          </Card>
+        </DraggableCard>
+
+        <DraggableCard key="actions">
+          <Card title="操作" variant="new">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* 曲线数据：读写设备 RAM */}
+              <div>
+                <div style={{ fontSize: '10px', color: 'var(--color-text-dim)', marginBottom: '6px' }}>曲线数据 · 立即生效</div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={handleRead} style={secondaryBtn}>
+                    从设备读取
+                  </button>
+                  <button onClick={handleApply} style={primaryBtn}>
+                    写入到设备
+                  </button>
+                </div>
+              </div>
+              {/* 配置持久化：设备闪存 */}
+              <div>
+                <div style={{ fontSize: '10px', color: 'var(--color-text-dim)', marginBottom: '6px' }}>设备闪存 · 断电保留</div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={handleSaveToDevice} style={secondaryBtn}>
+                    保存当前曲线
+                  </button>
+                  <button onClick={handleRestoreDefault} style={secondaryBtn}>
+                    恢复出厂曲线
+                  </button>
+                </div>
+              </div>
+              {/* 编辑器内操作 */}
+              <div>
+                <div style={{ fontSize: '10px', color: 'var(--color-text-dim)', marginBottom: '6px' }}>编辑器</div>
+                <button onClick={handleResetDefault} style={{ ...secondaryBtn, flex: 1 }}>
+                  载入预设曲线
+                </button>
+              </div>
             </div>
-          </div>
-          {/* 编辑器内操作 */}
-          <div>
-            <div style={{ fontSize: '10px', color: 'var(--color-text-dim)', marginBottom: '6px' }}>编辑器</div>
-            <button onClick={handleResetDefault} style={{ ...secondaryBtn, flex: 1 }}>
-              载入预设曲线
-            </button>
-          </div>
-        </div>
-        </Card>
-      </DraggableCard>
-    </PageGrid>
+          </Card>
+        </DraggableCard>
+      </PageGrid>
+    </div>
   );
 }
 

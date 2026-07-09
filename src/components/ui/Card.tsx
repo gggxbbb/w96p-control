@@ -7,17 +7,43 @@ interface CardProps {
   actions?: ReactNode;
   style?: CSSProperties;
   className?: string;
+  variant?: 'default' | 'new';
 }
 
-export function Card({ title, subtitle, children, actions, style, className }: CardProps) {
+const newTokenOverrides: CSSProperties = {
+  '--color-text': 'var(--color-new-text)',
+  '--color-text-muted': 'var(--color-new-text-muted)',
+  '--color-text-dim': 'var(--color-new-text-dim)',
+  '--color-bg-page': 'var(--color-new-bg-inset)',
+  '--color-bg-surface': 'var(--color-new-bg-surface)',
+  '--color-bg-inset': 'var(--color-new-border)',
+  '--color-border': 'var(--color-new-border)',
+  '--color-border-strong': 'var(--color-new-border)',
+  '--color-accent': 'var(--color-new-accent)',
+  '--color-success': 'var(--color-new-success)',
+  '--color-warning': 'var(--color-new-warning)',
+  '--color-danger': 'var(--color-new-danger)',
+} as CSSProperties;
+
+export function Card({ title, subtitle, children, actions, style, className, variant = 'default' }: CardProps) {
+  const isNew = variant === 'new';
+  const finalClassName = isNew ? ['surface-card', className].filter(Boolean).join(' ') : className;
   return (
     <section
-      className={className}
+      className={finalClassName}
       style={{
-        background: 'var(--color-bg-surface)',
-        border: '0.5px solid var(--color-border)',
-        borderRadius: '8px',
-        padding: '12px',
+        ...(isNew
+          ? {
+              ...newTokenOverrides,
+              color: 'var(--color-new-text)',
+              padding: '12px',
+            }
+          : {
+              background: 'var(--color-bg-surface)',
+              border: '0.5px solid var(--color-border)',
+              borderRadius: '8px',
+              padding: '12px',
+            }),
         display: 'flex',
         flexDirection: 'column',
         gap: '10px',

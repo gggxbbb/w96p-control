@@ -15,7 +15,7 @@ export function PowerInfoCard() {
     : null;
 
   return (
-    <Card title="芯片状态">
+    <Card title="芯片状态" variant="new">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px' }}>
         <MetricCard
           label="电量 (powLevel)"
