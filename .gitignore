@@ -27,3 +27,6 @@ dist-ssr
 
 # Plans
 docs/plans
+
+# Worktrees
+.worktrees
