@@ -12,6 +12,8 @@ export function DetailPanel({ children, onOpenAdvanced }: DetailPanelProps) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <button
         type="button"
+        aria-expanded={open}
+        aria-controls="detail-panel-content"
         onClick={() => setOpen((v) => !v)}
         style={{
           alignSelf: 'center',
@@ -24,18 +26,19 @@ export function DetailPanel({ children, onOpenAdvanced }: DetailPanelProps) {
           cursor: 'pointer',
         }}
       >
-        实时数据 {open ? '▾' : '▸'}
+        实时数据 <span aria-hidden="true">{open ? '▾' : '▸'}</span>
       </button>
       {open && (
-        <div style={{
-          background: 'var(--color-new-bg-surface)',
-          border: '1px solid var(--color-new-border)',
-          borderRadius: 16,
-          padding: 14,
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 12,
-        }}>
+        <div
+          id="detail-panel-content"
+          className="surface-card"
+          style={{
+            padding: 14,
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 12,
+          }}
+        >
           {children}
           {onOpenAdvanced && (
             <div style={{ gridColumn: '1 / -1', textAlign: 'center', marginTop: 4 }}>

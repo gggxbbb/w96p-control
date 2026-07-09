@@ -21,6 +21,10 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
     <dialog
       ref={ref}
       onClose={onClose}
+      aria-labelledby="modal-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) ref.current?.close();
+      }}
       style={{
         border: 'none',
         borderRadius: 20,
@@ -30,16 +34,16 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
         width: 360,
       }}
     >
-      <div style={{
-        background: 'var(--color-new-bg-surface)',
-        border: '1px solid var(--color-new-border)',
-        borderRadius: 20,
-        padding: 16,
-        color: 'var(--color-new-text)',
-      }}>
+      <div
+        className="surface-card"
+        style={{
+          padding: 16,
+          color: 'var(--color-new-text)',
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 500 }}>{title}</h3>
-          <button type="button" onClick={() => ref.current?.close()} style={{ background: 'transparent', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--color-new-text-muted)' }}>×</button>
+          <h3 id="modal-title" style={{ margin: 0, fontSize: 16, fontWeight: 500 }}>{title}</h3>
+          <button type="button" aria-label="关闭" onClick={() => ref.current?.close()} style={{ background: 'transparent', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--color-new-text-muted)' }}>×</button>
         </div>
         {children}
       </div>
