@@ -248,19 +248,7 @@ function SettingRow({ label, children }: { label: string; children: React.ReactN
 
 function AdvancedLink({ to, children }: { to: string; children: React.ReactNode }) {
   return (
-    <Link
-      to={to}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        fontSize: '13px',
-        color: 'var(--color-text-dim)',
-        textDecoration: 'none',
-        padding: '6px 0',
-      }}
-      className="advanced-link"
-    >
+    <Link to={to} className="advanced-link">
       <span>{children}</span>
       <span aria-hidden="true">›</span>
     </Link>
