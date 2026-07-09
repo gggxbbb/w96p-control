@@ -46,14 +46,22 @@ export const DASHBOARD_CARD_DEFAULTS: DashboardCardKey[] = [
 
 export type DashboardCards = Record<DashboardCardKey, boolean>;
 
+export type Theme = 'light' | 'dark' | 'system';
+
+export function resolveTheme(theme: Theme): 'light' | 'dark' {
+  if (theme !== 'system') return theme;
+  if (typeof window === 'undefined') return 'light';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
 interface SettingsState {
-  theme: 'dark' | 'light';
+  theme: Theme;
   pollIntervalMs: number;
   curveEditorMode: 'canvas' | 'textarea';
   historyRetentionMin: number;
   lastDeviceName: string | null;
   dashboardCards: DashboardCards;
-  setTheme: (t: 'dark' | 'light') => void;
+  setTheme: (t: Theme) => void;
   setPollInterval: (ms: number) => void;
   setCurveMode: (m: 'canvas' | 'textarea') => void;
   setHistoryRetentionMin: (min: number) => void;
@@ -64,7 +72,7 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
-      theme: 'dark',
+      theme: 'system',
       pollIntervalMs: 500,
       curveEditorMode: 'canvas',
       historyRetentionMin: 30,

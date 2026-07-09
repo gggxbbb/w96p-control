@@ -1,11 +1,11 @@
 import { StrictMode, lazy, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
-import { useSettingsStore } from './stores/settings';
+import { useSettingsStore, resolveTheme } from './stores/settings';
 import { isBlacklisted } from './lib/browserBlacklist';
 import 'react-grid-layout/css/styles.css';
 import './styles.css';
 
-const theme = useSettingsStore.getState().theme;
+const theme = resolveTheme(useSettingsStore.getState().theme);
 document.documentElement.dataset.theme = theme;
 
 const rootEl = document.getElementById('root')!;

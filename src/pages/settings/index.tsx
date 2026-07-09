@@ -98,12 +98,9 @@ export default function Settings() {
         <Card title="外观">
             <SettingRow label="主题">
               <SegBtn
-                options={[{ value: 'dark' as const, label: '深色' }, { value: 'light' as const, label: '浅色' }]}
+                options={[{ value: 'dark' as const, label: '深色' }, { value: 'light' as const, label: '浅色' }, { value: 'system' as const, label: '跟随系统' }]}
                 value={theme}
-                onChange={(v) => {
-                  setTheme(v);
-                  document.documentElement.dataset.theme = v;
-                }}
+                onChange={(v) => setTheme(v)}
               />
             </SettingRow>
         </Card>
