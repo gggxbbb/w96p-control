@@ -4,6 +4,7 @@ import { AppLayout } from '../components/layout/AppLayout';
 import { ConnGuard } from '../components/connection/ConnGuard';
 
 const Dashboard = lazy(() => import('../pages/dashboard'));
+const Advanced = lazy(() => import('../pages/advanced'));
 const Fan = lazy(() => import('../pages/fan'));
 const NatureWind = lazy(() => import('../pages/nature-wind'));
 const Power = lazy(() => import('../pages/power'));
@@ -29,6 +30,7 @@ export const router = createBrowserRouter([
     element: <AppLayout />,
     children: [
       { index: true, element: <Suspense fallback={<Loading />}><Dashboard /></Suspense> },
+      { path: 'advanced', element: <Suspense fallback={<Loading />}><ConnGuard><Advanced /></ConnGuard></Suspense> },
       { path: 'fan', element: <Suspense fallback={<Loading />}><ConnGuard><Fan /></ConnGuard></Suspense> },
       { path: 'nature-wind', element: <Suspense fallback={<Loading />}><ConnGuard><NatureWind /></ConnGuard></Suspense> },
       { path: 'power', element: <Suspense fallback={<Loading />}><ConnGuard><Power /></ConnGuard></Suspense> },
