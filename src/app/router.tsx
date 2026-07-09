@@ -4,6 +4,7 @@ import { AppLayout } from '../components/layout/AppLayout';
 import { ConnGuard } from '../components/connection/ConnGuard';
 
 const Dashboard = lazy(() => import('../pages/dashboard'));
+// oxlint-disable-next-line react/only-export-components
 const Advanced = lazy(() => import('../pages/advanced'));
 const Fan = lazy(() => import('../pages/fan'));
 const NatureWind = lazy(() => import('../pages/nature-wind'));
