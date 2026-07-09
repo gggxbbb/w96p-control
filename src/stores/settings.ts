@@ -47,6 +47,8 @@ export const DASHBOARD_CARD_DEFAULTS: DashboardCardKey[] = [
 export type DashboardCards = Record<DashboardCardKey, boolean>;
 
 export type Theme = 'light' | 'dark' | 'system';
+export type PollInterval = 500 | 1000 | 2000;
+export type HistoryRetention = 15 | 30 | 60;
 
 export function resolveTheme(theme: Theme): 'light' | 'dark' {
   if (theme !== 'system') return theme;
@@ -56,15 +58,15 @@ export function resolveTheme(theme: Theme): 'light' | 'dark' {
 
 interface SettingsState {
   theme: Theme;
-  pollIntervalMs: number;
+  pollIntervalMs: PollInterval;
   curveEditorMode: 'canvas' | 'textarea';
-  historyRetentionMin: number;
+  historyRetentionMin: HistoryRetention;
   lastDeviceName: string | null;
   dashboardCards: DashboardCards;
   setTheme: (t: Theme) => void;
-  setPollInterval: (ms: number) => void;
+  setPollInterval: (ms: PollInterval) => void;
   setCurveMode: (m: 'canvas' | 'textarea') => void;
-  setHistoryRetentionMin: (min: number) => void;
+  setHistoryRetentionMin: (min: HistoryRetention) => void;
   setLastDeviceName: (name: string | null) => void;
   setDashboardCards: (cards: DashboardCards) => void;
 }
@@ -87,6 +89,15 @@ export const useSettingsStore = create<SettingsState>()(
       setLastDeviceName: (name) => set({ lastDeviceName: name }),
       setDashboardCards: (cards) => set({ dashboardCards: cards }),
     }),
-    { name: 'w96p-settings' },
+    {
+      name: 'w96p-settings',
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        const validPoll: PollInterval[] = [500, 1000, 2000];
+        const validRetention: HistoryRetention[] = [15, 30, 60];
+        if (!validPoll.includes(state.pollIntervalMs)) state.pollIntervalMs = 500;
+        if (!validRetention.includes(state.historyRetentionMin)) state.historyRetentionMin = 30;
+      },
+    },
   ),
 );

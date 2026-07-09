@@ -14,8 +14,8 @@ export default function AppRoot() {
     if (theme !== 'system') return;
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = () => {
-      document.documentElement.dataset.theme = resolveTheme('system');
+    const handleChange = (e: MediaQueryListEvent) => {
+      document.documentElement.dataset.theme = e.matches ? 'dark' : 'light';
     };
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);

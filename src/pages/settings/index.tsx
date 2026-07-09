@@ -115,7 +115,7 @@ export default function Settings() {
                   { value: 1000 as const, label: '1s' },
                   { value: 2000 as const, label: '2s' },
                 ]}
-                value={pollIntervalMs as 500 | 1000 | 2000}
+                value={pollIntervalMs}
                 onChange={(v) => setPollInterval(v)}
               />
             </SettingRow>
@@ -126,7 +126,7 @@ export default function Settings() {
                   { value: 30 as const, label: '30 分钟' },
                   { value: 60 as const, label: '60 分钟' },
                 ]}
-                value={historyRetentionMin as 15 | 30 | 60}
+                value={historyRetentionMin}
                 onChange={(v) => setHistoryRetentionMin(v)}
               />
             </SettingRow>
