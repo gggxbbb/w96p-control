@@ -91,12 +91,13 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'w96p-settings',
-      onRehydrateStorage: () => (state) => {
-        if (!state) return;
+      merge: (persisted, current) => {
+        const merged = { ...current, ...(persisted as object) } as SettingsState;
         const validPoll: PollInterval[] = [500, 1000, 2000];
         const validRetention: HistoryRetention[] = [15, 30, 60];
-        if (!validPoll.includes(state.pollIntervalMs)) state.pollIntervalMs = 500;
-        if (!validRetention.includes(state.historyRetentionMin)) state.historyRetentionMin = 30;
+        if (!validPoll.includes(merged.pollIntervalMs)) merged.pollIntervalMs = 500;
+        if (!validRetention.includes(merged.historyRetentionMin)) merged.historyRetentionMin = 30;
+        return merged;
       },
     },
   ),
