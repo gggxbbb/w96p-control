@@ -8,6 +8,7 @@ export function AppBar() {
   const firmwareVersion = useDeviceStore((s) => s.firmwareVersion);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -16,18 +17,80 @@ export function AppBar() {
         setMenuOpen(false);
       }
     };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setMenuOpen(false);
-      }
-    };
     document.addEventListener('mousedown', onClick);
-    document.addEventListener('keydown', onKeyDown);
     return () => {
       document.removeEventListener('mousedown', onClick);
-      document.removeEventListener('keydown', onKeyDown);
     };
   }, [menuOpen]);
+
+  useEffect(() => {
+    if (menuOpen) {
+      const items = getFocusableItems();
+      if (items.length > 0) {
+        items[0].focus();
+      }
+    } else {
+      toggleRef.current?.focus();
+    }
+  }, [menuOpen]);
+
+  const getFocusableItems = (): HTMLElement[] => {
+    if (!menuRef.current) return [];
+    return Array.from(
+      menuRef.current.querySelectorAll<HTMLElement>('button[type="button"]')
+    );
+  };
+
+  const handleMenuKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const items = getFocusableItems();
+    if (items.length === 0) return;
+
+    const currentIndex = items.findIndex((item) => item === document.activeElement);
+
+    switch (e.key) {
+      case 'ArrowDown': {
+        e.preventDefault();
+        const nextIndex = currentIndex >= 0 && currentIndex < items.length - 1 ? currentIndex + 1 : 0;
+        items[nextIndex].focus();
+        break;
+      }
+      case 'ArrowUp': {
+        e.preventDefault();
+        const prevIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
+        items[prevIndex].focus();
+        break;
+      }
+      case 'Home': {
+        e.preventDefault();
+        items[0].focus();
+        break;
+      }
+      case 'End': {
+        e.preventDefault();
+        items[items.length - 1].focus();
+        break;
+      }
+      case 'Tab': {
+        if (e.shiftKey) {
+          if (currentIndex <= 0) {
+            e.preventDefault();
+            items[items.length - 1].focus();
+          }
+        } else {
+          if (currentIndex === items.length - 1) {
+            e.preventDefault();
+            items[0].focus();
+          }
+        }
+        break;
+      }
+      case 'Escape': {
+        e.preventDefault();
+        setMenuOpen(false);
+        break;
+      }
+    }
+  };
 
   const versionLabel = firmwareVersion
     ? `v${firmwareVersion}${isCompatMode ? ' 兼容' : ''}`
@@ -76,9 +139,9 @@ export function AppBar() {
 
       <div ref={menuRef} style={{ position: 'relative' }}>
         <button
+          ref={toggleRef}
           type="button"
-          aria-expanded={menuOpen}
-          aria-haspopup="menu"
+          aria-expanded={!isConnected ? menuOpen : undefined}
           aria-controls="connect-menu"
           onClick={() => {
             if (isConnected) {
@@ -94,13 +157,11 @@ export function AppBar() {
         {menuOpen && !isConnected && (
           <div
             id="connect-menu"
-            role="menu"
-            aria-label="连接选项"
+            onKeyDown={handleMenuKeyDown}
             style={menuStyle}
           >
             <button
               type="button"
-              role="menuitem"
               onClick={() => { setMenuOpen(false); connectReal(); }}
               style={menuItemStyle}
             >
@@ -113,7 +174,6 @@ export function AppBar() {
             <div role="group" aria-label="虚拟设备">
               <button
                 type="button"
-                role="menuitem"
                 onClick={() => { setMenuOpen(false); connectVirtual(false); }}
                 style={menuItemStyle}
               >
@@ -121,7 +181,6 @@ export function AppBar() {
               </button>
               <button
                 type="button"
-                role="menuitem"
                 onClick={() => { setMenuOpen(false); connectVirtual(true); }}
                 style={menuItemStyle}
               >
