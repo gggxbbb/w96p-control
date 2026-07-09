@@ -142,7 +142,7 @@ export function AppBar() {
           ref={toggleRef}
           type="button"
           aria-expanded={!isConnected ? menuOpen : undefined}
-          aria-controls="connect-menu"
+          aria-controls={!isConnected ? 'connect-menu' : undefined}
           onClick={() => {
             if (isConnected) {
               disconnect();
