@@ -4,13 +4,13 @@ const GEARS = [1, 2, 3, 4] as const;
 
 interface GearChipsProps {
   speed: number;
-  calib: number[];
+  calibration: number[];
   natureWindOn: boolean;
   onGear: (gear: number) => void;
 }
 
-export function GearChips({ speed, calib, natureWindOn, onGear }: GearChipsProps) {
-  const active = inferGear(speed, calib, natureWindOn);
+export function GearChips({ speed, calibration, natureWindOn, onGear }: GearChipsProps) {
+  const active = inferGear(speed, calibration, natureWindOn);
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', gap: 10 }}>
