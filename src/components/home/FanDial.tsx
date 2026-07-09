@@ -76,9 +76,9 @@ export function FanDial({ value, min = 0, max = 100, onChange, onCommit }: FanDi
 
   const angle = valueToAngle(value, min, max);
   const radius = 92; // outer ring inner radius: 110 - 18
-  const theta = (135 + angle) * (Math.PI / 180);
-  const indicatorX = 110 + radius * Math.cos(theta);
-  const indicatorY = 110 - radius * Math.sin(theta); // flip y for screen coords
+  const theta = (225 + angle) * (Math.PI / 180);
+  const indicatorX = 110 + radius * Math.sin(theta);
+  const indicatorY = 110 - radius * Math.cos(theta); // flip y for screen coords
 
   return (
     <div
@@ -91,7 +91,7 @@ export function FanDial({ value, min = 0, max = 100, onChange, onCommit }: FanDi
         width: 220,
         height: 220,
         borderRadius: '50%',
-        background: `conic-gradient(from 135deg, #FFE8D6 0deg, var(--color-new-accent) ${angle}deg, var(--color-new-border) ${angle}deg)`,
+        background: `conic-gradient(from 225deg, #FFE8D6 0deg, var(--color-new-accent) ${angle}deg, var(--color-new-border) ${angle}deg)`,
         boxShadow: 'inset 0 0 0 18px var(--color-new-bg-page), 0 12px 32px rgba(255,140,66,0.18)',
         display: 'flex',
         alignItems: 'center',
