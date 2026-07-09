@@ -95,7 +95,7 @@ export default function Dashboard() {
         ]}
       />
 
-      <DetailPanel onOpenAdvanced={() => navigate('/advanced')}>
+      <DetailPanel onOpenAdvanced={() => navigate('/fan')}>
         <MetricRow label="电池功率" value={batteryPower.toFixed(2)} unit="W" />
         <MetricRow label="电池电压" value={battery ? (battery.voltageMv / 1000).toFixed(2) : '--'} unit="V" />
         <MetricRow label="芯片温度" value={powerConfig?.powCoreTemp ?? '--'} unit="℃" />
