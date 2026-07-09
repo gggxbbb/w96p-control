@@ -1,18 +1,6 @@
-const GEARS = [1, 2, 3, 4] as const;
+import { inferGear } from '../../lib/gear';
 
-export function computeGear(speed: number, calib: number[], natureWindOn: boolean): number {
-  if (speed === 0 || natureWindOn) return 0;
-  let best = 0;
-  let minDiff = Infinity;
-  calib.forEach((sp, i) => {
-    const d = Math.abs(sp - speed);
-    if (d < minDiff) {
-      minDiff = d;
-      best = i + 1;
-    }
-  });
-  return best;
-}
+const GEARS = [1, 2, 3, 4] as const;
 
 interface GearChipsProps {
   speed: number;
@@ -22,7 +10,7 @@ interface GearChipsProps {
 }
 
 export function GearChips({ speed, calib, natureWindOn, onGear }: GearChipsProps) {
-  const active = computeGear(speed, calib, natureWindOn);
+  const active = inferGear(speed, calib, natureWindOn);
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', gap: 10 }}>
@@ -30,6 +18,7 @@ export function GearChips({ speed, calib, natureWindOn, onGear }: GearChipsProps
         const isActive = active === g;
         return (
           <button
+            type="button"
             key={g}
             onClick={() => onGear(g)}
             style={{
@@ -40,7 +29,7 @@ export function GearChips({ speed, calib, natureWindOn, onGear }: GearChipsProps
               fontWeight: 500,
               cursor: 'pointer',
               background: isActive ? 'var(--color-new-accent)' : 'var(--color-new-bg-surface)',
-              color: isActive ? '#FFFFFF' : 'var(--color-new-text-dim)',
+              color: isActive ? 'var(--color-new-text-on-accent)' : 'var(--color-new-text-dim)',
               boxShadow: isActive ? '0 4px 12px rgba(255,140,66,0.25)' : 'inset 0 0 0 1px var(--color-new-border)',
             }}
           >

@@ -39,6 +39,7 @@
   --color-new-success: #1D9E75;
   --color-new-warning: #BA7517;
   --color-new-danger: #E24B4A;
+  --color-new-text-on-accent: #FFFFFF;
 }
 
 :root[data-theme="light"] {
@@ -71,6 +72,7 @@
   --color-new-success: #2ECB8F;
   --color-new-warning: #E6A23C;
   --color-new-danger: #FF6B6B;
+  --color-new-text-on-accent: #FFFFFF;
 }
 
 body {
