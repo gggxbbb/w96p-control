@@ -6,7 +6,7 @@ interface GearChipsProps {
   speed: number;
   calibration: number[];
   natureWindOn: boolean;
-  onGear: (gear: number) => void;
+  onGear: (gear: 1 | 2 | 3 | 4) => void;
 }
 
 export function GearChips({ speed, calibration, natureWindOn, onGear }: GearChipsProps) {
