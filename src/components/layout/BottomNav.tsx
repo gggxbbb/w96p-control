@@ -6,7 +6,6 @@ export function BottomNav() {
 
   return (
     <nav className="bottom-nav" style={{
-      display: 'flex',
       justifyContent: 'space-around',
       alignItems: 'center',
       height: 64,
@@ -20,6 +19,7 @@ export function BottomNav() {
           <Link
             key={item.path}
             to={item.path}
+            aria-current={active ? 'page' : undefined}
             style={{
               display: 'flex',
               flexDirection: 'column',
@@ -30,7 +30,7 @@ export function BottomNav() {
               color: active ? 'var(--color-new-accent)' : 'var(--color-new-text-muted)',
             }}
           >
-            <span style={{ fontSize: 20 }}>{item.icon}</span>
+            <span aria-hidden="true" style={{ fontSize: 20 }}>{item.icon}</span>
             <span>{item.label}</span>
           </Link>
         );

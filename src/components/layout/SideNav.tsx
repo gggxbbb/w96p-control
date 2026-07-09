@@ -1,7 +1,9 @@
-import { NavLink } from 'react-router-dom';
+import { useLocation, NavLink } from 'react-router-dom';
 import { NAV_ITEMS } from './navItems';
 
 export function SideNav() {
+  const { pathname } = useLocation();
+
   return (
     <nav
       className="side-nav"
@@ -16,13 +18,16 @@ export function SideNav() {
         flexShrink: 0,
       }}
     >
-      {NAV_ITEMS.map((item) => (
-        <NavLink
-          key={item.path}
-          to={item.path}
-          end={item.path === '/'}
-          title={item.label}
-          style={({ isActive }) => ({
+      {NAV_ITEMS.map((item) => {
+        const active = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
+        return (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            end={item.path === '/'}
+            title={item.label}
+            aria-current={active ? 'page' : undefined}
+            style={({ isActive }) => ({
             width: '40px',
             height: '40px',
             display: 'flex',
@@ -37,7 +42,8 @@ export function SideNav() {
         >
           {item.icon}
         </NavLink>
-      ))}
+      );
+    })}
     </nav>
   );
 }

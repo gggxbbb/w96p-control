@@ -102,7 +102,6 @@ body {
   .side-nav { display: flex; }
 }
 @media (max-width: 767px) {
-  .menu-toggle { display: none; }
   .device-name { display: none; }
   .status-label { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 }

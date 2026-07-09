@@ -3,11 +3,7 @@ import { useBle } from '../../hooks/useBle';
 import { useDeviceStore } from '../../stores/device';
 import { StatusPill } from '../ui/StatusPill';
 
-interface AppBarProps {
-  onMenuClick?: () => void;
-}
-
-export function AppBar({ onMenuClick }: AppBarProps) {
+export function AppBar() {
   const { state, deviceName, isCompatMode, isConnected, isVirtualDevice, connectReal, connectVirtual, disconnect } = useBle();
   const firmwareVersion = useDeviceStore((s) => s.firmwareVersion);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -41,27 +37,6 @@ export function AppBar({ onMenuClick }: AppBarProps) {
         flexShrink: 0,
       }}
     >
-      {onMenuClick && (
-        <button
-          onClick={onMenuClick}
-          aria-label="打开菜单"
-          className="menu-toggle"
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--color-text-muted)',
-            cursor: 'pointer',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '4px',
-          }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M3 6h18M3 12h18M3 18h18" />
-          </svg>
-        </button>
-      )}
-
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="1.5">
           <circle cx="12" cy="12" r="2.5" />

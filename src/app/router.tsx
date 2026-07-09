@@ -4,9 +4,9 @@ import { AppLayout } from '../components/layout/AppLayout';
 import { ConnGuard } from '../components/connection/ConnGuard';
 
 const Dashboard = lazy(() => import('../pages/dashboard'));
-// oxlint-disable-next-line react/only-export-components
+// oxlint-disable react/only-export-components
 const Advanced = lazy(() => import('../pages/advanced'));
-const Fan = lazy(() => import('../pages/fan'));
+// oxlint-enable react/only-export-components
 const NatureWind = lazy(() => import('../pages/nature-wind'));
 const Power = lazy(() => import('../pages/power'));
 const PowerConfig = lazy(() => import('../pages/power-config'));
@@ -32,7 +32,6 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Suspense fallback={<Loading />}><Dashboard /></Suspense> },
       { path: 'advanced', element: <Suspense fallback={<Loading />}><ConnGuard><Advanced /></ConnGuard></Suspense> },
-      { path: 'fan', element: <Suspense fallback={<Loading />}><ConnGuard><Fan /></ConnGuard></Suspense> },
       { path: 'nature-wind', element: <Suspense fallback={<Loading />}><ConnGuard><NatureWind /></ConnGuard></Suspense> },
       { path: 'power', element: <Suspense fallback={<Loading />}><ConnGuard><Power /></ConnGuard></Suspense> },
       { path: 'power-config', element: <Suspense fallback={<Loading />}><ConnGuard><PowerConfig /></ConnGuard></Suspense> },
