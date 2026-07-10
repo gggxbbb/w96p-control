@@ -3,15 +3,12 @@ import { useBle } from '../../hooks/useBle';
 import { useDeviceStore } from '../../stores/device';
 import { StatusPill } from '../ui/StatusPill';
 
-interface AppBarProps {
-  onMenuClick: () => void;
-}
-
-export function AppBar({ onMenuClick }: AppBarProps) {
+export function AppBar() {
   const { state, deviceName, isCompatMode, isConnected, isVirtualDevice, connectReal, connectVirtual, disconnect } = useBle();
   const firmwareVersion = useDeviceStore((s) => s.firmwareVersion);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -21,8 +18,79 @@ export function AppBar({ onMenuClick }: AppBarProps) {
       }
     };
     document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+    };
   }, [menuOpen]);
+
+  useEffect(() => {
+    if (menuOpen) {
+      const items = getFocusableItems();
+      if (items.length > 0) {
+        items[0].focus();
+      }
+    } else {
+      toggleRef.current?.focus();
+    }
+  }, [menuOpen]);
+
+  const getFocusableItems = (): HTMLElement[] => {
+    if (!menuRef.current) return [];
+    return Array.from(
+      menuRef.current.querySelectorAll<HTMLElement>('button[type="button"]')
+    );
+  };
+
+  const handleMenuKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const items = getFocusableItems();
+    if (items.length === 0) return;
+
+    const currentIndex = items.findIndex((item) => item === document.activeElement);
+
+    switch (e.key) {
+      case 'ArrowDown': {
+        e.preventDefault();
+        const nextIndex = currentIndex >= 0 && currentIndex < items.length - 1 ? currentIndex + 1 : 0;
+        items[nextIndex].focus();
+        break;
+      }
+      case 'ArrowUp': {
+        e.preventDefault();
+        const prevIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
+        items[prevIndex].focus();
+        break;
+      }
+      case 'Home': {
+        e.preventDefault();
+        items[0].focus();
+        break;
+      }
+      case 'End': {
+        e.preventDefault();
+        items[items.length - 1].focus();
+        break;
+      }
+      case 'Tab': {
+        if (e.shiftKey) {
+          if (currentIndex <= 0) {
+            e.preventDefault();
+            items[items.length - 1].focus();
+          }
+        } else {
+          if (currentIndex === items.length - 1) {
+            e.preventDefault();
+            items[0].focus();
+          }
+        }
+        break;
+      }
+      case 'Escape': {
+        e.preventDefault();
+        setMenuOpen(false);
+        break;
+      }
+    }
+  };
 
   const versionLabel = firmwareVersion
     ? `v${firmwareVersion}${isCompatMode ? ' 兼容' : ''}`
@@ -41,27 +109,8 @@ export function AppBar({ onMenuClick }: AppBarProps) {
         flexShrink: 0,
       }}
     >
-      <button
-        onClick={onMenuClick}
-        aria-label="打开菜单"
-        className="menu-toggle"
-        style={{
-          background: 'transparent',
-          border: 'none',
-          color: 'var(--color-text-muted)',
-          cursor: 'pointer',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '4px',
-        }}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M3 6h18M3 12h18M3 18h18" />
-        </svg>
-      </button>
-
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="1.5">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="1.5">
           <circle cx="12" cy="12" r="2.5" />
           <path d="M12 9.5V4M12 14.5V20M9.5 12H4M14.5 12H20M10.3 10.3L6.5 6.5M13.7 13.7L17.5 17.5M13.7 10.3L17.5 6.5M10.3 13.7L6.5 17.5" />
         </svg>
@@ -90,6 +139,10 @@ export function AppBar({ onMenuClick }: AppBarProps) {
 
       <div ref={menuRef} style={{ position: 'relative' }}>
         <button
+          ref={toggleRef}
+          type="button"
+          aria-expanded={!isConnected ? menuOpen : undefined}
+          aria-controls={!isConnected ? 'connect-menu' : undefined}
           onClick={() => {
             if (isConnected) {
               disconnect();
@@ -102,8 +155,13 @@ export function AppBar({ onMenuClick }: AppBarProps) {
           {isConnected ? '断开' : '连接 ▾'}
         </button>
         {menuOpen && !isConnected && (
-          <div style={menuStyle}>
+          <div
+            id="connect-menu"
+            onKeyDown={handleMenuKeyDown}
+            style={menuStyle}
+          >
             <button
+              type="button"
               onClick={() => { setMenuOpen(false); connectReal(); }}
               style={menuItemStyle}
             >
@@ -113,18 +171,22 @@ export function AppBar({ onMenuClick }: AppBarProps) {
             <div style={{ padding: '4px 10px', fontSize: '10px', color: 'var(--color-text-dim)', letterSpacing: '0.5px' }}>
               虚拟设备
             </div>
-            <button
-              onClick={() => { setMenuOpen(false); connectVirtual(false); }}
-              style={menuItemStyle}
-            >
-              虚拟 W96P（完整模式）
-            </button>
-            <button
-              onClick={() => { setMenuOpen(false); connectVirtual(true); }}
-              style={menuItemStyle}
-            >
-              虚拟 W66D（兼容模式）
-            </button>
+            <div role="group" aria-label="虚拟设备">
+              <button
+                type="button"
+                onClick={() => { setMenuOpen(false); connectVirtual(false); }}
+                style={menuItemStyle}
+              >
+                虚拟 W96P（完整模式）
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMenuOpen(false); connectVirtual(true); }}
+                style={menuItemStyle}
+              >
+                虚拟 W66D（兼容模式）
+              </button>
+            </div>
           </div>
         )}
       </div>

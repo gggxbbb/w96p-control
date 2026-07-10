@@ -1,15 +1,13 @@
-import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { AppBar } from './AppBar';
 import { SideNav } from './SideNav';
+import { BottomNav } from './BottomNav';
 import { StatusBar } from './StatusBar';
-import { Drawer } from './Drawer';
 import { Toast } from '../ui/Toast';
 import { usePolling } from '../../hooks/usePolling';
 
 export function AppLayout() {
   usePolling();
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
     <div
@@ -24,7 +22,7 @@ export function AppLayout() {
         overflow: 'hidden',
       }}
     >
-      <AppBar onMenuClick={() => setDrawerOpen(true)} />
+      <AppBar />
       <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
         <SideNav />
         <main
@@ -39,8 +37,8 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+      <BottomNav />
       <StatusBar />
-      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       <Toast />
     </div>
   );

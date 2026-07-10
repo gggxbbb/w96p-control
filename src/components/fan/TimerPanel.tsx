@@ -73,7 +73,7 @@ export function TimerPanel() {
   };
 
   return (
-    <Card title="定时关机">
+    <Card variant="new" title="定时关机">
       <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '12px' }}>
         剩余：<span style={{ color: 'var(--color-text)', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
           {fmtTimer(timerRemainingSec)}

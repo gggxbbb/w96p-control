@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useBle } from '../../hooks/useBle';
 import { useDeviceStore } from '../../stores/device';
 import { useSettingsStore } from '../../stores/settings';
@@ -18,6 +19,7 @@ const SETTINGS_LAYOUTS: ResponsiveLayouts = {
     { i: 'curve', x: 6, y: 3, w: 6, h: 3 },
     { i: 'cache', x: 6, y: 6, w: 6, h: 4 },
     { i: 'about', x: 0, y: 11, w: 12, h: 4 },
+    { i: 'advanced', x: 0, y: 15, w: 12, h: 3 },
   ],
   md: [
     { i: 'device', x: 0, y: 0, w: 5, h: 5 },
@@ -26,6 +28,7 @@ const SETTINGS_LAYOUTS: ResponsiveLayouts = {
     { i: 'curve', x: 5, y: 3, w: 5, h: 3 },
     { i: 'cache', x: 5, y: 6, w: 5, h: 4 },
     { i: 'about', x: 0, y: 11, w: 10, h: 4 },
+    { i: 'advanced', x: 0, y: 15, w: 10, h: 3 },
   ],
   sm: [
     { i: 'device', x: 0, y: 0, w: 6, h: 5 },
@@ -34,6 +37,7 @@ const SETTINGS_LAYOUTS: ResponsiveLayouts = {
     { i: 'curve', x: 0, y: 13, w: 6, h: 3 },
     { i: 'cache', x: 0, y: 16, w: 6, h: 4 },
     { i: 'about', x: 0, y: 20, w: 6, h: 4 },
+    { i: 'advanced', x: 0, y: 24, w: 6, h: 3 },
   ],
   xs: [
     { i: 'device', x: 0, y: 0, w: 2, h: 6 },
@@ -42,6 +46,7 @@ const SETTINGS_LAYOUTS: ResponsiveLayouts = {
     { i: 'curve', x: 0, y: 16, w: 2, h: 4 },
     { i: 'cache', x: 0, y: 20, w: 2, h: 5 },
     { i: 'about', x: 0, y: 25, w: 2, h: 5 },
+    { i: 'advanced', x: 0, y: 30, w: 2, h: 4 },
   ],
 };
 
@@ -93,12 +98,9 @@ export default function Settings() {
         <Card title="外观">
             <SettingRow label="主题">
               <SegBtn
-                options={[{ value: 'dark' as const, label: '深色' }, { value: 'light' as const, label: '浅色' }]}
+                options={[{ value: 'dark' as const, label: '深色' }, { value: 'light' as const, label: '浅色' }, { value: 'system' as const, label: '跟随系统' }]}
                 value={theme}
-                onChange={(v) => {
-                  setTheme(v);
-                  document.documentElement.dataset.theme = v;
-                }}
+                onChange={(v) => setTheme(v)}
               />
             </SettingRow>
         </Card>
@@ -113,7 +115,7 @@ export default function Settings() {
                   { value: 1000 as const, label: '1s' },
                   { value: 2000 as const, label: '2s' },
                 ]}
-                value={pollIntervalMs as 500 | 1000 | 2000}
+                value={pollIntervalMs}
                 onChange={(v) => setPollInterval(v)}
               />
             </SettingRow>
@@ -124,7 +126,7 @@ export default function Settings() {
                   { value: 30 as const, label: '30 分钟' },
                   { value: 60 as const, label: '60 分钟' },
                 ]}
-                value={historyRetentionMin as 15 | 30 | 60}
+                value={historyRetentionMin}
                 onChange={(v) => setHistoryRetentionMin(v)}
               />
             </SettingRow>
@@ -209,6 +211,16 @@ export default function Settings() {
             </div>
         </Card>
       </DraggableCard>
+
+      <DraggableCard key="advanced">
+        <Card title="高级">
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <AdvancedLink to="/advanced">高级视图</AdvancedLink>
+            <AdvancedLink to="/battery-learn">电池学习</AdvancedLink>
+            <AdvancedLink to="/debug-ble">BLE 调试</AdvancedLink>
+          </div>
+        </Card>
+      </DraggableCard>
     </PageGrid>
   );
 }
@@ -228,5 +240,14 @@ function SettingRow({ label, children }: { label: string; children: React.ReactN
       <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '6px' }}>{label}</div>
       {children}
     </div>
+  );
+}
+
+function AdvancedLink({ to, children }: { to: string; children: React.ReactNode }) {
+  return (
+    <Link to={to} className="advanced-link">
+      <span>{children}</span>
+      <span aria-hidden="true">›</span>
+    </Link>
   );
 }

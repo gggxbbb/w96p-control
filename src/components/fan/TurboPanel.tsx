@@ -78,7 +78,7 @@ export function TurboPanel() {
   };
 
   return (
-    <Card title="Turbo 模式">
+    <Card variant="new" title="Turbo 模式">
       <Toggle
         checked={turboOn}
         onChange={handleTurboToggle}

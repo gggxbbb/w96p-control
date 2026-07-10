@@ -1,12 +1,20 @@
 import { StrictMode, lazy, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
-import { useSettingsStore } from './stores/settings';
+import { resolveTheme } from './stores/settings';
 import { isBlacklisted } from './lib/browserBlacklist';
 import 'react-grid-layout/css/styles.css';
 import './styles.css';
 
-const theme = useSettingsStore.getState().theme;
-document.documentElement.dataset.theme = theme;
+// Anti-FOUC: read persisted theme synchronously before React hydrate.
+// Zustand persist rehydrates async; reading localStorage here is the
+// only way to set the correct data-theme before first paint.
+let initialTheme: 'light' | 'dark' | 'system' = 'light';
+try {
+  const raw = localStorage.getItem('w96p-settings');
+  const parsed = raw ? (JSON.parse(raw) as { state?: { theme?: 'light' | 'dark' | 'system' } }) : null;
+  if (parsed?.state?.theme) initialTheme = parsed.state.theme;
+} catch { /* ignore */ }
+document.documentElement.dataset.theme = resolveTheme(initialTheme);
 
 const rootEl = document.getElementById('root')!;
 const blacklisted = isBlacklisted();

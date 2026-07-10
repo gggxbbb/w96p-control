@@ -1,368 +1,115 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useBle } from '../../hooks/useBle';
 import { useDeviceStore } from '../../stores/device';
-import { useToastStore } from '../../stores/toast';
-import { useSettingsStore, DASHBOARD_CARD_KEYS, DASHBOARD_CARD_LABELS, DASHBOARD_CARD_DEFAULTS, type DashboardCardKey } from '../../stores/settings';
 import { DisconnectedScreen } from '../../components/connection/DisconnectedScreen';
-import { Card } from '../../components/ui/Card';
-import { PageGrid } from '../../components/ui/PageGrid';
-import { MetricCard } from '../../components/ui/MetricCard';
-import { DraggableCard } from '../../components/ui/DraggableCard';
-import { Slider } from '../../components/ui/Slider';
-import { Toggle } from '../../components/ui/Toggle';
-import { GearRow } from '../../components/fan/GearRow';
-import { StatusSummary } from '../../components/dashboard/StatusSummary';
-import { voltageToSoc } from '../../utils/battery';
-import type { ResponsiveLayouts } from 'react-grid-layout';
-
-const DASHBOARD_LAYOUTS: ResponsiveLayouts = {
-  lg: [
-    { i: 'fan-gear', x: 0, y: 0, w: 3, h: 2 },
-    { i: 'fan-speed', x: 3, y: 0, w: 3, h: 2 },
-    { i: 'fan-timer', x: 6, y: 0, w: 3, h: 2 },
-    { i: 'batt-power', x: 9, y: 0, w: 3, h: 2 },
-    { i: 'motor-power', x: 0, y: 2, w: 3, h: 2 },
-    { i: 'motor-cur', x: 3, y: 2, w: 3, h: 2 },
-    { i: 'batt-volt', x: 6, y: 2, w: 3, h: 2 },
-    { i: 'vbus-volt', x: 9, y: 2, w: 3, h: 2 },
-    { i: 'motor-volt', x: 0, y: 4, w: 3, h: 2 },
-    { i: 'batt-cur', x: 3, y: 4, w: 3, h: 2 },
-    { i: 'batt-cap', x: 6, y: 4, w: 3, h: 2 },
-    { i: 'vbus-cur', x: 9, y: 4, w: 3, h: 2 },
-    { i: 'vbus-power', x: 0, y: 6, w: 3, h: 2 },
-    { i: 'pow-core-temp', x: 3, y: 6, w: 3, h: 2 },
-    { i: 'pow-level', x: 6, y: 6, w: 3, h: 2 },
-    { i: 'batt-est-pct', x: 9, y: 6, w: 3, h: 2 },
-    { i: 'batt-est-rem', x: 0, y: 8, w: 3, h: 2 },
-    { i: 'batt-est-eta', x: 3, y: 8, w: 3, h: 2 },
-    { i: 'pow-level-rem', x: 6, y: 8, w: 3, h: 2 },
-    { i: 'pow-level-eta', x: 9, y: 8, w: 3, h: 2 },
-    { i: 'turbo-countdown', x: 0, y: 10, w: 3, h: 2 },
-    { i: 'fan-control', x: 0, y: 12, w: 8, h: 6 },
-    { i: 'status', x: 8, y: 12, w: 4, h: 6 },
-  ],
-  md: [
-    { i: 'fan-gear', x: 0, y: 0, w: 3, h: 2 },
-    { i: 'fan-speed', x: 3, y: 0, w: 4, h: 2 },
-    { i: 'fan-timer', x: 7, y: 0, w: 3, h: 2 },
-    { i: 'batt-power', x: 0, y: 2, w: 5, h: 2 },
-    { i: 'motor-power', x: 5, y: 2, w: 5, h: 2 },
-    { i: 'motor-cur', x: 0, y: 4, w: 5, h: 2 },
-    { i: 'batt-volt', x: 5, y: 4, w: 5, h: 2 },
-    { i: 'vbus-volt', x: 0, y: 6, w: 5, h: 2 },
-    { i: 'motor-volt', x: 5, y: 6, w: 5, h: 2 },
-    { i: 'batt-cur', x: 0, y: 8, w: 5, h: 2 },
-    { i: 'batt-cap', x: 5, y: 8, w: 5, h: 2 },
-    { i: 'vbus-cur', x: 0, y: 10, w: 5, h: 2 },
-    { i: 'vbus-power', x: 5, y: 10, w: 5, h: 2 },
-    { i: 'pow-core-temp', x: 0, y: 12, w: 5, h: 2 },
-    { i: 'pow-level', x: 5, y: 12, w: 5, h: 2 },
-    { i: 'batt-est-pct', x: 0, y: 14, w: 5, h: 2 },
-    { i: 'batt-est-rem', x: 5, y: 14, w: 5, h: 2 },
-    { i: 'batt-est-eta', x: 0, y: 16, w: 5, h: 2 },
-    { i: 'pow-level-rem', x: 5, y: 16, w: 5, h: 2 },
-    { i: 'pow-level-eta', x: 0, y: 18, w: 5, h: 2 },
-    { i: 'turbo-countdown', x: 5, y: 18, w: 5, h: 2 },
-    { i: 'fan-control', x: 0, y: 20, w: 10, h: 6 },
-    { i: 'status', x: 0, y: 26, w: 10, h: 6 },
-  ],
-  sm: [
-    { i: 'fan-gear', x: 0, y: 0, w: 3, h: 2 },
-    { i: 'fan-speed', x: 3, y: 0, w: 3, h: 2 },
-    { i: 'fan-timer', x: 0, y: 2, w: 3, h: 2 },
-    { i: 'batt-power', x: 3, y: 2, w: 3, h: 2 },
-    { i: 'motor-power', x: 0, y: 4, w: 3, h: 2 },
-    { i: 'motor-cur', x: 3, y: 4, w: 3, h: 2 },
-    { i: 'batt-volt', x: 0, y: 6, w: 3, h: 2 },
-    { i: 'vbus-volt', x: 3, y: 6, w: 3, h: 2 },
-    { i: 'motor-volt', x: 0, y: 8, w: 3, h: 2 },
-    { i: 'batt-cur', x: 3, y: 8, w: 3, h: 2 },
-    { i: 'batt-cap', x: 0, y: 10, w: 3, h: 2 },
-    { i: 'vbus-cur', x: 3, y: 10, w: 3, h: 2 },
-    { i: 'vbus-power', x: 0, y: 12, w: 3, h: 2 },
-    { i: 'pow-core-temp', x: 3, y: 12, w: 3, h: 2 },
-    { i: 'pow-level', x: 0, y: 14, w: 3, h: 2 },
-    { i: 'batt-est-pct', x: 3, y: 14, w: 3, h: 2 },
-    { i: 'batt-est-rem', x: 0, y: 16, w: 3, h: 2 },
-    { i: 'batt-est-eta', x: 3, y: 16, w: 3, h: 2 },
-    { i: 'pow-level-rem', x: 0, y: 18, w: 3, h: 2 },
-    { i: 'pow-level-eta', x: 3, y: 18, w: 3, h: 2 },
-    { i: 'turbo-countdown', x: 0, y: 20, w: 3, h: 2 },
-    { i: 'fan-control', x: 0, y: 22, w: 6, h: 6 },
-    { i: 'status', x: 0, y: 28, w: 6, h: 6 },
-  ],
-  xs: [
-    { i: 'fan-gear', x: 0, y: 0, w: 2, h: 2 },
-    { i: 'fan-speed', x: 0, y: 2, w: 2, h: 2 },
-    { i: 'fan-timer', x: 0, y: 4, w: 2, h: 2 },
-    { i: 'batt-power', x: 0, y: 6, w: 2, h: 2 },
-    { i: 'motor-power', x: 0, y: 8, w: 2, h: 2 },
-    { i: 'motor-cur', x: 0, y: 10, w: 2, h: 2 },
-    { i: 'batt-volt', x: 0, y: 12, w: 2, h: 2 },
-    { i: 'vbus-volt', x: 0, y: 14, w: 2, h: 2 },
-    { i: 'motor-volt', x: 0, y: 16, w: 2, h: 2 },
-    { i: 'batt-cur', x: 0, y: 18, w: 2, h: 2 },
-    { i: 'batt-cap', x: 0, y: 20, w: 2, h: 2 },
-    { i: 'vbus-cur', x: 0, y: 22, w: 2, h: 2 },
-    { i: 'vbus-power', x: 0, y: 24, w: 2, h: 2 },
-    { i: 'pow-core-temp', x: 0, y: 26, w: 2, h: 2 },
-    { i: 'pow-level', x: 0, y: 28, w: 2, h: 2 },
-    { i: 'batt-est-pct', x: 2, y: 28, w: 2, h: 2 },
-    { i: 'batt-est-rem', x: 0, y: 30, w: 2, h: 2 },
-    { i: 'batt-est-eta', x: 2, y: 30, w: 2, h: 2 },
-    { i: 'pow-level-rem', x: 0, y: 32, w: 2, h: 2 },
-    { i: 'pow-level-eta', x: 2, y: 32, w: 2, h: 2 },
-    { i: 'turbo-countdown', x: 0, y: 34, w: 2, h: 2 },
-    { i: 'fan-control', x: 0, y: 36, w: 2, h: 6 },
-    { i: 'status', x: 0, y: 42, w: 2, h: 6 },
-  ],
-};
+import { FanDial } from '../../components/home/FanDial';
+import { GearChips } from '../../components/home/GearChips';
+import { QuickActions } from '../../components/home/QuickActions';
+import { DetailPanel } from '../../components/home/DetailPanel';
+import { MetricRow } from '../../components/home/MetricRow';
+import { Modal } from '../../components/ui/Modal';
+import { TimerPanel } from '../../components/fan/TimerPanel';
+import { LightPanel } from '../../components/fan/LightPanel';
+import { TurboPanel } from '../../components/fan/TurboPanel';
 
 export default function Dashboard() {
-  const { isConnected, isCompatMode, setFanSpeed, toggleNatureWind } = useBle();
+  const navigate = useNavigate();
+  const { isConnected, setFanSpeed, toggleNatureWind } = useBle();
   const fanSpeed = useDeviceStore((s) => s.fanSpeed);
   const natureWindOn = useDeviceStore((s) => s.natureWindOn);
+  const calibration = useDeviceStore((s) => s.speedCalib);
   const battery = useDeviceStore((s) => s.battery);
-  const powerStatus = useDeviceStore((s) => s.powerStatus);
-  const motor = useDeviceStore((s) => s.motor);
   const powerConfig = useDeviceStore((s) => s.powerConfig);
-  const timerRemainingSec = useDeviceStore((s) => s.timerRemainingSec);
-  const turboCountdownSec = useDeviceStore((s) => s.turboCountdownSec);
-  const dashboardCards = useSettingsStore((s) => s.dashboardCards);
-  const setDashboardCards = useSettingsStore((s) => s.setDashboardCards);
-  const show = useToastStore((s) => s.show);
 
   const [dragSpeed, setDragSpeed] = useState<number | null>(null);
-  const [cardPickerOpen, setCardPickerOpen] = useState(false);
+  const [modal, setModal] = useState<'timer' | 'light' | 'turbo' | null>(null);
+  const displaySpeed = dragSpeed ?? fanSpeed;
 
   if (!isConnected) {
     return <DisconnectedScreen />;
   }
 
   const batteryPower = battery ? (battery.voltageMv * battery.currentMa) / 1e6 : 0;
-  const motorPower = motor
-    ? !isCompatMode
-      ? (motor.voltageMv * motor.currentMa) / 1e6
-      : battery
-        ? (battery.voltageMv * motor.currentMa) / 1e6
-        : 0
-    : 0;
-  const vbusPower = powerStatus ? (powerStatus.vbusVmV * powerStatus.vbusCurMa) / 1e6 : 0;
-  const estSoc = battery ? voltageToSoc(battery.voltageMv) : null;
-  const estRemainMwh = (estSoc != null && battery?.capacityMwh) ? Math.round(battery.capacityMwh * estSoc / 100) : null;
-  const estEtaMin = (estRemainMwh != null && batteryPower > 0) ? Math.round(estRemainMwh / (batteryPower * 1000) * 60) : null;
-  const powRemainingMwh = (powerConfig && battery?.capacityMwh)
-    ? Math.round(battery.capacityMwh * powerConfig.powLevel / 100)
-    : null;
-  const powEtaMin = (powRemainingMwh != null && batteryPower > 0)
-    ? Math.round(powRemainingMwh / (batteryPower * 1000) * 60)
-    : null;
-
-  const minSpeed = 0;
-  const maxSpeed = 100;
-  const displaySpeed = dragSpeed ?? fanSpeed;
-
-  const toggleCard = (key: DashboardCardKey) => {
-    const next = { ...dashboardCards, [key]: !dashboardCards[key] };
-    setDashboardCards(next);
-    if (!dashboardCards[key]) {
-      show('新卡片默认为 1×1，请进入编辑模式调整布局');
-    }
-  };
-
-  const resetCards = () => {
-    const defaults: Record<string, boolean> = {};
-    for (const k of DASHBOARD_CARD_KEYS) defaults[k] = false;
-    for (const k of DASHBOARD_CARD_DEFAULTS) defaults[k] = true;
-    setDashboardCards(defaults as typeof dashboardCards);
-  };
-
-  const renderToolbar = () => (
-    <div style={{ position: 'relative' }}>
-      <button onClick={() => setCardPickerOpen((v) => !v)} style={cardBtnStyle}>
-        状态卡片
-      </button>
-      {cardPickerOpen && (
-        <>
-          <div style={overlayStyle} onClick={() => setCardPickerOpen(false)} />
-          <div style={popoverStyle}>
-            <div style={popoverTitleStyle}>选择可见卡片</div>
-            {DASHBOARD_CARD_KEYS.map((key) => (
-              <label key={key} style={checkboxRowStyle}>
-                <input type="checkbox" checked={dashboardCards[key]} onChange={() => toggleCard(key)} style={{ accentColor: 'var(--color-accent)' }} />
-                <span>{DASHBOARD_CARD_LABELS[key]}</span>
-              </label>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-
-  const gearNum: 0 | 1 | 2 | 3 | 4 = (() => {
-    if (fanSpeed === 0 || natureWindOn) return 0;
-    const calib = useDeviceStore.getState().speedCalib;
-    let best: 0 | 1 | 2 | 3 | 4 = 0; let minDiff = Infinity;
-    calib.forEach((sp, i) => { const d = Math.abs(sp - fanSpeed); if (d < minDiff) { minDiff = d; best = (i + 1) as 1 | 2 | 3 | 4; } });
-    return best;
-  })();
-
-  const timerDisplay = (() => {
-    const t = timerRemainingSec;
-    if (t <= 0) return '--';
-    return `${Math.floor(t / 3600)}:${String(Math.floor((t % 3600) / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
-  })();
 
   return (
-    <PageGrid pageKey="dashboard" pageName="总览" defaultLayouts={DASHBOARD_LAYOUTS} renderToolbar={renderToolbar} onReset={resetCards}>
-      {dashboardCards['fan-gear'] && (
-        <DraggableCard key="fan-gear">
-          <MetricCard label="档位" value={gearNum} unit="档" />
-        </DraggableCard>
-      )}
-      {dashboardCards['fan-speed'] && (
-        <DraggableCard key="fan-speed">
-          <MetricCard label="转速" value={fanSpeed} unit="%" range={{ min: 0, max: 100 }} persistKey="dashboard-转速" />
-        </DraggableCard>
-      )}
-      {dashboardCards['fan-timer'] && (
-        <DraggableCard key="fan-timer">
-          <MetricCard label="定时" value={timerDisplay} rawValue={timerRemainingSec}  />
-        </DraggableCard>
-      )}
-      {dashboardCards['batt-power'] && (
-        <DraggableCard key="batt-power">
-          <MetricCard label="电池功率" value={batteryPower} unit="W" decimals={2} range={{ min: -20, max: 20 }} persistKey="dashboard-电池功率" />
-        </DraggableCard>
-      )}
-      {dashboardCards['motor-power'] && (
-        <DraggableCard key="motor-power">
-          <MetricCard label="电机功率" value={motorPower} unit="W" decimals={2} range={{ min: 0, max: 20 }} persistKey="dashboard-电机功率" />
-        </DraggableCard>
-      )}
-      {dashboardCards['motor-cur'] && (
-        <DraggableCard key="motor-cur">
-          <MetricCard label="电机电流" value={motor ? motor.currentMa : '--'} unit="mA" range={{ min: 0, max: 5000 }} persistKey="dashboard-电机电流" />
-        </DraggableCard>
-      )}
-      {dashboardCards['batt-volt'] && (
-        <DraggableCard key="batt-volt">
-          <MetricCard label="电池电压" value={battery ? battery.voltageMv / 1000 : '--'} unit="V" decimals={2} range={{ min: 3.0, max: 4.2, dangerLow: true }} persistKey="dashboard-电池电压" />
-        </DraggableCard>
-      )}
-      {dashboardCards['vbus-volt'] && (
-        <DraggableCard key="vbus-volt">
-          <MetricCard label="VBUS 电压" value={powerStatus ? powerStatus.vbusVmV / 1000 : '--'} unit="V" decimals={2} range={{ min: 0, max: 12 }} persistKey="dashboard-VBUS电压" />
-        </DraggableCard>
-      )}
-      {dashboardCards['motor-volt'] && (
-        <DraggableCard key="motor-volt">
-          <MetricCard label="电机电压" value={motor && motor.voltageMv > 0 ? motor.voltageMv / 1000 : '--'} unit="V" decimals={2} range={{ min: 0, max: 12 }} persistKey="dashboard-电机电压" />
-        </DraggableCard>
-      )}
-      {dashboardCards['batt-cur'] && (
-        <DraggableCard key="batt-cur">
-          <MetricCard label="电池电流" value={battery ? battery.currentMa : '--'} unit="mA" range={{ min: -5000, max: 5000 }} persistKey="dashboard-电池电流" />
-        </DraggableCard>
-      )}
-      {dashboardCards['batt-cap'] && (
-        <DraggableCard key="batt-cap">
-          <MetricCard label="电池容量" value={battery ? battery.capacityMwh : '--'} unit="mWh" />
-        </DraggableCard>
-      )}
-      {dashboardCards['vbus-cur'] && (
-        <DraggableCard key="vbus-cur">
-          <MetricCard label="VBUS 电流" value={powerStatus ? powerStatus.vbusCurMa : '--'} unit="mA" range={{ min: -5000, max: 5000 }} persistKey="dashboard-VBUS电流" />
-        </DraggableCard>
-      )}
-      {dashboardCards['vbus-power'] && (
-        <DraggableCard key="vbus-power">
-          <MetricCard label="VBUS 功率" value={vbusPower} unit="W" decimals={2} range={{ min: -20, max: 20 }} persistKey="dashboard-VBUS功率" />
-        </DraggableCard>
-      )}
-      {dashboardCards['pow-core-temp'] && (
-        <DraggableCard key="pow-core-temp">
-          <MetricCard label="芯片温度 (powCoreTemp)" value={powerConfig ? powerConfig.powCoreTemp : '--'} unit="℃" range={{ min: 0, max: 120 }} persistKey="dashboard-芯片温度" />
-        </DraggableCard>
-      )}
-      {dashboardCards['pow-level'] && (
-        <DraggableCard key="pow-level">
-          <MetricCard label="电量 (powLevel)" value={powerConfig ? powerConfig.powLevel : '--'} unit="%" range={{ min: 0, max: 100, dangerLow: true }} persistKey="dashboard-电量" />
-        </DraggableCard>
-      )}
-      {dashboardCards['batt-est-pct'] && (
-        <DraggableCard key="batt-est-pct">
-          <MetricCard
-            label="电量(电压估算)"
-            value={battery ? voltageToSoc(battery.voltageMv) : '--'}
-            unit="%"
-            range={{ min: 0, max: 100, dangerLow: true }}
-            persistKey="dashboard-电量估算"
-          />
-        </DraggableCard>
-      )}
-      {dashboardCards['batt-est-rem'] && (
-        <DraggableCard key="batt-est-rem">
-          <MetricCard label="剩余容量(估算)" value={estRemainMwh ?? '--'} unit="mWh" range={{ min: 0, max: battery?.capacityMwh ?? 20000, dangerLow: true }} persistKey="dashboard-剩余容量" />
-        </DraggableCard>
-      )}
-      {dashboardCards['batt-est-eta'] && (
-        <DraggableCard key="batt-est-eta">
-          <MetricCard label="预计续航(估算)" value={estEtaMin ?? '--'} unit="min" />
-        </DraggableCard>
-      )}
-      {dashboardCards['pow-level-rem'] && (
-        <DraggableCard key="pow-level-rem">
-          <MetricCard label="剩余容量(芯片)" value={powRemainingMwh ?? '--'} unit="mWh" range={{ min: 0, max: battery?.capacityMwh ?? 20000, dangerLow: true }} persistKey="dashboard-剩余容量芯片" />
-        </DraggableCard>
-      )}
-      {dashboardCards['pow-level-eta'] && (
-        <DraggableCard key="pow-level-eta">
-          <MetricCard label="预计续航(芯片)" value={powEtaMin ?? '--'} unit="min" />
-        </DraggableCard>
-      )}
-      {dashboardCards['turbo-countdown'] && (
-        <DraggableCard key="turbo-countdown">
-          <MetricCard
-            label="Turbo 倒计时" 
-            value={turboCountdownSec > 0 ? `${Math.floor(turboCountdownSec / 60)}:${String(turboCountdownSec % 60).padStart(2, '0')}` : '--'} 
-            unit="" 
-          />
-        </DraggableCard>
-      )}
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 20,
+      padding: '16px 16px 32px',
+      minHeight: '100%',
+      background: 'var(--color-new-bg-page)',
+      color: 'var(--color-new-text)',
+    }}>
+      <header style={{ textAlign: 'center' }}>
+        <h1 style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>总览</h1>
+        <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--color-new-text-muted)' }}>已连接</p>
+      </header>
 
-      <DraggableCard key="fan-control">
-        <Card title="风扇控制" subtitle={natureWindOn ? '自然风模式' : '手动模式'}>
-          <GearRow />
-          <Slider label="转速" value={displaySpeed} min={minSpeed} max={maxSpeed}
-            onChange={(v) => setDragSpeed(v)}
-            onCommit={(v) => { setDragSpeed(null); setFanSpeed(v); }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
-            <Toggle checked={natureWindOn} onChange={(on) => toggleNatureWind(on)} label="自然风" />
-          </div>
-        </Card>
-      </DraggableCard>
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <FanDial
+          value={displaySpeed}
+          aria-label="风速"
+          onChange={setDragSpeed}
+          onCommit={(v) => { setDragSpeed(null); setFanSpeed(v); }}
+        />
+      </div>
 
-      <DraggableCard key="status">
-        <Card title="状态"><StatusSummary /></Card>
-      </DraggableCard>
-    </PageGrid>
+      <GearChips
+        speed={fanSpeed}
+        calibration={calibration}
+        natureWindOn={natureWindOn}
+        onGear={(g) => setFanSpeed(calibration[g - 1] ?? 0)}
+      />
+
+      <QuickActions
+        actions={[
+          {
+            key: 'nature',
+            icon: '🍃',
+            label: '自然风',
+            active: natureWindOn,
+            accent: 'var(--color-new-accent-nature)',
+            onClick: () => toggleNatureWind(!natureWindOn),
+          },
+          {
+            key: 'timer',
+            icon: '⏱',
+            label: '定时',
+            onClick: () => setModal('timer'),
+          },
+          {
+            key: 'light',
+            icon: '💡',
+            label: '灯光',
+            onClick: () => setModal('light'),
+          },
+          {
+            key: 'turbo',
+            icon: '⚡',
+            label: 'Turbo',
+            accent: 'var(--color-new-accent-dark)',
+            onClick: () => setModal('turbo'),
+          },
+        ]}
+      />
+
+      <DetailPanel onOpenAdvanced={() => navigate('/advanced')}>
+        <MetricRow label="电池功率" value={batteryPower.toFixed(2)} unit="W" />
+        <MetricRow label="电池电压" value={battery ? (battery.voltageMv / 1000).toFixed(2) : '--'} unit="V" />
+        <MetricRow label="芯片温度" value={powerConfig?.powCoreTemp ?? '--'} unit="℃" />
+      </DetailPanel>
+
+      <Modal open={modal === 'timer'} onClose={() => setModal(null)} title="定时关机">
+        <TimerPanel />
+      </Modal>
+      <Modal open={modal === 'light'} onClose={() => setModal(null)} title="灯光控制">
+        <LightPanel />
+      </Modal>
+      <Modal open={modal === 'turbo'} onClose={() => setModal(null)} title="Turbo 模式">
+        <TurboPanel />
+      </Modal>
+    </div>
   );
 }
-
-const cardBtnStyle: React.CSSProperties = {
-  background: 'transparent', border: '0.5px solid var(--color-border-strong)', borderRadius: '6px',
-  padding: '6px 12px', color: 'var(--color-text-muted)', fontSize: '12px', fontFamily: 'var(--font-sans)', cursor: 'pointer',
-};
-const overlayStyle: React.CSSProperties = { position: 'fixed', inset: 0, zIndex: 90 };
-const popoverStyle: React.CSSProperties = {
-  position: 'absolute', top: '100%', right: 0, marginTop: '4px', background: 'var(--color-bg-surface)',
-  border: '0.5px solid var(--color-border-strong)', borderRadius: '8px', padding: '10px 14px',
-  zIndex: 100, minWidth: '140px', boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-};
-const popoverTitleStyle: React.CSSProperties = {
-  fontSize: '11px', color: 'var(--color-text-dim)', marginBottom: '8px', paddingBottom: '6px', borderBottom: '0.5px solid var(--color-border)',
-};
-const checkboxRowStyle: React.CSSProperties = {
-  display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0', fontSize: '12px', color: 'var(--color-text)', cursor: 'pointer',
-};

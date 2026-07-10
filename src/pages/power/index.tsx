@@ -35,19 +35,21 @@ const POWER_LAYOUTS: ResponsiveLayouts = {
 
 export default function Power() {
   return (
-    <PageGrid pageKey="power" pageName="电源" defaultLayouts={POWER_LAYOUTS}>
-      <DraggableCard key="battery">
-        <BatteryPanel />
-      </DraggableCard>
-      <DraggableCard key="vbus">
-        <VbusPanel />
-      </DraggableCard>
-      <DraggableCard key="info">
-        <PowerInfoCard />
-      </DraggableCard>
-      <DraggableCard key="motor">
-        <MotorPanel />
-      </DraggableCard>
-    </PageGrid>
+    <div className="new-page theme-new" style={{ minHeight: '100%' }}>
+      <PageGrid pageKey="power" pageName="电源" defaultLayouts={POWER_LAYOUTS}>
+        <DraggableCard key="battery">
+          <BatteryPanel />
+        </DraggableCard>
+        <DraggableCard key="vbus">
+          <VbusPanel />
+        </DraggableCard>
+        <DraggableCard key="info">
+          <PowerInfoCard />
+        </DraggableCard>
+        <DraggableCard key="motor">
+          <MotorPanel />
+        </DraggableCard>
+      </PageGrid>
+    </div>
   );
 }

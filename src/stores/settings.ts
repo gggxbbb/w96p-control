@@ -46,17 +46,27 @@ export const DASHBOARD_CARD_DEFAULTS: DashboardCardKey[] = [
 
 export type DashboardCards = Record<DashboardCardKey, boolean>;
 
+export type Theme = 'light' | 'dark' | 'system';
+export type PollInterval = 500 | 1000 | 2000;
+export type HistoryRetention = 15 | 30 | 60;
+
+export function resolveTheme(theme: Theme): 'light' | 'dark' {
+  if (theme !== 'system') return theme;
+  if (typeof window === 'undefined') return 'light';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
 interface SettingsState {
-  theme: 'dark' | 'light';
-  pollIntervalMs: number;
+  theme: Theme;
+  pollIntervalMs: PollInterval;
   curveEditorMode: 'canvas' | 'textarea';
-  historyRetentionMin: number;
+  historyRetentionMin: HistoryRetention;
   lastDeviceName: string | null;
   dashboardCards: DashboardCards;
-  setTheme: (t: 'dark' | 'light') => void;
-  setPollInterval: (ms: number) => void;
+  setTheme: (t: Theme) => void;
+  setPollInterval: (ms: PollInterval) => void;
   setCurveMode: (m: 'canvas' | 'textarea') => void;
-  setHistoryRetentionMin: (min: number) => void;
+  setHistoryRetentionMin: (min: HistoryRetention) => void;
   setLastDeviceName: (name: string | null) => void;
   setDashboardCards: (cards: DashboardCards) => void;
 }
@@ -64,7 +74,7 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
-      theme: 'dark',
+      theme: 'light',
       pollIntervalMs: 500,
       curveEditorMode: 'canvas',
       historyRetentionMin: 30,
@@ -79,6 +89,16 @@ export const useSettingsStore = create<SettingsState>()(
       setLastDeviceName: (name) => set({ lastDeviceName: name }),
       setDashboardCards: (cards) => set({ dashboardCards: cards }),
     }),
-    { name: 'w96p-settings' },
+    {
+      name: 'w96p-settings',
+      merge: (persisted, current) => {
+        const merged = { ...current, ...(persisted as object) } as SettingsState;
+        const validPoll: PollInterval[] = [500, 1000, 2000];
+        const validRetention: HistoryRetention[] = [15, 30, 60];
+        if (!validPoll.includes(merged.pollIntervalMs)) merged.pollIntervalMs = 500;
+        if (!validRetention.includes(merged.historyRetentionMin)) merged.historyRetentionMin = 30;
+        return merged;
+      },
+    },
   ),
 );

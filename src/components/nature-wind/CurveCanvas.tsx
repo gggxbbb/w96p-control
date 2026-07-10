@@ -8,9 +8,9 @@ interface CurveCanvasProps {
 }
 
 // 读取 CSS 变量，附带 fallback 避免 Canvas API 接收空字符串
-function readColor(name: string, fallback: string): string {
-  if (typeof window === 'undefined') return fallback;
-  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+function readColor(element: Element | null, name: string, fallback: string): string {
+  if (typeof window === 'undefined' || !element) return fallback;
+  const v = getComputedStyle(element).getPropertyValue(name).trim();
   return v || fallback;
 }
 
@@ -80,9 +80,10 @@ export function CurveCanvas({ points, onChange, min, max }: CurveCanvasProps) {
     canvas.style.height = `${h}px`;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const colorBgPage = readColor('--color-bg-page', '#1A1A18');
-    const colorBgInset = readColor('--color-bg-inset', '#232320');
-    const colorAccent = readColor('--color-accent', '#378ADD');
+    const container = containerRef.current;
+    const colorBgPage = readColor(container, '--color-bg-page', '#1A1A18');
+    const colorBgInset = readColor(container, '--color-bg-inset', '#232320');
+    const colorAccent = readColor(container, '--color-accent', '#378ADD');
 
     // 背景
     ctx.fillStyle = colorBgPage;
@@ -188,6 +189,8 @@ export function CurveCanvas({ points, onChange, min, max }: CurveCanvasProps) {
     <div ref={containerRef} style={{ width: '100%' }}>
       <canvas
         ref={canvasRef}
+        role="img"
+        aria-label="自然风曲线编辑器，128 个点，可通过鼠标或触摸拖拽编辑"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
