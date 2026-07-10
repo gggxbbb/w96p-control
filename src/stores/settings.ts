@@ -46,27 +46,17 @@ export const DASHBOARD_CARD_DEFAULTS: DashboardCardKey[] = [
 
 export type DashboardCards = Record<DashboardCardKey, boolean>;
 
-export type Theme = 'light' | 'dark' | 'system';
-export type PollInterval = 500 | 1000 | 2000;
-export type HistoryRetention = 15 | 30 | 60;
-
-export function resolveTheme(theme: Theme): 'light' | 'dark' {
-  if (theme !== 'system') return theme;
-  if (typeof window === 'undefined') return 'light';
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
-
 interface SettingsState {
-  theme: Theme;
-  pollIntervalMs: PollInterval;
+  theme: 'dark' | 'light';
+  pollIntervalMs: number;
   curveEditorMode: 'canvas' | 'textarea';
-  historyRetentionMin: HistoryRetention;
+  historyRetentionMin: number;
   lastDeviceName: string | null;
   dashboardCards: DashboardCards;
-  setTheme: (t: Theme) => void;
-  setPollInterval: (ms: PollInterval) => void;
+  setTheme: (t: 'dark' | 'light') => void;
+  setPollInterval: (ms: number) => void;
   setCurveMode: (m: 'canvas' | 'textarea') => void;
-  setHistoryRetentionMin: (min: HistoryRetention) => void;
+  setHistoryRetentionMin: (min: number) => void;
   setLastDeviceName: (name: string | null) => void;
   setDashboardCards: (cards: DashboardCards) => void;
 }
@@ -74,7 +64,7 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
-      theme: 'light',
+      theme: 'dark',
       pollIntervalMs: 500,
       curveEditorMode: 'canvas',
       historyRetentionMin: 30,
@@ -89,16 +79,6 @@ export const useSettingsStore = create<SettingsState>()(
       setLastDeviceName: (name) => set({ lastDeviceName: name }),
       setDashboardCards: (cards) => set({ dashboardCards: cards }),
     }),
-    {
-      name: 'w96p-settings',
-      merge: (persisted, current) => {
-        const merged = { ...current, ...(persisted as object) } as SettingsState;
-        const validPoll: PollInterval[] = [500, 1000, 2000];
-        const validRetention: HistoryRetention[] = [15, 30, 60];
-        if (!validPoll.includes(merged.pollIntervalMs)) merged.pollIntervalMs = 500;
-        if (!validRetention.includes(merged.historyRetentionMin)) merged.historyRetentionMin = 30;
-        return merged;
-      },
-    },
+    { name: 'w96p-settings' },
   ),
 );

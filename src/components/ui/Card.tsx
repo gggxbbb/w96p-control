@@ -7,24 +7,17 @@ interface CardProps {
   actions?: ReactNode;
   style?: CSSProperties;
   className?: string;
-  variant?: 'default' | 'new';
 }
 
-export function Card({ title, subtitle, children, actions, style, className, variant = 'default' }: CardProps) {
-  const isNew = variant === 'new';
-  const finalClassName = isNew ? ['surface-card', 'theme-new', className].filter(Boolean).join(' ') : className;
+export function Card({ title, subtitle, children, actions, style, className }: CardProps) {
   return (
     <section
-      className={finalClassName}
+      className={className}
       style={{
-        ...(isNew
-          ? { padding: '12px' }
-          : {
-              background: 'var(--color-bg-surface)',
-              border: '0.5px solid var(--color-border)',
-              borderRadius: '8px',
-              padding: '12px',
-            }),
+        background: 'var(--color-bg-surface)',
+        border: '0.5px solid var(--color-border)',
+        borderRadius: '8px',
+        padding: '12px',
         display: 'flex',
         flexDirection: 'column',
         gap: '10px',

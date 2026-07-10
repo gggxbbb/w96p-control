@@ -15,7 +15,7 @@ export function LightPanel() {
   };
 
   return (
-    <Card variant="new" title="灯光控制">
+    <Card title="灯光控制">
       <div style={{ display: 'flex', gap: '4px' }}>
         {LABELS.map((label, i) => (
           <button

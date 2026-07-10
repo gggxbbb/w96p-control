@@ -19,7 +19,7 @@ export function VbusPanel() {
     : 0;
 
   return (
-    <Card title="VBUS / 电源状态" variant="new">
+    <Card title="VBUS / 电源状态">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px', marginBottom: '12px' }}>
         <MetricCard label="VBUS 电压" value={powerStatus ? powerStatus.vbusVmV / 1000 : '--'} unit="V" decimals={2} noGauge />
         <MetricCard label="VBUS 电流" value={powerStatus ? powerStatus.vbusCurMa : '--'} unit="mA" noGauge />

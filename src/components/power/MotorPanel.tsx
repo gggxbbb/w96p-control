@@ -18,7 +18,7 @@ export function MotorPanel() {
     : 0;
 
   return (
-    <Card title="电机信息" variant="new">
+    <Card title="电机信息">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px', marginBottom: '12px' }}>
         <MetricCard label="电机电流" value={motor ? motor.currentMa : '--'} unit="mA" noGauge />
         {!isCompatMode && (

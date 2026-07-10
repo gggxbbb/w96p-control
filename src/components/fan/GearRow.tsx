@@ -1,6 +1,5 @@
 import { useBle } from '../../hooks/useBle';
 import { useDeviceStore } from '../../stores/device';
-import { inferGear } from '../../lib/gear';
 
 const GEARS = [
   { value: 0 as const, label: '关机' },
@@ -17,7 +16,20 @@ export function GearRow() {
   const speedCalib = useDeviceStore((s) => s.speedCalib);
 
   // 推断当前档位：fanSpeed===0 或自然风模式下显示 OFF；否则按 speedCalib 匹配最近档位
-  const current = inferGear(fanSpeed, speedCalib, natureWindOn);
+  const inferGear = (): 0 | 1 | 2 | 3 | 4 => {
+    if (fanSpeed === 0 || natureWindOn) return 0;
+    let best: 0 | 1 | 2 | 3 | 4 = 0;
+    let minDiff = Infinity;
+    speedCalib.forEach((sp, i) => {
+      const diff = Math.abs(sp - fanSpeed);
+      if (diff < minDiff) {
+        minDiff = diff;
+        best = (i + 1) as 1 | 2 | 3 | 4;
+      }
+    });
+    return best;
+  };
+  const current = inferGear();
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px' }}>
