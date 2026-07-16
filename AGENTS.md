@@ -47,3 +47,17 @@ src/           ← React UI + app 层胶水
 ```
 
 SDK 只包含协议逻辑，不依赖 React。App 层只做 UI 和胶水，不包含 BLE 协议细节。
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues in `gggxbbb/w96p-control` using the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout: root `CONTEXT.md` and `docs/adr/`. See `docs/agents/domain.md`.
