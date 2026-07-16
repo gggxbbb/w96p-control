@@ -67,18 +67,18 @@ graph TB
 
 所有读写操作共享一个扁平的部分更新快照。`BleManager` 通过 `onSnapshot` 回调将数据推送到 `useDeviceStore`，支持增量合并——只需发送变更的字段。
 
-> **源码：** `src/ble/types.ts`
+> **源码：** `packages/sdk/src/ble/types.ts`
 
 ### 2.1 接口定义
 
 ```typescript
-// src/ble/types.ts
+// packages/sdk/src/ble/types.ts
 export interface BleSnapshot {
   // ── 主控服务 FFF0 ──
   fanSpeed?: number;                           // 当前转速 0~100（根据型号限制）
   timerRemainingSec?: number;                  // 定时剩余秒数（uint16 BE）
   natureWindOn?: boolean;                      // 自然风开关
-  natureWindSum?: number;                      // 自然风累积次数（uint8）
+  natureWindSum?: number;                      // 自然风曲线有效点数（uint8）
   natureWindTime?: number;                     // 自然风累积运行时间秒数（uint32 BE）
   shutdownDelaySec?: number;                   // 蓝牙休眠延时秒数（uint16 BE）
   gearDownMode?: 0 | 1;                       // 减档模式：0=逐级降档，1=直接关停
@@ -102,7 +102,7 @@ export interface BleSnapshot {
 ### 2.2 嵌套数据结构
 
 ```typescript
-// src/ble/parsers.ts
+// packages/sdk/src/ble/parsers.ts
 
 // 电池信息（BATTERY_INFO FFD1，30 字节读取）
 export interface BatteryInfo {
@@ -122,11 +122,11 @@ export interface PowerStatus {
   vbusVmV: number;       // VBUS 电压 mV（uint32 BE, offset 0）
   vbusCurMa: number;     // VBUS 电流 mA（int16 BE, offset 4, 哨兵 0x7FFF=未接入）
   vbusConnected: boolean;// VBUS 是否接入（0x7FFF → false）
-  powC: number;          // 电路通断（uint8, offset 6, 1=开）
-  powSta: number;        // 充放电状态（uint8, offset 7, 1=充电中）
+  powC: number;          // 电源类型（uint8, offset 6, 0=无, 1=C口输入, 2=C口输出）
+  powSta: number;        // 充放电状态（uint8, offset 7, 0=停止, 1=充电中, 2=放电中）
   powCOut: boolean;      // C 口输出快充（uint8, offset 8, 0=使能）
   powCIn: boolean;       // C 口输入快充（uint8, offset 9, 0=使能）
-  powCHi: boolean;       // 保留（uint8, offset 10, 0=使能）
+  powCHi: boolean;       // C 口高压使能（uint8, offset 10, 0=使能）
 }
 
 // 电机信息（MOTOR_INFO FFD3）
@@ -156,7 +156,7 @@ export interface PowerConfigRegs {
 ### 2.3 状态存储与合并策略
 
 ```typescript
-// src/stores/device.ts
+// packages/sdk/src/stores/device.ts
 export const useDeviceStore = create<DeviceState>()(
   subscribeWithSelector((set) => ({
     fanSpeed: 0,
@@ -206,7 +206,7 @@ export const useDeviceStore = create<DeviceState>()(
 ```mermaid
 flowchart TD
     A["用户操作<br/>setFanSpeed(60)"] --> B["useBle().setFanSpeed<br/>src/hooks/useBle.ts"]
-    B --> C["BleManager.writeFanSpeed<br/>src/ble/manager.ts:417"]
+    B --> C["BleManager.writeFanSpeed<br/>packages/sdk/src/ble/manager.ts:417"]
 
     C --> D["记录 lastWriteMs = Date.now()"]
     C --> E["保存旧值快照<br/>prevSpeed / prevNw"]
@@ -217,10 +217,10 @@ flowchart TD
     F -->|否| I
 
     G -->|成功| I["乐观更新 UI<br/>onSnapshot({ fanSpeed: pct, natureWindOn: false })"]
-    I --> J["writer.writeFanSpeed<br/>src/ble/writer.ts:88"]
+    I --> J["writer.writeFanSpeed<br/>packages/sdk/src/ble/writer.ts:88"]
 
     J --> K["WriteQueue.enqueue<br/>入队到调度器"]
-    K --> L["GattScheduler.enqueueWrite<br/>src/ble/scheduler.ts:53<br/>高优写队列 +1"]
+    K --> L["GattScheduler.enqueueWrite<br/>packages/sdk/src/ble/scheduler.ts:53<br/>高优写队列 +1"]
 
     L --> M{"自然风开启?<br/>natureWindOn === true"}
 
@@ -230,7 +230,7 @@ flowchart TD
     M -->|否| Q
 
     P --> Q["rawWrite(fanSpeedChar, [pct])"]
-    Q --> R["rawWrite 内部<br/>src/ble/writer.ts:52"]
+    Q --> R["rawWrite 内部<br/>packages/sdk/src/ble/writer.ts:52"]
 
     R --> S{"retries ≤ 3?"}
     S -->|是| T{"writeWithoutResponse<br/>可用?"}
@@ -253,7 +253,7 @@ flowchart TD
 所有写入方法遵循统一的 **乐观更新 → 调度器入队 → 重试 → 失败回滚** 模式：
 
 ```typescript
-// src/ble/manager.ts（以 writeTimer 为例）
+// packages/sdk/src/ble/manager.ts（以 writeTimer 为例）
 async writeTimer(sec: number): Promise<void> {
   this.lastWriteMs = Date.now();                    // ❶ 记录写入时间戳
   const prev = useDeviceStore.getState().timerRemainingSec; // ❷ 保存旧值
@@ -295,14 +295,14 @@ async writeTimer(sec: number): Promise<void> {
 | `writePowCHi(enable)` | POWER_STATUS (FFD2) | ASCII `POW_C_HI=0/1,` | 0=使能 |
 | `writeNatureWindCtrl(op)` | NATURE_WIND_CTRL (FFE4) | 1B `[1/2]` | 1=保存配置, 2=恢复默认 |
 | `writeBatteryClr()` | BATTERY_INFO (FFD1) | ASCII `BAT_CLR=0,` | 清除电池统计 |
-| `writePowerClr()` | POWER_CONFIG (FFD4) | ASCII `POW_CLR=0,` | 清除电源统计 |
+| `writePowerClr()` | POWER_STATUS (FFD2) | ASCII `POW_CLR=0,` | 清除电源统计 |
 | `writePowSwitch(reg, bit, en, inv)` | POWER_CONFIG (FFD4) | 读-改-写 | 位域操作 |
 | `writePowRegister(reg, byte)` | POWER_CONFIG (FFD4) | ASCII `POW_XX=byte,` | 寄存器整体写入 |
 
 ### 3.3 rawWrite 重试机制
 
 ```typescript
-// src/ble/writer.ts:52-86
+// packages/sdk/src/ble/writer.ts:52-86
 async rawWrite(
   char: BluetoothRemoteGATTCharacteristic,
   data: Uint8Array,
@@ -342,7 +342,7 @@ async rawWrite(
 自然风与手动调速/调档互斥，由 **WriteQueue** 在写入前自动处理：
 
 ```typescript
-// src/ble/writer.ts:88-100 — writeFanSpeed
+// packages/sdk/src/ble/writer.ts:88-100 — writeFanSpeed
 async writeFanSpeed(char: BluetoothRemoteGATTCharacteristic, pct: number): Promise<void> {
   await this.enqueue(async () => {
     // ❶ 检查自然风是否开启
@@ -357,7 +357,7 @@ async writeFanSpeed(char: BluetoothRemoteGATTCharacteristic, pct: number): Promi
   });
 }
 
-// src/ble/manager.ts:393-415 — writeGear 同理
+// packages/sdk/src/ble/manager.ts:393-415 — writeGear 同理
 async writeGear(gear: 0 | 1 | 2 | 3 | 4): Promise<void> {
   // ... 乐观更新 ...
   await this.writer.enqueue(async () => {
@@ -379,7 +379,7 @@ async writeGear(gear: 0 | 1 | 2 | 3 | 4): Promise<void> {
 快充配置寄存器写入需要先读取当前值，修改特定位，再整体写回：
 
 ```typescript
-// src/ble/writer.ts:102-115
+// packages/sdk/src/ble/writer.ts:102-115
 async writeRegisterBit(
   reg: PowReg,       // '1A' | '1C' | '1D' | '1E' | '2A' | '2B' | '2C'
   bit: number,       // 位号 0~7
@@ -404,7 +404,7 @@ async writeRegisterBit(
 ### 3.6 自动开机（临时行为）
 
 ```typescript
-// src/ble/manager.ts:417-443
+// packages/sdk/src/ble/manager.ts:417-443
 async writeFanSpeed(pct: number): Promise<void> {
   this.lastWriteMs = Date.now();
   const prevSpeed = useDeviceStore.getState().fanSpeed;
@@ -436,9 +436,9 @@ async writeFanSpeed(pct: number): Promise<void> {
 
 ```mermaid
 flowchart TD
-    A["connect() 成功<br/>onState('connected')"] --> B["setTimeout 1500ms<br/>src/ble/manager.ts:138"]
+    A["connect() 成功<br/>onState('connected')"] --> B["setTimeout 1500ms<br/>packages/sdk/src/ble/manager.ts:138"]
     B --> C["Step 1: readInitial()"]
-    C --> D["scheduler.enqueueRead<br/>合并读任务<br/>src/ble/manager.ts:150"]
+    C --> D["scheduler.enqueueRead<br/>合并读任务<br/>packages/sdk/src/ble/manager.ts:150"]
 
     D --> E1["timedRead(TIMER)"]
     E1 --> E2["timedRead(SPEED_CALIB)"]
@@ -467,7 +467,7 @@ flowchart TD
 **7 个特征合并读取：**
 
 ```typescript
-// src/ble/manager.ts:146-185
+// packages/sdk/src/ble/manager.ts:146-185
 private async readInitial(): Promise<void> {
   if (!this.profile) return;
 
@@ -505,7 +505,7 @@ private async readInitial(): Promise<void> {
 **曲线重试逻辑：**
 
 ```typescript
-// src/ble/manager.ts:188-209
+// packages/sdk/src/ble/manager.ts:188-209
 private async readCurveWithRetry(maxRetries = 2): Promise<void> {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -577,7 +577,7 @@ flowchart TD
 **写入抑制机制：**
 
 ```typescript
-// src/ble/manager.ts:301-354
+// packages/sdk/src/ble/manager.ts:301-354
 private async pollOnce(): Promise<void> {
   if (!this.profile) return;
 
@@ -641,7 +641,7 @@ private async pollOnce(): Promise<void> {
 所有 `char.readValue()` 调用都通过 `timedRead` 包装，自动记录操作耗时：
 
 ```typescript
-// src/ble/manager.ts:34-52
+// packages/sdk/src/ble/manager.ts:34-52
 private async timedRead(
   uuid: string,
   opType: OpRecord['type'] = 'read',  // 'read' | 'poll'
@@ -707,12 +707,12 @@ graph LR
     L -->|所有队列空| IDLE["idle"]
 ```
 
-> **源码：** `src/ble/scheduler.ts`
+> **源码：** `packages/sdk/src/ble/scheduler.ts`
 
 ### 5.2 核心数据结构
 
 ```typescript
-// src/ble/scheduler.ts
+// packages/sdk/src/ble/scheduler.ts
 export class GattScheduler {
   private writeQueue: GattTask[] = [];  // 高优先：用户写
   private readQueue: GattTask[] = [];   // 中优先：用户读
@@ -753,7 +753,7 @@ enqueuePoll<T>(task: GattTask<T>): Promise<T> {
 ### 5.4 消费循环
 
 ```typescript
-// src/ble/scheduler.ts:114-141
+// packages/sdk/src/ble/scheduler.ts:114-141
 private async loop(): Promise<void> {
   while (true) {
     let source: SchedulerStats['current'] = 'idle';
@@ -822,7 +822,7 @@ destroy(): void {
 ### 5.7 调度器与 WriteQueue 的绑定
 
 ```typescript
-// src/ble/manager.ts:54-56（构造函数）
+// packages/sdk/src/ble/manager.ts:54-56（构造函数）
 constructor() {
   this.writer.bindScheduler(this.scheduler);
 }
@@ -834,7 +834,7 @@ async connect(): Promise<void> {
   // ...
 }
 
-// src/ble/writer.ts:38-49
+// packages/sdk/src/ble/writer.ts:38-49
 enqueue<T>(task: () => Promise<T>): Promise<T> {
   if (!this.scheduler) throw new Error('WriteQueue: scheduler 未绑定');
   return new Promise<T>((resolve, reject) => {
@@ -1029,7 +1029,7 @@ flowchart TD
 ### 7.2 sendDfu 实现
 
 ```typescript
-// src/ble/manager.ts:245-275
+// packages/sdk/src/ble/manager.ts:245-275
 private sendDfu(payload: Uint8Array, timeoutMs = 3000): Promise<Uint8Array> {
   return new Promise<Uint8Array>((resolve, reject) => {
     if (!this.dfuWriteChar) {
@@ -1080,7 +1080,7 @@ private sendDfu(payload: Uint8Array, timeoutMs = 3000): Promise<Uint8Array> {
 ### 7.4 控制命令和数据载荷
 
 ```typescript
-// src/dfu/dfuProtocol.ts
+// packages/sdk/src/dfu/dfuProtocol.ts
 export const CTRL_GET_VERSION = 0x0a;  // 获取固件版本
 export const CTRL_GET_SN = 0x0f;       // 获取序列号
 // ... 其他控制命令 ...
@@ -1116,7 +1116,7 @@ export function parseSnLittleEndian(payload: Uint8Array): number {
 ### 8.1 BleMetrics Store
 
 ```typescript
-// src/stores/bleMetrics.ts
+// packages/sdk/src/stores/bleMetrics.ts
 interface BleMetricsState {
   ops: OpRecord[];              // 最近 200 条操作记录（环形）
   snapshots: SchedulerSnapshot[]; // 最近 100 个调度器快照
@@ -1322,20 +1322,20 @@ export function usePausePolling() {
 
 | 文件 | 职责 | 关键导出 |
 |------|------|----------|
-| `src/ble/manager.ts` | BLE 核心管理器：连接、读写、轮询、DFU | `BleManager` 类 |
-| `src/ble/scheduler.ts` | GATT 三队列调度器（写/读/轮询） | `GattScheduler` 类 |
-| `src/ble/writer.ts` | 写入队列：重试、自然风互斥、读-改-写 | `WriteQueue` 类 |
-| `src/ble/commands.ts` | ASCII 命令字符串与编码 | `cmd` 对象, `encodeCmd` |
-| `src/ble/parsers.ts` | 二进制数据解析器（电池/电源/电机/寄存器） | `parseBatteryInfo` 等 |
-| `src/ble/types.ts` | 类型定义：BleSnapshot, BleState, IBleManager | 接口和类型别名 |
-| `src/ble/uuids.ts` | BLE 服务和特征 UUID 常量 | `SERVICES`, `CHARS` |
-| `src/ble/profiles.ts` | 设备型号配置（W96P/W66D） | `Profile` 接口, `pickProfile` |
+| `packages/sdk/src/ble/manager.ts` | BLE 核心管理器：连接、读写、轮询、DFU | `BleManager` 类 |
+| `packages/sdk/src/ble/scheduler.ts` | GATT 三队列调度器（写/读/轮询） | `GattScheduler` 类 |
+| `packages/sdk/src/ble/writer.ts` | 写入队列：重试、自然风互斥、读-改-写 | `WriteQueue` 类 |
+| `packages/sdk/src/ble/commands.ts` | ASCII 命令字符串与编码 | `cmd` 对象, `encodeCmd` |
+| `packages/sdk/src/ble/parsers.ts` | 二进制数据解析器（电池/电源/电机/寄存器） | `parseBatteryInfo` 等 |
+| `packages/sdk/src/ble/types.ts` | 类型定义：BleSnapshot, BleState, IBleManager | 接口和类型别名 |
+| `packages/sdk/src/ble/uuids.ts` | BLE 服务和特征 UUID 常量 | `SERVICES`, `CHARS` |
+| `packages/sdk/src/ble/profiles.ts` | 设备型号配置（W96P/W66D） | `Profile` 接口, `pickProfile` |
 | `src/hooks/useBle.ts` | React Hook：单例管理、回调绑定、公共 API | `useBle()`, `usePausePolling()` |
-| `src/stores/device.ts` | 设备状态存储（Zustand） | `useDeviceStore` |
+| `packages/sdk/src/stores/device.ts` | 设备状态存储（Zustand） | `useDeviceStore` |
 | `src/stores/connection.ts` | 连接状态机（Zustand） | `useConnectionStore` |
-| `src/stores/bleMetrics.ts` | BLE 操作指标收集（Zustand） | `useBleMetrics` |
-| `src/dfu/dfuProtocol.ts` | DFU 控制命令与数据载荷定义 | `buildControlPayload`, `parseVersion`, `parseSnLittleEndian` |
-| `src/dfu/packageProtocol.ts` | DFU 帧封装/解包协议（0x55/CRC8） | `BlePackageProtocol` |
+| `packages/sdk/src/stores/bleMetrics.ts` | BLE 操作指标收集（Zustand） | `useBleMetrics` |
+| `packages/sdk/src/dfu/dfuProtocol.ts` | DFU 控制命令与数据载荷定义 | `buildControlPayload`, `parseVersion`, `parseSnLittleEndian` |
+| `packages/sdk/src/dfu/packageProtocol.ts` | DFU 帧封装/解包协议（0x55/CRC8） | `BlePackageProtocol` |
 
 ---
 

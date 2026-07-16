@@ -1,6 +1,6 @@
 # BLE 协议参考文档
 
-> 完整协议参考，面向开发者。基于 Witrn W96P/W66D 风扇控制器逆向分析，所有字段偏移和解析逻辑均来自实际代码（`src/ble/parsers.ts`）。
+> 完整协议参考，面向开发者。基于 Witrn W96P/W66D 风扇控制器逆向分析，所有字段偏移和解析逻辑均来自实际代码（`packages/sdk/src/ble/parsers.ts`）。
 
 ---
 
@@ -81,7 +81,7 @@
 | W96P | 0 ~ 100 |
 | W66D | 0 ~ 100 |
 
-> **行为注意**: 调速前若自然风开启需先关闭。V3.4+: 风扇关机时调转速，自动先开机到 1 档再调速。
+> **行为注意**: 调速前若自然风开启需先关闭。风扇关机时调转速，会自动先开机到 1 档再调速。
 
 **示例**: W96P 设 75% → `0x4B`；W66D 设 20% → `0x14`
 
@@ -276,7 +276,7 @@
 - **读取长度**: 30 字节（二进制）
 - **写入格式**: ASCII `BAT_CAP=<mWh>,`
 
-#### 读取字段（共 8 个字段，30 字节）
+#### 读取字段（共 9 个字段，30 字节）
 
 | 偏移 | 字节 | 类型 | 字段 | 含义 | 单位 |
 |------|------|------|------|------|------|
@@ -321,11 +321,11 @@ BAT_CAP=<mWh>,
 |------|------|------|------|------|------|
 | 0 ~ 3 | 4 | `uint32` BE | `vbusVmV` | VBUS 电压 | mV |
 | 4 ~ 5 | 2 | `int16` BE | `vbusCurMa` | VBUS 电流 | mA，**哨兵值 `0x7FFF` (32767) = VBUS 未接入** |
-| 6 | 1 | `uint8` | `powC` | 电路通断 | 1=开 |
-| 7 | 1 | `uint8` | `powSta` | 充放电状态 | 1=充电中 |
+| 6 | 1 | `uint8` | `powC` | 电源类型 | 0=无, 1=C口输入, 2=C口输出 |
+| 7 | 1 | `uint8` | `powSta` | 充放电状态 | 0=停止, 1=充电中, 2=放电中 |
 | 8 | 1 | `uint8` | `powCOut` | C 口输出快充 | **0=使能**，1=关闭 |
 | 9 | 1 | `uint8` | `powCIn` | C 口输入快充 | **0=使能**，1=关闭 |
-| 10 | 1 | `uint8` | `powCHi` | 保留/高压模式 | **0=使能** |
+| 10 | 1 | `uint8` | `powCHi` | C 口高压使能 | **0=使能**，1=关闭 |
 
 > **VBUS 哨兵**: VBUS 电流为 `0x7FFF` (32767) 表示 VBUS 未接入，前端显示为 0。
 > **反逻辑**: `powCOut`、`powCIn`、`powCHi` 均为 0=使能、1=关闭（即写入 0 开启功能，写入 1 关闭功能）。
@@ -616,6 +616,11 @@ POW_2C=<byte>,
 | SHUTDOWN_DELAY | FFF5 | FFF0 | R/W | 2B | hex uint16 BE |
 | GEAR_DOWN_MODE | FFF6 | FFF0 | R/W | 1B | hex 0/1 |
 | SPEED_CALIB | FFF7 | FFF0 | R/W | 4B | hex 4×% |
+| TURBO_TIME | FFF8 | FFF0 | R/W | 1B/2B | hex uint16 BE |
+| TURBO_MODE | FFFC | FFF0 | R/W | 1B | hex 0/1 |
+| LIGHT | FFFA | FFF0 | R/W | 1B | hex 0~4 |
+| TURBO_COUNTDOWN | FFFB | FFF0 | R | 2B | hex uint16 BE |
+| BLE_NAME | FFC1 | FFC0 | R/W | ≤17B | UTF-8 |
 | BATTERY_INFO | FFD1 | FFD0 | R/W | 30B / ASCII | 二进 / `BAT_CAP=`, `BAT_CLR=` |
 | POWER_STATUS | FFD2 | FFD0 | R/W | ≥11B / ASCII | 二进 / `POW_C_` |
 | MOTOR_INFO | FFD3 | FFD0 | R | ≥4B | 二进制 |
@@ -639,8 +644,8 @@ POW_2C=<byte>,
 6. **重试机制** — 单次写入失败重试最多 3 次，间隔 200ms；NATURE_CURVE（128 字节）读取额外重试 2 次
 7. **电压校验** — 电机电压 > 20000mV 视为脏数据置 0
 8. **VBUS 哨兵** — VBUS 电流为 `0x7FFF` (32767) 表示 VBUS 未接入，前端显示为 0
-9. **V3.4 开机行为** — 风扇关机时调转速，自动先开机到 1 档再调速
-10. **连接流程** — `filters: [{ name: "W96P" }]` 扫描 → 获取 PrimaryService → 缓存全部 Characteristic → 延迟 ~1.5s 读取初始状态 → 500ms 周期刷新
+9. **自动开机行为** — 风扇关机时调转速，会自动先开机到 1 档再调速
+10. **连接流程** — `filters: [{ services: [SERVICES.MAIN] }]` 扫描 → 获取 PrimaryService → 缓存全部 Characteristic → 延迟 ~1.5s 读取初始状态 → 500ms 周期刷新
 11. **断开处理** — 监听 `gattserverdisconnected`，断开时清理缓存和定时器
 
 ---

@@ -36,7 +36,7 @@
       <properties>read,write</properties>
       <value>00C7</value>
     </characteristic>
-    <characteristic uuid="0000fff9-0000-1000-8000-00805f9b34fb" name="Turbo开关(0关/1开)">
+    <characteristic uuid="0000fffc-0000-1000-8000-00805f9b34fb" name="Turbo开关(0关/1开)">
       <properties>read,write</properties>
       <value>00</value>
     </characteristic>
@@ -53,11 +53,11 @@
   <!-- ===== 电源信息服务 FFD0 ===== -->
   <service uuid="0000ffd0-0000-1000-8000-00805f9b34fb" name="W96P 电源信息">
     <characteristic uuid="0000ffd1-0000-1000-8000-00805f9b34fb" name="电池(电压+电流+容量)">
-      <properties>read,notify</properties>
+      <properties>read,write,notify</properties>
       <value></value>
     </characteristic>
     <characteristic uuid="0000ffd2-0000-1000-8000-00805f9b34fb" name="电源状态(VBUS+充电)">
-      <properties>read,notify</properties>
+      <properties>read,write,notify</properties>
       <value></value>
     </characteristic>
     <characteristic uuid="0000ffd3-0000-1000-8000-00805f9b34fb" name="电机(电流+堵转+电压)">
@@ -65,19 +65,19 @@
       <value></value>
     </characteristic>
     <characteristic uuid="0000ffd4-0000-1000-8000-00805f9b34fb" name="电源配置(温度+电量)">
-      <properties>read</properties>
+      <properties>read,write</properties>
       <value></value>
     </characteristic>
   </service>
 
   <!-- ===== 自然风曲线服务 FFE0 ===== -->
   <service uuid="0000ffe0-0000-1000-8000-00805f9b34fb" name="W96P 自然风曲线">
-    <characteristic uuid="0000ffe1-0000-1000-8000-00805f9b34fb" name="曲线校验和">
+    <characteristic uuid="0000ffe1-0000-1000-8000-00805f9b34fb" name="自然风累计点数">
       <properties>read</properties>
       <value></value>
     </characteristic>
-    <characteristic uuid="0000ffe2-0000-1000-8000-00805f9b34fb" name="每点持续时间">
-      <properties>read,write</properties>
+    <characteristic uuid="0000ffe2-0000-1000-8000-00805f9b34fb" name="自然风运行总时长">
+      <properties>read</properties>
       <value></value>
     </characteristic>
     <characteristic uuid="0000ffe3-0000-1000-8000-00805f9b34fb" name="128点风速曲线">
