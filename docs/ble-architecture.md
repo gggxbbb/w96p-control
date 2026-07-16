@@ -284,7 +284,8 @@ async writeTimer(sec: number): Promise<void> {
 | `writeTurbo(on)` | TURBO_MODE (FFFC) | 1B `[0/1]` | v1.3+，v1.6+ 由 FFF9 改为 FFFC，关机自动开 1 档 |
 | `writeTurboTime(sec)` | TURBO_TIME (FFF8) | 1B or 2B uint16 BE | v1.3=1B(1-199), v1.5+=2B(1-600) |
 | `writeLight(v)` | LIGHT (FFFA) | 1B `[v]` | v1.3+ 灯光亮度 (0=关, 1~4=低~最高) |
-| `writeBleName(name)` | BLE_NAME (FFC1) | UTF-8 string, ≤17B | v1.3+，v1.5 废弃 |
+| `writeBleName(name)` | BLE_NAME (FFC1) | ASCII `BLE_NAME=<name>,` | v1.3+，v1.5 废弃 |
+| `writeBleSn(enabled)` | BLE_NAME (FFC1) | ASCII `BLE_SN=1/0,` | v1.7+ 控制序列号后缀显示 |
 | `readTurbo()` | TURBO_MODE (FFFC) | 1B | v1.3+，v1.6+ 由 FFF9 改为 FFFC 读取 Turbo 状态 |
 | `readTurboCountdown()` | TURBO_COUNTDOWN (FFFB) | 2B uint16 BE | v1.5+ 读取剩余秒数 |
 | `readTurboTime()` | TURBO_TIME (FFF8) | 1B or 2B | 读取已设置的 Turbo 时间 |

@@ -90,9 +90,9 @@
     </characteristic>
   </service>
 
-  <!-- ===== 蓝牙名称服务 FFC0 (v1.3+, v1.5已废弃) ===== -->
-  <service uuid="0000ffc0-0000-1000-8000-00805f9b34fb" name="W96P 蓝牙名称(v1.3+,v1.5废弃)">
-    <characteristic uuid="0000ffc1-0000-1000-8000-00805f9b34fb" name="蓝牙名称(最长17字节)">
+  <!-- ===== 蓝牙配置服务 FFC0 (v1.3+, 名称修改 v1.5 废弃，保留 BLE_SN 开关 v1.7+) ===== -->
+  <service uuid="0000ffc0-0000-1000-8000-00805f9b34fb" name="W96P 蓝牙配置(v1.3+,v1.5废弃名称修改)">
+    <characteristic uuid="0000ffc1-0000-1000-8000-00805f9b34fb" name="蓝牙名称/SN配置(最长17字节)">
       <properties>read,write</properties>
       <value>57393650</value>
     </characteristic>
