@@ -61,7 +61,7 @@ export const NAV_ICONS = {
 };
 
 export const NAV_ITEMS: NavItem[] = [
-  { to: '/', label: '总览', icon: NAV_ICONS.dashboard },
+  { to: '/dashboard', label: '总览', icon: NAV_ICONS.dashboard },
   { to: '/fan', label: '风扇', icon: NAV_ICONS.fan },
   { to: '/nature-wind', label: '自然风', icon: NAV_ICONS.nature },
   { to: '/power', label: '电源', icon: NAV_ICONS.power },

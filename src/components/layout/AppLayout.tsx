@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { AppBar } from './AppBar';
 import { SideNav } from './SideNav';
 import { StatusBar } from './StatusBar';
@@ -10,6 +10,8 @@ import { usePolling } from '../../hooks/usePolling';
 export function AppLayout() {
   usePolling();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const location = useLocation();
+  const isEasy = location.pathname === '/easy' || location.pathname === '/';
 
   return (
     <div
@@ -26,12 +28,12 @@ export function AppLayout() {
     >
       <AppBar onMenuClick={() => setDrawerOpen(true)} />
       <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-        <SideNav />
+        {!isEasy && <SideNav />}
         <main
           style={{
             flex: 1,
             minWidth: 0,
-            padding: '16px',
+            padding: isEasy ? 0 : '16px',
             overflowY: 'auto',
             overflowX: 'hidden',
           }}

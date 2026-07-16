@@ -67,6 +67,8 @@ body {
 @media (max-width: 767px) {
   .menu-toggle { display: flex; }
   .device-name { display: none; }
+  .app-bar-logo-text { display: none; }
+  .app-bar { gap: 8px !important; padding: 0 10px !important; }
   .status-label { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 }
 

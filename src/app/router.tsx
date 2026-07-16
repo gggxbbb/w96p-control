@@ -1,8 +1,9 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppLayout } from '../components/layout/AppLayout';
 import { ConnGuard } from '../components/connection/ConnGuard';
 
+const Easy = lazy(() => import('../pages/easy'));
 const Dashboard = lazy(() => import('../pages/dashboard'));
 const Fan = lazy(() => import('../pages/fan'));
 const NatureWind = lazy(() => import('../pages/nature-wind'));
@@ -28,7 +29,9 @@ export const router = createBrowserRouter([
     path: '/',
     element: <AppLayout />,
     children: [
-      { index: true, element: <Suspense fallback={<Loading />}><Dashboard /></Suspense> },
+      { index: true, element: <Suspense fallback={<Loading />}><Navigate to="/easy" replace /></Suspense> },
+      { path: 'easy', element: <Suspense fallback={<Loading />}><Easy /></Suspense> },
+      { path: 'dashboard', element: <Suspense fallback={<Loading />}><Dashboard /></Suspense> },
       { path: 'fan', element: <Suspense fallback={<Loading />}><ConnGuard><Fan /></ConnGuard></Suspense> },
       { path: 'nature-wind', element: <Suspense fallback={<Loading />}><ConnGuard><NatureWind /></ConnGuard></Suspense> },
       { path: 'power', element: <Suspense fallback={<Loading />}><ConnGuard><Power /></ConnGuard></Suspense> },
