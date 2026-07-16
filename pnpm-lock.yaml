@@ -91,6 +91,8 @@ importers:
         specifier: ^4.1.9
         version: 4.1.9(@types/node@24.13.2)(jsdom@29.1.1)(vite@8.1.0(@types/node@24.13.2)(jiti@2.7.0)(terser@5.48.0))
 
+  packages/sdk: {}
+
 packages:
 
   '@adobe/css-tools@4.5.0':
@@ -1870,7 +1872,6 @@ packages:
   glob@11.1.0:
     resolution: {integrity: sha512-vuNwKSaKiqm7g0THUBu2x7ckSs3XJLXE+2ssL7/MfTGPLLcrJQ/4Uq1CjPTtO5cCIiRxqvN6Twy1qOwhL0Xjcw==}
     engines: {node: 20 || >=22}
-    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
     hasBin: true
 
   globalthis@1.0.4:

@@ -7,7 +7,7 @@
  * @deprecated DFU 模块将于未来版本移除，请勿在新代码中依赖。
  */
 
-import { calcCrc8, CRC8_TABLE, updateCrc8, CRC8_INIT } from './crc8';
+import { calcCrc8, CRC8_TABLE, updateCrc8, CRC8_INIT } from './crc8.js';
 
 /** 帧头字节 (0x55) */
 export const PACKAGE_HEAD = 0x55;

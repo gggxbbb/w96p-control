@@ -7,22 +7,24 @@
  * 同时通过 FEE0 DFU 服务查询设备序列号和固件版本（不影响正常使用）。
  */
 
-import { SERVICES, CHARS, ALL_OPTIONAL_SERVICES, OPTIONAL_CHARS } from './uuids';
-import { isCompatModel } from './profiles';
+import { SERVICES, CHARS, ALL_OPTIONAL_SERVICES, OPTIONAL_CHARS } from './uuids.js';
+import { isCompatModel } from './profiles.js';
 import {
   parseBatteryInfo, parsePowerStatus, parseMotorInfo, parsePowerConfig,
-} from './parsers';
-import { cmd, encodeCmd, type PowReg } from './commands';
-import { WriteQueue } from './writer';
-import { GattScheduler } from './scheduler';
-import type { IBleManager, BleState, BleSnapshot } from './types';
-import { useDeviceStore } from '../stores/device';
-import { useBleMetrics, type OpRecord } from '../stores/bleMetrics';
-import { BlePackageProtocol } from '../dfu/packageProtocol';
-import { buildControlPayload, parseVersion, parseSnLittleEndian, CTRL_GET_VERSION, CTRL_GET_SN } from '../dfu/dfuProtocol';
-import { getFeatures } from './features';
+} from './parsers.js';
+import { cmd, encodeCmd, type PowReg } from './commands.js';
+import { WriteQueue } from './writer.js';
+import { GattScheduler } from './scheduler.js';
+import type { GattTransport, GattDevice, GattCharacteristic, GattService } from './transport.js';
+import { WebBluetoothTransport } from './webTransport.js';
+import type { IBleManager, BleState, BleSnapshot } from './types.js';
+import type { BleMetricsCollector, OpRecord } from './metrics.js';
+import { NoOpMetricsCollector } from './metrics.js';
+import { BlePackageProtocol } from '../dfu/packageProtocol.js';
+import { buildControlPayload, parseVersion, parseSnLittleEndian, CTRL_GET_VERSION, CTRL_GET_SN } from '../dfu/dfuProtocol.js';
+import { getFeatures } from './features.js';
 
-export type { BleState, BleSnapshot } from './types';
+export type { BleState, BleSnapshot } from './types.js';
 
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 const u8 = (dv: DataView, off = 0) => dv.byteLength > off ? dv.getUint8(off) : 0;
@@ -30,15 +32,32 @@ const u16be = (dv: DataView, off = 0) =>
   dv.byteLength >= off + 2 ? dv.getUint16(off, false) : 0;
 
 export class BleManager implements IBleManager {
-  private device: BluetoothDevice | null = null;
-  private chars = new Map<string, BluetoothRemoteGATTCharacteristic>();
+  private device: GattDevice | null = null;
+  private chars = new Map<string, GattCharacteristic>();
   private scheduler = new GattScheduler('BLE');
   private writer = new WriteQueue();
-  private pollTimer: ReturnType<typeof setTimeout> | null = null;
+  private pollCancel: (() => void) | null = null;
   private pollActive = false;
   private pollIntervalMs = 1000;
   private lastWriteMs = 0;
+  private transport: GattTransport;
+  private metrics: BleMetricsCollector;
+  private snapshot: Partial<BleSnapshot> = {};
   isCompatMode = false;
+
+  constructor(transport?: GattTransport, metrics?: BleMetricsCollector) {
+    this.transport = transport ?? new WebBluetoothTransport();
+    this.metrics = metrics ?? new NoOpMetricsCollector();
+    this.scheduler = new GattScheduler('BLE', this.metrics);
+    this.writer.bindScheduler(this.scheduler, this.metrics);
+  }
+
+  // DFU query fields
+  private dfuProtocol = new BlePackageProtocol(true);
+  private dfuWriteChar: GattCharacteristic | null = null;
+  private dfuNotifyChar: GattCharacteristic | null = null;
+  private dfuPendingResolve: ((data: Uint8Array) => void) | null = null;
+  private dfuNotifyCleanup: (() => void) | null = null;
 
   /** 计时的 GATT 读取（记录 metrics） */
   private async timedRead(uuid: string, opType: OpRecord['type'] = 'read'): Promise<DataView> {
@@ -46,13 +65,13 @@ export class BleManager implements IBleManager {
     const charId = uuid.slice(4, 8);
     try {
       const v = await this.chars.get(uuid)!.readValue();
-      useBleMetrics.getState().recordOp({
+      this.metrics.recordOp({
         ts: t0, type: opType, charId, size: v.byteLength,
         duration: Math.round(performance.now() - t0),
       });
       return new DataView(v.buffer);
     } catch (e) {
-      useBleMetrics.getState().recordOp({
+      this.metrics.recordOp({
         ts: t0, type: opType, charId, size: 0,
         duration: Math.round(performance.now() - t0),
         error: String(e instanceof Error ? e.message : e),
@@ -61,30 +80,25 @@ export class BleManager implements IBleManager {
     }
   }
 
-  constructor() {
-    this.writer.bindScheduler(this.scheduler);
-  }
-
-  // DFU query fields
-  private dfuProtocol = new BlePackageProtocol(true);
-  private dfuWriteChar: BluetoothRemoteGATTCharacteristic | null = null;
-  private dfuNotifyChar: BluetoothRemoteGATTCharacteristic | null = null;
-  private dfuPendingResolve: ((data: Uint8Array) => void) | null = null;
-  private dfuNotifyCleanup: (() => void) | null = null;
-
   onState?: (s: BleState, deviceName?: string, _isCompat?: boolean) => void;
   onSnapshot?: (snap: BleSnapshot) => void;
   onError?: (msg: string) => void;
 
+  /** Update internal snapshot and forward to consumer callback */
+  private emitSnapshot(snap: Partial<BleSnapshot>): void {
+    this.snapshot = { ...this.snapshot, ...snap };
+    this.onSnapshot?.(snap as BleSnapshot);
+  }
+
   /** 建立 BLE 连接，发现所有 GATT 特征并执行初始读取 */
   async connect(): Promise<void> {
     // 确保重连后调度器与写入队列已绑定（cleanup 可能已销毁旧 scheduler 并创建新 writer）
-    this.scheduler = new GattScheduler('BLE');
-    this.writer.bindScheduler(this.scheduler);
+    this.scheduler = new GattScheduler('BLE', this.metrics);
+    this.writer.bindScheduler(this.scheduler, this.metrics);
 
     this.onState?.('connecting');
     try {
-      this.device = await navigator.bluetooth.requestDevice({
+      this.device = await this.transport.requestDevice({
         filters: [{ services: [SERVICES.MAIN] }],
         optionalServices: ALL_OPTIONAL_SERVICES,
       });
@@ -138,9 +152,8 @@ export class BleManager implements IBleManager {
           this.dfuNotifyChar = await dfuSvc.getCharacteristic(CHARS.DFU_NOTIFY);
           await this.dfuNotifyChar.startNotifications();
           console.log('[BLE] DFU 服务已就绪 (FEE0)');
-          const onDfuNotify = (event: Event) => {
-            const target = event.target as BluetoothRemoteGATTCharacteristic;
-            const value = target.value;
+          const onDfuNotify = (event: { value: DataView }) => {
+            const value = event.value;
             if (!value) return;
             const raw = new Uint8Array(value.buffer, 0, value.byteLength);
             const payloads = this.dfuProtocol.onReceive(raw);
@@ -174,7 +187,7 @@ export class BleManager implements IBleManager {
   }
 
   /** 通过读取 FFD3 字节长度检测兼容模式 */
-  private async detectCompatMode(powerSvc: BluetoothRemoteGATTService): Promise<void> {
+  private async detectCompatMode(powerSvc: GattService): Promise<void> {
     try {
       const motorChar = await powerSvc.getCharacteristic(CHARS.MOTOR_INFO);
       const dv = new DataView((await motorChar.readValue()).buffer);
@@ -204,7 +217,7 @@ export class BleManager implements IBleManager {
         const gdmDv = gdm;
         const sdDv = sd;
         this.writer.setNatureWindOn(u8(nwDv) === 1);
-        this.onSnapshot?.({
+        this.emitSnapshot({
           timerRemainingSec: u16be(timerDv),
           speedCalib: [
             u8(calibDv, 0), u8(calibDv, 1), u8(calibDv, 2), u8(calibDv, 3),
@@ -230,7 +243,7 @@ export class BleManager implements IBleManager {
     if (this.chars.has(CHARS.BLE_NAME)) {
       try {
         const snEnabled = await this.readBleSn?.();
-        this.onSnapshot?.({ bleSnEnabled: snEnabled });
+        this.emitSnapshot({ bleSnEnabled: snEnabled });
         console.log('[BLE] BLE_SN 状态已读取:', snEnabled);
       } catch {
         console.log('[BLE] BLE_SN 状态读取失败（可能固件不支持）');
@@ -247,7 +260,7 @@ export class BleManager implements IBleManager {
           const dv = v;
           const pts: number[] = [];
           for (let i = 0; i < dv.byteLength; i++) pts.push(u8(dv, i));
-          this.onSnapshot?.({ natureCurve: pts });
+          this.emitSnapshot({ natureCurve: pts });
           console.log('[BLE] 自然风曲线读取完成, ' + pts.length + ' 点');
         });
         return;
@@ -272,7 +285,7 @@ export class BleManager implements IBleManager {
       const ver = parseVersion(verPayload);
       if (ver !== 'unknown') {
         console.log('[BLE] 固件版本: ' + ver);
-        this.onSnapshot?.({ firmwareVersion: ver });
+        this.emitSnapshot({ firmwareVersion: ver });
       } else {
         console.log('[BLE] GET_VERSION 解析失败, raw:', Array.from(verPayload).map(b => b.toString(16)).join(' '));
       }
@@ -286,7 +299,7 @@ export class BleManager implements IBleManager {
       const sn = parseSnLittleEndian(snPayload);
       if (sn >= 0) {
         console.log('[BLE] 序列号: ' + sn);
-        this.onSnapshot?.({ serialNumber: String(sn) });
+        this.emitSnapshot({ serialNumber: String(sn) });
       } else {
         console.log('[BLE] GET_SN 解析失败, raw:', Array.from(snPayload).map(b => b.toString(16)).join(' '));
       }
@@ -318,7 +331,7 @@ export class BleManager implements IBleManager {
       const frame = this.dfuProtocol.pack(payload);
       console.log('[BLE] DFU 发送命令:', Array.from(payload).map(b => b.toString(16).padStart(2, '0')).join(' '));
       this.scheduler.enqueueWrite(async () => {
-        await this.dfuWriteChar!.writeValueWithoutResponse(frame as BufferSource);
+        await this.dfuWriteChar!.writeValueWithoutResponse(frame);
       }).catch((e) => {
         clearTimeout(timeout);
         this.dfuPendingResolve = null;
@@ -340,19 +353,20 @@ export class BleManager implements IBleManager {
   /** 停止轮询 */
   stopPolling(): void {
     this.pollActive = false;
-    if (this.pollTimer !== null) {
+    if (this.pollCancel !== null) {
       console.log('[BLE] 停止轮询');
-      clearTimeout(this.pollTimer);
-      this.pollTimer = null;
+      this.pollCancel();
+      this.pollCancel = null;
     }
   }
 
   private scheduleNextPoll(): void {
     if (!this.pollActive) return;
-    this.pollTimer = setTimeout(() => {
-      this.pollTimer = null;
+    const timer = setTimeout(() => {
+      this.pollCancel = null;
       void this.pollOnce();
     }, this.pollIntervalMs);
+    this.pollCancel = () => clearTimeout(timer);
   }
 
   private async pollOnce(): Promise<void> {
@@ -390,7 +404,7 @@ export class BleManager implements IBleManager {
         this.writer.setNatureWindOn(natureOn);
 
         if (this.lastWriteMs <= writeTsBefore) {
-          this.onSnapshot?.({
+          this.emitSnapshot({
             fanSpeed: u8(speedDv),
             battery: parseBatteryInfo(batDv),
             powerStatus: parsePowerStatus(pwrDv),
@@ -407,7 +421,7 @@ export class BleManager implements IBleManager {
       console.log('[BLE] 轮询失败:', e);
       this.onError?.(String(e instanceof Error ? e.message : e));
     } finally {
-      useBleMetrics.getState().recordSnapshot({
+      this.metrics.recordSnapshot({
         ts: performance.now(),
         ...this.scheduler.getStats(),
       });
@@ -458,11 +472,11 @@ export class BleManager implements IBleManager {
   /** 设置风扇档位 (0=关, 1-4=档位) */
   async writeGear(gear: 0 | 1 | 2 | 3 | 4): Promise<void> {
     this.lastWriteMs = Date.now();
-    const prevNw = useDeviceStore.getState().natureWindOn;
-    const prevSpeed = useDeviceStore.getState().fanSpeed;
-    const calib = useDeviceStore.getState().speedCalib;
+    const prevNw = this.snapshot.natureWindOn ?? false;
+    const prevSpeed = this.snapshot.fanSpeed ?? 0;
+    const calib = this.snapshot.speedCalib ?? [10, 35, 70, 100];
     const targetSpeed = gear === 0 ? 0 : calib[gear - 1];
-    this.onSnapshot?.({ fanSpeed: targetSpeed, natureWindOn: false });
+    this.emitSnapshot({ fanSpeed: targetSpeed, natureWindOn: false });
     try {
       const char = this.chars.get(CHARS.POWER)!;
       await this.writer.enqueue(async () => {
@@ -475,17 +489,17 @@ export class BleManager implements IBleManager {
       });
     } catch (e) {
       console.log('[BLE] writeGear 失败:', e);
-      this.onSnapshot?.({ fanSpeed: prevSpeed, natureWindOn: prevNw });
+      this.emitSnapshot({ fanSpeed: prevSpeed, natureWindOn: prevNw });
     }
   }
 
   /** 设置风扇转速 (0-100) */
   async writeFanSpeed(pct: number): Promise<void> {
     this.lastWriteMs = Date.now();
-    const prevSpeed = useDeviceStore.getState().fanSpeed;
-    const prevNw = useDeviceStore.getState().natureWindOn;
+    const prevSpeed = this.snapshot.fanSpeed ?? 0;
+    const prevNw = this.snapshot.natureWindOn ?? false;
 
-    const features = getFeatures(useDeviceStore.getState().firmwareVersion);
+    const features = getFeatures(this.snapshot.firmwareVersion ?? null);
     if (features.has('autoBootOnSpeed') && prevSpeed === 0 && pct > 0) {
       try {
         console.log('[BLE] 未开机, 先手动开机');
@@ -495,22 +509,22 @@ export class BleManager implements IBleManager {
       }
     }
 
-    this.onSnapshot?.({ fanSpeed: pct, natureWindOn: false });
+    this.emitSnapshot({ fanSpeed: pct, natureWindOn: false });
     try {
       const char = this.chars.get(CHARS.FAN_SPEED)!;
       await this.writer.writeFanSpeed(char, pct);
     } catch (e) {
       console.log('[BLE] writeFanSpeed 失败:', e);
-      this.onSnapshot?.({ fanSpeed: prevSpeed, natureWindOn: prevNw });
+      this.emitSnapshot({ fanSpeed: prevSpeed, natureWindOn: prevNw });
     }
   }
 
   /** 设置自然风开关 */
   async writeNatureWind(on: boolean): Promise<void> {
     this.lastWriteMs = Date.now();
-    const prevNw = useDeviceStore.getState().natureWindOn;
+    const prevNw = this.snapshot.natureWindOn ?? false;
     this.writer.setNatureWindOn(on);
-    this.onSnapshot?.({ natureWindOn: on });
+    this.emitSnapshot({ natureWindOn: on });
     try {
       const char = this.chars.get(CHARS.NATURE_WIND)!;
       await this.writer.enqueue(async () => {
@@ -519,15 +533,15 @@ export class BleManager implements IBleManager {
     } catch (e) {
       console.log('[BLE] writeNatureWind 失败:', e);
       this.writer.setNatureWindOn(prevNw);
-      this.onSnapshot?.({ natureWindOn: prevNw });
+      this.emitSnapshot({ natureWindOn: prevNw });
     }
   }
 
   /** 设置定时（秒），0=取消定时 */
   async writeTimer(sec: number): Promise<void> {
     this.lastWriteMs = Date.now();
-    const prev = useDeviceStore.getState().timerRemainingSec;
-    this.onSnapshot?.({ timerRemainingSec: sec });
+    const prev = this.snapshot.timerRemainingSec ?? 0;
+    this.emitSnapshot({ timerRemainingSec: sec });
     try {
       const char = this.chars.get(CHARS.TIMER)!;
       await this.writer.enqueue(async () => {
@@ -537,15 +551,15 @@ export class BleManager implements IBleManager {
       });
     } catch (e) {
       console.log('[BLE] writeTimer 失败:', e);
-      this.onSnapshot?.({ timerRemainingSec: prev });
+      this.emitSnapshot({ timerRemainingSec: prev });
     }
   }
 
   /** 设置关机延时（秒） */
   async writeShutdownDelay(sec: number): Promise<void> {
     this.lastWriteMs = Date.now();
-    const prev = useDeviceStore.getState().shutdownDelaySec;
-    this.onSnapshot?.({ shutdownDelaySec: sec });
+    const prev = this.snapshot.shutdownDelaySec ?? 0;
+    this.emitSnapshot({ shutdownDelaySec: sec });
     try {
       const char = this.chars.get(CHARS.SHUTDOWN_DELAY)!;
       await this.writer.enqueue(async () => {
@@ -555,15 +569,15 @@ export class BleManager implements IBleManager {
       });
     } catch (e) {
       console.log('[BLE] writeShutdownDelay 失败:', e);
-      this.onSnapshot?.({ shutdownDelaySec: prev });
+      this.emitSnapshot({ shutdownDelaySec: prev });
     }
   }
 
   /** 设置降档模式 */
   async writeGearDownMode(mode: 0 | 1): Promise<void> {
     this.lastWriteMs = Date.now();
-    const prev = useDeviceStore.getState().gearDownMode;
-    this.onSnapshot?.({ gearDownMode: mode });
+    const prev = this.snapshot.gearDownMode ?? 0;
+    this.emitSnapshot({ gearDownMode: mode });
     try {
       const char = this.chars.get(CHARS.GEAR_DOWN_MODE)!;
       await this.writer.enqueue(async () => {
@@ -571,15 +585,15 @@ export class BleManager implements IBleManager {
       });
     } catch (e) {
       console.log('[BLE] writeGearDownMode 失败:', e);
-      this.onSnapshot?.({ gearDownMode: prev });
+      this.emitSnapshot({ gearDownMode: prev });
     }
   }
 
   /** 设置档位风速校准 */
   async writeSpeedCalib(speeds: [number, number, number, number]): Promise<void> {
     this.lastWriteMs = Date.now();
-    const prev = useDeviceStore.getState().speedCalib;
-    this.onSnapshot?.({ speedCalib: speeds });
+    const prev = this.snapshot.speedCalib ?? [10, 35, 70, 100];
+    this.emitSnapshot({ speedCalib: speeds });
     try {
       const char = this.chars.get(CHARS.SPEED_CALIB)!;
       await this.writer.enqueue(async () => {
@@ -592,7 +606,7 @@ export class BleManager implements IBleManager {
       });
     } catch (e) {
       console.log('[BLE] writeSpeedCalib 失败:', e);
-      this.onSnapshot?.({ speedCalib: prev });
+      this.emitSnapshot({ speedCalib: prev });
     }
   }
 
@@ -600,8 +614,8 @@ export class BleManager implements IBleManager {
   async writeNatureCurve(points: number[]): Promise<void> {
     this.lastWriteMs = Date.now();
     if (points.length !== 128) throw new Error('自然风曲线必须 128 点');
-    const prev = useDeviceStore.getState().natureCurve;
-    this.onSnapshot?.({ natureCurve: points });
+    const prev = this.snapshot.natureCurve ?? [];
+    this.emitSnapshot({ natureCurve: points });
     try {
       const char = this.chars.get(CHARS.NATURE_CURVE)!;
       await this.writer.enqueue(async () => {
@@ -611,7 +625,7 @@ export class BleManager implements IBleManager {
       });
     } catch (e) {
       console.log('[BLE] writeNatureCurve 失败:', e);
-      this.onSnapshot?.({ natureCurve: prev });
+      this.emitSnapshot({ natureCurve: prev });
     }
   }
 
@@ -741,7 +755,7 @@ export class BleManager implements IBleManager {
     try {
       const char = this.chars.get(CHARS.TURBO_TIME);
       if (!char) throw new Error('Turbo 时间不支持');
-      const features = getFeatures(useDeviceStore.getState().firmwareVersion);
+      const features = getFeatures(this.snapshot.firmwareVersion ?? null);
       const twoByte = features.has('turbo2Byte');
       await this.writer.enqueue(async () => {
         if (twoByte) {
@@ -794,7 +808,7 @@ export class BleManager implements IBleManager {
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, encodeCmd(cmd.bleSn(enabled)));
       });
-      this.onSnapshot?.({ bleSnEnabled: enabled });
+      this.emitSnapshot({ bleSnEnabled: enabled });
     } catch (e) {
       console.log('[BLE] writeBleSn 失败:', e);
     }

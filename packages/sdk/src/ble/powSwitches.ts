@@ -5,7 +5,7 @@
  * 包括布尔开关位 (POW_SWITCHES) 和多选位域 (POW_SEGS)。
  */
 
-import type { PowReg } from './commands';
+import type { PowReg } from './commands.js';
 
 /** 开关位定义 */
 export interface PowSwitchDef {

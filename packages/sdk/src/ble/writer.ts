@@ -5,25 +5,28 @@
  * 处理自然风/风扇写入冲突（写入转速前自动关闭自然风）。
  */
 
-import type { PowReg } from './commands';
-import { cmd, encodeCmd } from './commands';
-import type { GattScheduler } from './scheduler';
-import { useBleMetrics } from '../stores/bleMetrics';
+import type { PowReg } from './commands.js';
+import { cmd, encodeCmd } from './commands.js';
+import type { GattCharacteristic } from './transport.js';
+import type { GattScheduler } from './scheduler.js';
+import type { BleMetricsCollector } from './metrics.js';
 
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
 export class WriteQueue {
   private scheduler: GattScheduler | null = null;
   private natureWindOn = false;
-  private _natureChar: BluetoothRemoteGATTCharacteristic | null = null;
-  private regChar: BluetoothRemoteGATTCharacteristic | null = null;
+  private _natureChar: GattCharacteristic | null = null;
+  private regChar: GattCharacteristic | null = null;
+  private metrics: BleMetricsCollector | null = null;
 
   /** 绑定调度器，此后所有写入通过调度器的高优写队列执行 */
-  bindScheduler(s: GattScheduler): void {
+  bindScheduler(s: GattScheduler, metrics?: BleMetricsCollector): void {
     this.scheduler = s;
+    if (metrics) this.metrics = metrics;
   }
 
-  get natureChar(): BluetoothRemoteGATTCharacteristic | null {
+  get natureChar(): GattCharacteristic | null {
     return this._natureChar;
   }
 
@@ -31,11 +34,11 @@ export class WriteQueue {
     return this.natureWindOn;
   }
 
-  setNatureWindChar(c: BluetoothRemoteGATTCharacteristic) {
+  setNatureWindChar(c: GattCharacteristic) {
     this._natureChar = c;
   }
 
-  setRegChar(c: BluetoothRemoteGATTCharacteristic) {
+  setRegChar(c: GattCharacteristic) {
     this.regChar = c;
   }
 
@@ -64,7 +67,7 @@ export class WriteQueue {
    * @param retries - 最大重试次数
    */
   async rawWrite(
-    char: BluetoothRemoteGATTCharacteristic,
+    char: GattCharacteristic,
     data: Uint8Array,
     retries = 3,
   ): Promise<void> {
@@ -75,11 +78,11 @@ export class WriteQueue {
       try {
         console.log('[BLE] 写入 ' + charId + ' (' + data.length + 'B): ' + hex);
         if (char.properties.writeWithoutResponse) {
-          await char.writeValueWithoutResponse(data as BufferSource);
+          await char.writeValueWithoutResponse(data);
         } else {
-          await char.writeValue(data as BufferSource);
+          await char.writeValue(data);
         }
-        useBleMetrics.getState().recordOp({
+        this.metrics?.recordOp({
           ts: t0, type: 'write', charId, size: data.length,
           duration: Math.round(performance.now() - t0),
         });
@@ -87,7 +90,7 @@ export class WriteQueue {
       } catch (e) {
         if (i === retries - 1) {
           console.log('[BLE] rawWrite 最终失败（已重试' + retries + '次）:', e);
-          useBleMetrics.getState().recordOp({
+          this.metrics?.recordOp({
             ts: t0, type: 'write', charId, size: data.length,
             duration: Math.round(performance.now() - t0),
             error: String(e instanceof Error ? e.message : e),
@@ -105,7 +108,7 @@ export class WriteQueue {
    * @param pct - 转速百分比 0-100
    */
   async writeFanSpeed(
-    char: BluetoothRemoteGATTCharacteristic,
+    char: GattCharacteristic,
     pct: number,
   ): Promise<void> {
     await this.enqueue(async () => {

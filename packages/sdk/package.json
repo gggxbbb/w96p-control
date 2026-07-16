@@ -1,6 +1,6 @@
 {
   "name": "@gggxbbb/w96p-ble-sdk",
-  "version": "17.0.3",
+  "version": "18.0.0",
   "private": false,
   "description": "W96P/W66D BLE fan protocol SDK",
   "homepage": "https://github.com/gggxbbb/w96p-control/tree/main/packages/sdk",
@@ -23,11 +23,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "dependencies": {
-    "zustand": "^5.0.14"
-  },
+  "dependencies": {},
   "devDependencies": {},
-  "peerDependencies": {
-    "zustand": "^5.0.0"
-  }
+  "peerDependencies": {}
 }

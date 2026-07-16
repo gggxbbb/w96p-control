@@ -1,6 +1,6 @@
 # @gggxbbb/w96p-ble-sdk
 
-W96P / W66D BLE 风扇协议 SDK，零外部依赖（仅 Zustand）。
+W96P / W66D BLE 风扇协议 SDK，零外部依赖。
 
 ## 安装
 
@@ -9,6 +9,8 @@ npm install @gggxbbb/w96p-ble-sdk
 ```
 
 ## 使用
+
+浏览器环境直接使用默认的 Web Bluetooth transport：
 
 ```ts
 import { BleManager } from '@gggxbbb/w96p-ble-sdk';
@@ -34,6 +36,40 @@ await mgr.writeNatureWind(true);
 
 // 断开
 mgr.disconnect();
+```
+
+### 自定义 Transport
+
+`BleManager` 通过 GATT transport 抽象与底层 BLE 解耦。在 Node.js 等环境中可注入自定义 transport：
+
+```ts
+import { BleManager } from '@gggxbbb/w96p-ble-sdk';
+import type { GattTransport } from '@gggxbbb/w96p-ble-sdk';
+
+const myTransport: GattTransport = {
+  async requestDevice(options) {
+    // 返回 GattDevice 实现
+  }
+};
+
+const mgr = new BleManager(myTransport);
+```
+
+### 自定义 Metrics Collector
+
+SDK 默认不记录 GATT 指标。如需收集调度器状态和操作耗时，可注入 `BleMetricsCollector`：
+
+```ts
+import { BleManager, NoOpMetricsCollector } from '@gggxbbb/w96p-ble-sdk';
+import type { BleMetricsCollector } from '@gggxbbb/w96p-ble-sdk';
+
+const metrics: BleMetricsCollector = {
+  recordOp: (op) => console.log(op),
+  recordSnapshot: (snap) => console.log(snap),
+  setSchedulerState: (state) => console.log(state),
+};
+
+const mgr = new BleManager(undefined, metrics);
 ```
 
 ### 虚拟设备（无需蓝牙）
@@ -62,10 +98,29 @@ const curve = synthesizeLayers(128, layers);
 
 | 接口 | 说明 |
 |------|------|
-| `BleManager` | Web Bluetooth 连接管理器 |
+| `BleManager` | GATT 连接管理器（默认 Web Bluetooth） |
 | `VirtualManager` | 虚拟设备（开发调试） |
 | `IBleManager` | 管理器接口 |
 | `BleSnapshot` | 设备状态快照 |
+
+### Transport 抽象
+
+| 接口 | 说明 |
+|------|------|
+| `GattTransport` | 设备扫描入口 |
+| `GattDevice` | BLE 设备抽象 |
+| `GattService` | GATT 服务抽象 |
+| `GattCharacteristic` | GATT 特征抽象 |
+| `WebBluetoothTransport` | 浏览器 Web Bluetooth 实现 |
+
+### Metrics
+
+| 接口/类 | 说明 |
+|------|------|
+| `BleMetricsCollector` | GATT 操作与调度器状态收集器接口 |
+| `NoOpMetricsCollector` | 默认空实现 |
+| `OpRecord` | 单次 GATT 操作记录 |
+| `SchedulerSnapshot` | 调度器状态快照 |
 
 ### 解析 & 命令
 
@@ -110,6 +165,7 @@ const curve = synthesizeLayers(128, layers);
 
 | SDK | 固件 | 说明 |
 |-----|------|------|
+| `18.x.y` | 1.8 | Transport 抽象、Metrics 注入、移除 Zustand 依赖 |
 | `17.x.y` | 1.7 | Turbo, BLE_SN, 灯光控制 |
 
 ## 许可

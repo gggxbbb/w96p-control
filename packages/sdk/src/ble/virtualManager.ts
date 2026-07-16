@@ -8,11 +8,11 @@
  * 可无缝替换用于开发测试。
  */
 
-import type { IBleManager, BleState, BleSnapshot } from './types';
-import type { BatteryInfo, PowerStatus, MotorInfo, PowerConfigRegs } from './parsers';
-import type { PowReg } from './commands';
-import { DEFAULT_CURVE } from '../lib/curvePresets';
-import { DEFAULT_SPEEDS_FULL, DEFAULT_SPEEDS_COMPAT } from './profiles';
+import type { IBleManager, BleState, BleSnapshot } from './types.js';
+import type { BatteryInfo, PowerStatus, MotorInfo, PowerConfigRegs } from './parsers.js';
+import type { PowReg } from './commands.js';
+import { DEFAULT_CURVE } from '../lib/curvePresets.js';
+import { DEFAULT_SPEEDS_FULL, DEFAULT_SPEEDS_COMPAT } from './profiles.js';
 
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
@@ -90,9 +90,9 @@ export class VirtualManager implements IBleManager {
 
   startPolling(intervalMs: number): void {
     if (this.pollId !== null) clearInterval(this.pollId);
-    this.pollId = window.setInterval(() => { void this.pollOnce(); }, intervalMs);
+    this.pollId = setInterval(() => { void this.pollOnce(); }, intervalMs);
     if (this.timerInterval !== null) clearInterval(this.timerInterval);
-    this.timerInterval = window.setInterval(() => {
+    this.timerInterval = setInterval(() => {
       if (this.timerRemainingSec > 0) {
         this.timerRemainingSec--;
       }

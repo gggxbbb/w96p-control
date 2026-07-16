@@ -9,7 +9,7 @@
 
 type GattTask<T = unknown> = () => Promise<T>;
 
-import { useBleMetrics } from '../stores/bleMetrics';
+import type { BleMetricsCollector } from './metrics.js';
 
 /** 调度器统计快照 */
 export interface SchedulerStats {
@@ -31,9 +31,13 @@ export class GattScheduler {
   private pollQueue: GattTask[] = [];
   private running = false;
   private currentTask: SchedulerStats['current'] = 'idle';
+  private metrics: BleMetricsCollector | null = null;
 
-  constructor(_label = 'GATT') {
-    // label reserved for future use (multi-instance logging)
+  constructor(
+    _label = 'GATT',
+    metrics?: BleMetricsCollector,
+  ) {
+    this.metrics = metrics ?? null;
   }
 
   /** 当前待处理的轮询读任务数（外部用于判断是否可进入下一轮询周期） */
@@ -56,38 +60,38 @@ export class GattScheduler {
 
   /** 提交用户写任务（最高优先级） */
   enqueueWrite<T>(task: GattTask<T>): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-      this.writeQueue.push(async () => {
-        try { resolve(await task()); }
-        catch (e) { reject(e); }
-      });
-      console.log(`[调度器] +写 | ${this.stateSummary()}`);
-      this.kick();
+    const { promise, resolve, reject } = Promise.withResolvers<T>();
+    this.writeQueue.push(async () => {
+      try { resolve(await task()); }
+      catch (e) { reject(e); }
     });
+    console.log(`[调度器] +写 | ${this.stateSummary()}`);
+    this.kick();
+    return promise;
   }
 
   /** 提交用户读任务（中等优先级） */
   enqueueRead<T>(task: GattTask<T>): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-      this.readQueue.push(async () => {
-        try { resolve(await task()); }
-        catch (e) { reject(e); }
-      });
-      console.log(`[调度器] +读 | ${this.stateSummary()}`);
-      this.kick();
+    const { promise, resolve, reject } = Promise.withResolvers<T>();
+    this.readQueue.push(async () => {
+      try { resolve(await task()); }
+      catch (e) { reject(e); }
     });
+    console.log(`[调度器] +读 | ${this.stateSummary()}`);
+    this.kick();
+    return promise;
   }
 
   /** 提交轮询读任务（最低优先级） */
   enqueuePoll<T>(task: GattTask<T>): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-      this.pollQueue.push(async () => {
-        try { resolve(await task()); }
-        catch (e) { reject(e); }
-      });
-      console.log(`[调度器] +轮询 | ${this.stateSummary()}`);
-      this.kick();
+    const { promise, resolve, reject } = Promise.withResolvers<T>();
+    this.pollQueue.push(async () => {
+      try { resolve(await task()); }
+      catch (e) { reject(e); }
     });
+    console.log(`[调度器] +轮询 | ${this.stateSummary()}`);
+    this.kick();
+    return promise;
   }
 
   /** 停止调度器并清空所有队列 */
@@ -134,14 +138,14 @@ export class GattScheduler {
       if (!task) break;
 
       this.currentTask = source;
-      useBleMetrics.getState().setSchedulerState(source);
+      this.metrics?.setSchedulerState(source);
       const label = source === 'write' ? '写' : source === 'read' ? '读' : '轮询';
       console.log(`[调度器] 执行 ${label} | 剩余 ${this.stateSummary()}`);
       await task();
     }
     this.currentTask = 'idle';
     this.running = false;
-    useBleMetrics.getState().setSchedulerState('idle');
+    this.metrics?.setSchedulerState('idle');
     console.log(`[调度器] 空闲`);
   }
 }

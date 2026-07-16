@@ -7,8 +7,10 @@
  * @deprecated DFU 模块将于未来版本移除，请勿在新代码中依赖。
  */
 
-import { DFU_SERVICE, DFU_WRITE, DFU_NOTIFY } from '../ble/uuids';
-import { BlePackageProtocol } from './packageProtocol';
+/// <reference types="web-bluetooth" />
+
+import { DFU_SERVICE, DFU_WRITE, DFU_NOTIFY } from '../ble/uuids.js';
+import { BlePackageProtocol } from './packageProtocol.js';
 
 /** DFU 日志回调 */
 export type DfuLogFn = (msg: string, level?: 'info' | 'warn' | 'error' | 'success') => void;

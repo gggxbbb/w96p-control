@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { BleManager, VirtualManager } from '@gggxbbb/w96p-ble-sdk';
-import type { IBleManager, PowReg } from '@gggxbbb/w96p-ble-sdk';
+import type { IBleManager, PowReg, BleMetricsCollector } from '@gggxbbb/w96p-ble-sdk';
 import { useConnectionStore } from '../stores/connection';
 import { useDeviceStore } from '../stores/device';
+import { useBleMetrics } from '../stores/bleMetrics';
 import { useSettingsStore } from '../stores/settings';
 import { useToastStore } from '../stores/toast';
 
@@ -39,9 +40,15 @@ function teardown(m: IBleManager) {
   m.disconnect();
 }
 
+const metricsBridge: BleMetricsCollector = {
+  recordOp: (op) => useBleMetrics.getState().recordOp(op),
+  recordSnapshot: (snap) => useBleMetrics.getState().recordSnapshot(snap),
+  setSchedulerState: (state) => useBleMetrics.getState().setSchedulerState(state),
+};
+
 function getManager(): IBleManager {
   if (!managerInstance) {
-    managerInstance = new BleManager();
+    managerInstance = new BleManager(undefined, metricsBridge);
     bindCallbacks(managerInstance);
   }
   return managerInstance;

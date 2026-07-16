@@ -2,8 +2,8 @@
  * BLE 核心类型定义
  */
 
-import type { BatteryInfo, PowerStatus, MotorInfo, PowerConfigRegs } from './parsers';
-import type { PowReg } from './commands';
+import type { BatteryInfo, PowerStatus, MotorInfo, PowerConfigRegs } from './parsers.js';
+import type { PowReg } from './commands.js';
 
 /** BLE 连接状态 */
 export type BleState = 'idle' | 'connecting' | 'connected' | 'error';

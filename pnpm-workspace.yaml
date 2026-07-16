@@ -1,0 +1,6 @@
+packages:
+  - 'packages/*'
+allowBuilds:
+  '@abandonware/bluetooth-hci-socket': true
+  '@abandonware/noble': true
+  usb: true
