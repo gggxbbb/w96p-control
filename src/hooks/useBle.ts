@@ -62,8 +62,9 @@ export function useBle() {
     }
     if (!managerInstance) {
       managerInstance = new BleManager();
-      bindCallbacks(managerInstance);
     }
+    // 重连时 manager 的回调可能已被 cleanup() 清空，必须重新绑定
+    bindCallbacks(managerInstance);
     isVirtual = false;
     setIsVirtualDevice(false);
     void managerInstance.connect();

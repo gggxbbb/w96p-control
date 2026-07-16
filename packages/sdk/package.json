@@ -1,6 +1,6 @@
 {
   "name": "@gggxbbb/w96p-ble-sdk",
-  "version": "17.0.2",
+  "version": "17.0.3",
   "private": false,
   "description": "W96P/W66D BLE fan protocol SDK",
   "homepage": "https://github.com/gggxbbb/w96p-control/tree/main/packages/sdk",

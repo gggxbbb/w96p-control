@@ -619,7 +619,7 @@ export class BleManager implements IBleManager {
     this.lastWriteMs = Date.now();
     const mwh = Math.round(mah * v);
     try {
-      const char = this.chars.get(CHARS.POWER_CONFIG)!;
+      const char = this.chars.get(CHARS.BATTERY_INFO)!;
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, encodeCmd(cmd.setBatteryCapacity(mwh)));
       });
@@ -631,7 +631,7 @@ export class BleManager implements IBleManager {
   async writePowCOut(enable: boolean): Promise<void> {
     this.lastWriteMs = Date.now();
     try {
-      const char = this.chars.get(CHARS.POWER_CONFIG)!;
+      const char = this.chars.get(CHARS.POWER_STATUS)!;
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, encodeCmd(cmd.setPowCOut(enable)));
       });
@@ -643,7 +643,7 @@ export class BleManager implements IBleManager {
   async writePowCIn(enable: boolean): Promise<void> {
     this.lastWriteMs = Date.now();
     try {
-      const char = this.chars.get(CHARS.POWER_CONFIG)!;
+      const char = this.chars.get(CHARS.POWER_STATUS)!;
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, encodeCmd(cmd.setPowCIn(enable)));
       });
@@ -655,7 +655,7 @@ export class BleManager implements IBleManager {
   async writePowCHi(enable: boolean): Promise<void> {
     this.lastWriteMs = Date.now();
     try {
-      const char = this.chars.get(CHARS.POWER_CONFIG)!;
+      const char = this.chars.get(CHARS.POWER_STATUS)!;
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, encodeCmd(cmd.setPowCHi(enable)));
       });
@@ -679,7 +679,7 @@ export class BleManager implements IBleManager {
   async writeBatteryClr(): Promise<void> {
     this.lastWriteMs = Date.now();
     try {
-      const char = this.chars.get(CHARS.POWER_CONFIG)!;
+      const char = this.chars.get(CHARS.BATTERY_INFO)!;
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, encodeCmd(cmd.batClr()));
       });
@@ -691,7 +691,7 @@ export class BleManager implements IBleManager {
   async writePowerClr(): Promise<void> {
     this.lastWriteMs = Date.now();
     try {
-      const char = this.chars.get(CHARS.POWER_CONFIG)!;
+      const char = this.chars.get(CHARS.POWER_STATUS)!;
       await this.writer.enqueue(async () => {
         await this.writer.rawWrite(char, encodeCmd(cmd.powClr()));
       });
