@@ -1,0 +1,58 @@
+name: Publish CLI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/cli/**'
+      - 'packages/sdk/**'  # SDK 会编进 CLI 产物，其改动同样需要触发
+      - '.github/workflows/publish-cli.yml'
+  workflow_dispatch:  # 手动触发
+
+permissions:
+  id-token: write  # Required for OIDC
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false  # never use caching in release builds
+
+      # workspace 根安装：CLI 依赖 workspace:* 的 SDK（发布时 pnpm 自动转为已发布版本）
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # prepublishOnly 会自动执行：build (esbuild 打包) + typecheck + test
+      - name: Publish
+        working-directory: packages/cli
+        shell: bash
+        run: |
+          set +e
+          output=$(pnpm publish --access public --no-git-checks 2>&1)
+          status=$?
+          echo "$output"
+
+          if [ $status -eq 0 ]; then
+            echo "Publish succeeded"
+            exit 0
+          fi
+
+          if echo "$output" | grep -q "You cannot publish over the previously published versions"; then
+            echo "Version already published; treating as success."
+            exit 0
+          fi
+
+          echo "Publish failed with an unexpected error."
+          exit $status
