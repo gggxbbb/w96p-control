@@ -16,6 +16,9 @@ import { DEFAULT_SPEEDS_FULL, DEFAULT_SPEEDS_COMPAT } from './profiles.js';
 
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
+/** 定时器句柄（浏览器环境为 number，Node 环境为 Timeout 对象） */
+type TimerHandle = ReturnType<typeof setInterval>;
+
 export class VirtualManager implements IBleManager {
   onState?: (s: BleState, deviceName?: string, _isCompat?: boolean) => void;
   onSnapshot?: (snap: BleSnapshot) => void;
@@ -27,8 +30,8 @@ export class VirtualManager implements IBleManager {
   private virtualIsCompat = false;
 
   /** 内部状态 */
-  private pollId: number | null = null;
-  private timerInterval: number | null = null;
+  private pollId: TimerHandle | null = null;
+  private timerInterval: TimerHandle | null = null;
   private startTime = 0;
 
   /** 设备模拟状态 */

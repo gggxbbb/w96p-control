@@ -12,7 +12,7 @@ export type { PowSwitchDef, PowSegDef } from './ble/powSwitches.js';
 export type { OpRecord, SchedulerSnapshot } from './ble/metrics.js';
 
 // ── Transport abstraction ──
-export type { GattTransport, GattDevice, GattServer, GattService, GattCharacteristic, GattCharacteristicProperties } from './ble/transport.js';
+export type { GattTransport, GattDevice, GattServer, GattService, GattCharacteristic, GattCharacteristicProperties, GattCharacteristicValueChangedEvent, RequestDeviceOptions } from './ble/transport.js';
 export { WebBluetoothTransport } from './ble/webTransport.js';
 export { SERVICES, CHARS, OPTIONAL_CHARS, ALL_OPTIONAL_SERVICES, MAIN_SERVICE, DFU_SERVICE, DFU_WRITE, DFU_NOTIFY } from './ble/uuids.js';
 
