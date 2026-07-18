@@ -1,6 +1,6 @@
 {
   "name": "@gggxbbb/w96p-cli",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": false,
   "description": "W96P/W66D BLE 风扇调试工具（TUI + MCP server）",
   "homepage": "https://github.com/gggxbbb/w96p-control/tree/main/packages/cli",

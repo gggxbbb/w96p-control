@@ -6,7 +6,8 @@
  * transport 本身保持哑层；不触碰 navigator 全局。
  */
 
-import { Bluetooth } from 'webbluetooth';
+import { Bluetooth, getAdapters } from 'webbluetooth';
+import { readdirSync } from 'node:fs';
 import type {
   GattCharacteristic,
   GattCharacteristicProperties,
@@ -18,7 +19,36 @@ import type {
   RequestDeviceOptions,
 } from '@gggxbbb/w96p-ble-sdk';
 
-/** 扫描发现到的设备信息 */
+/** 确认本机有可用蓝牙适配器；无则抛友好错误，避免 native abort。 */
+function assertBluetoothAvailable(): void {
+  if (process.platform === 'linux') {
+    let hasSysfsAdapter = false;
+    try {
+      hasSysfsAdapter = readdirSync('/sys/class/bluetooth').some((name) => name.startsWith('hci'));
+    } catch {
+      hasSysfsAdapter = false;
+    }
+    if (!hasSysfsAdapter) {
+      throw new Error(
+        '未检测到蓝牙适配器（/sys/class/bluetooth 下无 hci 设备）。请确认运行环境有可用的 BLE，或使用 --virtual 运行虚拟模式。',
+      );
+    }
+  }
+
+  let adapters: unknown[] = [];
+  try {
+    adapters = getAdapters();
+  } catch (e) {
+    throw new Error(`无法枚举蓝牙适配器: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
+  if (adapters.length === 0) {
+    throw new Error(
+      '未检测到蓝牙适配器。请确认运行环境有可用的 BLE，或使用 --virtual 运行虚拟模式。',
+    );
+  }
+}
+
 export interface FoundDeviceInfo {
   id: string;
   name: string | null;
@@ -201,25 +231,39 @@ export class NodeTransport implements GattTransport {
    * reject）——本循环不适用交互选择，交互流程需单独处理。
    */
   async requestDevice(options: RequestDeviceOptions): Promise<GattDevice> {
-    const deadline = Date.now() + this.totalTimeoutMs;
-    let lastError: unknown = new Error('requestDevice error: no devices found');
-    while (Date.now() < deadline) {
-      const remainingSec = Math.min(this.windowSec, (deadline - Date.now()) / 1000);
-      const deviceFoundCb = this.deviceFound;
-      const bluetooth = new Bluetooth({
-        scanTime: remainingSec,
-        deviceFound: deviceFoundCb
-          ? (device, selectFn) => deviceFoundCb({ id: device.id, name: device.name ?? null }, selectFn)
-          : undefined,
-      });
-      try {
-        const device = await bluetooth.requestDevice(options);
-        return new NodeDevice(device);
-      } catch (e) {
-        lastError = e;
-        if (String(e) !== 'requestDevice error: no devices found') throw e;
+    assertBluetoothAvailable();
+
+    const deviceFoundCb = this.deviceFound;
+    const buildOptions = (scanTimeSec: number) => ({
+      scanTime: scanTimeSec,
+      deviceFound: deviceFoundCb
+        ? (device: BluetoothDevice, selectFn: () => void) =>
+            deviceFoundCb({ id: device.id, name: device.name ?? null }, selectFn)
+        : undefined,
+    });
+
+    // Windows 需要每轮用全新 Bluetooth 实例绕开 WinRT 首次扫描哑窗问题（CLI-3）。
+    // Linux/macOS 则用单实例扫描，避免 SimpleBLE D-Bus cleanup 时重复卸载 match rule。
+    if (process.platform === 'win32') {
+      const deadline = Date.now() + this.totalTimeoutMs;
+      let lastError: unknown = new Error('requestDevice error: no devices found');
+      while (Date.now() < deadline) {
+        const remainingSec = Math.min(this.windowSec, (deadline - Date.now()) / 1000);
+        const bluetooth = new Bluetooth(buildOptions(remainingSec));
+        try {
+          const device = await bluetooth.requestDevice(options);
+          return new NodeDevice(device);
+        } catch (e) {
+          lastError = e;
+          if (String(e) !== 'requestDevice error: no devices found') throw e;
+        }
       }
+      throw lastError;
     }
-    throw lastError;
+
+    const totalSec = Math.min(this.totalTimeoutMs / 1000, 60);
+    const bluetooth = new Bluetooth(buildOptions(totalSec));
+    const device = await bluetooth.requestDevice(options);
+    return new NodeDevice(device);
   }
 }
