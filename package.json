@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "cli": "pnpm --filter @gggxbbb/w96p-cli start",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview"

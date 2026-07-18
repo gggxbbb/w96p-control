@@ -3,4 +3,6 @@ packages:
 allowBuilds:
   '@abandonware/bluetooth-hci-socket': true
   '@abandonware/noble': true
+  esbuild: true
+  webbluetooth: true
   usb: true
